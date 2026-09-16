@@ -198,9 +198,35 @@ class SortieServices {
 
   // ------------------------------------------------------------ UI adapters
 
+  /// Discovery guesses several hosts (imap./mail./bare domain). Keep only the
+  /// ones that resolve and accept a TCP connection so the pre-filled server
+  /// is one that really exists; autoconfig/SRV results come first anyway.
   Future<List<ServerCandidate>> autodiscover(String email) async {
     final found = await disc.Autodiscovery(imapFactory: EnoughImapGateway.new, smtp: EnoughSmtpGateway()).discover(email);
-    return found.map((c) => ServerCandidate(imap: c.imap, smtp: c.smtp, username: c.username, source: c.source)).toList();
+    final reachable = <String, bool>{};
+    Future<bool> ok(String host, int port) async {
+      final key = '$host:$port';
+      final cached = reachable[key];
+      if (cached != null) return cached;
+      var result = false;
+      try {
+        final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 4));
+        socket.destroy();
+        result = true;
+      } catch (_) {
+        result = false;
+      }
+      return reachable[key] = result;
+    }
+
+    final out = <ServerCandidate>[];
+    for (final c in found) {
+      if (await ok(c.imap.host, c.imap.port) && await ok(c.smtp.host, c.smtp.port)) {
+        out.add(ServerCandidate(imap: c.imap, smtp: c.smtp, username: c.username, source: c.source));
+      }
+    }
+    _log.info('autodiscovery for ${email.split('@').last}: ${found.length} guesses, ${out.length} reachable');
+    return out;
   }
 
   Future<void> loginProbe(Account account, String password) async {
