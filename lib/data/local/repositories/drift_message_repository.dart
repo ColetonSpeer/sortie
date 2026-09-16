@@ -297,7 +297,7 @@ class DriftMessageRepository implements MessageRepository {
         await db.into(db.messages).insertOnConflictUpdate(r.toCompanion(false).copyWith(
               folderPath: Value(toFolder),
               uid: Value(newUid),
-              uidValidity: newUid == null ? const Value(null) : const Value.absent(),
+              uidValidity: newUid == null ? const Value(null) : Value(r.uidValidity),
             ));
       }
     });

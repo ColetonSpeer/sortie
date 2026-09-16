@@ -109,7 +109,7 @@ class SyncStatusIndicator extends ConsumerWidget {
   }
 }
 
-/// "Sorting: this device" / "Sorting: <other device>" / "Sorting: off".
+/// "Sorting: this device" / "Sorting: `<other device>`" / "Sorting: off".
 class CoordinationBadge extends ConsumerWidget {
   const CoordinationBadge({super.key, required this.accountId});
   final String accountId;

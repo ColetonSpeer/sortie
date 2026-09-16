@@ -1,0 +1,26 @@
+# Local IMAP server for integration tests.
+#
+#   docker compose -f tool/docker-compose.dovecot.yml up -d
+#   flutter test test/data/integration --dart-define=IMAP_TEST_HOST=127.0.0.1 --dart-define=IMAP_TEST_PORT=3143
+#
+# User `test` / password `test`, plain IMAP on 3143 (no TLS), Maildir storage.
+# Dovecot advertises IDLE, MOVE, CONDSTORE, QRESYNC, SPECIAL-USE and UIDPLUS
+# out of the box.
+services:
+  dovecot:
+    image: dovecot/dovecot:2.3-latest
+    container_name: sortie-dovecot
+    ports:
+      - "3143:143"
+    volumes:
+      - ./dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./dovecot/passwd:/etc/dovecot/passwd:ro
+      - dovecot-mail:/srv/mail
+    healthcheck:
+      test: ["CMD", "doveadm", "who"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dovecot-mail:

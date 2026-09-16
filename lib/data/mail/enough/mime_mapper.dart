@@ -172,6 +172,6 @@ abstract final class MimeMapper {
   /// Simple text -> HTML alternative used by the composer.
   static String textToHtml(String text) {
     final esc = const HtmlEscape(HtmlEscapeMode.element).convert(text);
-    return '<html><body><div style="font-family:sans-serif;white-space:pre-wrap">${esc.replaceAll('\n', '<br>\n')}</div></body></html>';
+    return '<html><body>\n<div style="font-family:sans-serif">\n${esc.replaceAll('\n', '<br>\n')}\n</div>\n</body></html>';
   }
 }

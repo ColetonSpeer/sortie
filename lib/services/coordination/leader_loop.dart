@@ -79,6 +79,7 @@ class LeaderLoop {
   Timer? _classifyTimer;
   Timer? _evalTimer;
   Timer? _retryTimer;
+  Timer? _pollTimer;
   Future<void> _chain = Future.value();
   bool _stopped = false;
   int moves = 0;
@@ -94,7 +95,7 @@ class LeaderLoop {
     _subs.add(_sync.newInboxMessages(accountId).listen((hs) {
       _newBuffer.addAll(hs.where((h) => h.folderPath == inbox));
       _classifyTimer?.cancel();
-      _classifyTimer = Timer(const Duration(seconds: 1), () => _serial(_flushNew).catchError(_fatal));
+      _classifyTimer = Timer(const Duration(seconds: 1), () => _serial(_flushNew).then((_) {}, onError: _fatal));
     }));
     _subs.add(_sync.flagChanges(accountId).listen((f) {
       if (f.folderPath != inbox) return;
@@ -104,7 +105,10 @@ class LeaderLoop {
       }
       scheduleEvaluate();
     }));
-    await _serial(reconcile).catchError(_fatal);
+    // Externally moved / deleted pending mail produces no flag event, so
+    // re-check on the poll interval as well.
+    _pollTimer = Timer.periodic(_timers.pollFallback, (_) => scheduleEvaluate(Duration.zero));
+    await _serial(reconcile).then((_) {}, onError: _fatal);
   }
 
   Future<void> stop() async {
@@ -112,8 +116,9 @@ class LeaderLoop {
     _classifyTimer?.cancel();
     _evalTimer?.cancel();
     _retryTimer?.cancel();
+    _pollTimer?.cancel();
     for (final s in _subs) {
-      await s.cancel();
+      unawaited(s.cancel());
     }
     _subs.clear();
     try {
@@ -133,7 +138,7 @@ class LeaderLoop {
   void scheduleEvaluate([Duration delay = const Duration(milliseconds: 300)]) {
     if (_stopped) return;
     _evalTimer?.cancel();
-    _evalTimer = Timer(delay, () => _serial(evaluatePending).catchError(_fatal));
+    _evalTimer = Timer(delay, () => _serial(evaluatePending).then((_) {}, onError: _fatal));
   }
 
   /// Runs one classify + evaluate pass to completion (bounded cycles).
@@ -297,7 +302,7 @@ class LeaderLoop {
     if (moved > 0) await _resync();
     if (retry != null && !_stopped) {
       _retryTimer?.cancel();
-      _retryTimer = Timer(retry + const Duration(milliseconds: 500), () => _serial(evaluatePending).catchError(_fatal));
+      _retryTimer = Timer(retry + const Duration(milliseconds: 500), () => _serial(evaluatePending).then((_) {}, onError: _fatal));
     }
     return moved;
   }

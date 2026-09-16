@@ -26,6 +26,8 @@ class LeaseTimers {
     this.reconnectDelayMax = const Duration(minutes: 5),
     this.yieldBatchLimit = const Duration(seconds: 5),
     this.batchSize = 25,
+    this.compactionMaxJournal = 300,
+    this.compactionMaxAge = const Duration(days: 14),
   });
 
   final Duration heartbeat;
@@ -47,10 +49,14 @@ class LeaseTimers {
   /// Max MOVEs per fenced batch.
   final int batchSize;
 
+  /// Compaction triggers: journal messages, or age of the oldest one.
+  final int compactionMaxJournal;
+  final Duration compactionMaxAge;
+
   /// `rand(0..jitter) + (100 - min(p,100)) * 0.1 s`, capped.
   Duration claimBackoff(int priority, double rand) {
     final jitter = Duration(microseconds: (claimBackoffJitter.inMicroseconds * rand).round());
-    final byPriority = Duration(milliseconds: (100 - min(priority, 100)) * 100);
+    final byPriority = Duration(milliseconds: (100 - min<int>(priority, 100)) * 100);
     final total = jitter + byPriority;
     return total > claimBackoffCap ? claimBackoffCap : total;
   }
@@ -73,6 +79,8 @@ class LeaseTimers {
         reconnectDelayMax: reconnectDelayMax,
         yieldBatchLimit: yieldBatchLimit,
         batchSize: batchSize,
+        compactionMaxJournal: compactionMaxJournal,
+        compactionMaxAge: compactionMaxAge,
       );
 }
 

@@ -299,7 +299,7 @@ class ImapControlFolder implements ControlFolder {
     if (!ctrl.isClosed) ctrl.addError(e);
   }
 
-  Future<void> _stopIdle() async {
+  void _stopIdle() {
     _reissueTimer?.cancel();
     _pollTimer?.cancel();
     final s = _idleStop;
@@ -307,13 +307,15 @@ class ImapControlFolder implements ControlFolder {
     _idleStop = null;
     final c = _changes;
     _changes = null;
-    if (c != null && !c.isClosed) await c.close();
+    // Deferred: closing from inside the controller's own onCancel would
+    // leave the cancelling subscription waiting on the done event forever.
+    if (c != null && !c.isClosed) scheduleMicrotask(() => unawaited(c.close()));
   }
 
   @override
   Future<void> dispose() async {
     _disposed = true;
-    await _stopIdle();
+    _stopIdle();
     try {
       if (_gw.isConnected) await _gw.disconnect();
     } catch (_) {}

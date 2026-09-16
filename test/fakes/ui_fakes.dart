@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:sortie/app/demo/demo_data.dart';
 import 'package:sortie/app/demo/fake_repositories.dart';
 import 'package:sortie/app/demo/fake_services.dart';
+import 'package:sortie/app/onboarding_models.dart';
 import 'package:sortie/app/providers.dart';
 import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/services/services.dart';
@@ -61,6 +62,7 @@ class UiFakes {
         sortCoordinatorProvider.overrideWith((ref, id) => coordinator),
         deviceIdentityProvider.overrideWithValue(const DeviceIdentity(
             deviceId: DemoData.deviceId, displayName: 'test', platform: DevicePlatform.linux, priority: 30)),
+        composeMessageProvider.overrideWithValue((d) async => 'Subject: ${d.subject}\r\n\r\n${d.bodyText}'.codeUnits),
         ...extra,
       ];
 
@@ -75,3 +77,7 @@ class UiFakes {
         ),
       );
 }
+
+/// Convenience overrides for the unbound UI hooks.
+Override autodiscoveryProviderOverride(Future<List<ServerCandidate>> Function(String) f) => autodiscoveryProvider.overrideWithValue(f);
+Override loginProbeProviderOverride(Future<void> Function(Account, String) f) => loginProbeProvider.overrideWithValue(f);

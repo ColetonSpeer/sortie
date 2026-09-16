@@ -277,7 +277,7 @@ class AccountSyncSession {
       void finishIdle() {
         if (!stop.isCompleted) stop.complete();
       }
-      wake.future.then((_) => finishIdle());
+      unawaited(wake.future.then((_) => finishIdle()));
       final renew = Timer(tuning.idleRenew, finishIdle);
       final keep = Timer.periodic(tuning.keepalive, (_) {
         withCommand((gw) => gw.noop()).catchError((Object e) {

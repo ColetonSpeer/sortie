@@ -95,7 +95,7 @@ class MessageActions {
 
   Future<void> badgeChangeFolder(MessageKey key, {String? current}) async {
     final dest = await pickFolder(context, ref, key.accountId,
-        title: 'Sort into…', exclude: {if (current != null) current});
+        title: 'Sort into…', exclude: {?current});
     if (dest != null) await _guard(() => _coord(key.accountId).changeDestination(key, dest), done: 'Will move to $dest');
   }
 

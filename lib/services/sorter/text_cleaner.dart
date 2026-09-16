@@ -50,6 +50,15 @@ abstract final class TextCleaner {
             RegExp(r'display\s*:\s*none', caseSensitive: false).hasMatch(child.attributes['style'] ?? '')) {
           continue;
         }
+        if (tag == 'a') {
+          final inner = StringBuffer();
+          _walk(child, inner);
+          final href = (child.attributes['href'] ?? '').trim();
+          final text = inner.toString().trim();
+          out.write(text);
+          if (href.startsWith(RegExp('https?://', caseSensitive: false)) && !text.contains(href)) out.write(' ($href)');
+          continue;
+        }
         final block = _blockTags.contains(tag);
         if (block) out.write('\n');
         if (tag == 'blockquote') {
@@ -121,7 +130,7 @@ abstract final class TextCleaner {
   static String redactSecrets(String text) {
     var t = text;
     final codeWords = RegExp(r'\b(code|OTP|one-time|verification|verify|PIN|passcode)\b', caseSensitive: false);
-    final digits = RegExp(r'(?<![\d.])\d{4,8}(?![\d.])');
+    final digits = RegExp(r'(?<![\d.])\d{4,8}(?!\d)');
     final protectedRanges = <(int, int)>[];
     t = t.replaceAllMapped(digits, (m) {
       final from = (m.start - 40).clamp(0, t.length);
@@ -133,13 +142,13 @@ abstract final class TextCleaner {
       }
       return m.group(0)!;
     });
-    t = t.replaceAll(RegExp(r'\d[\d \-]{6,}\d'), '[NUM]').replaceAllMapped(RegExp(r'\[NUM\]'), (m) => '[NUM]');
-    t = t.replaceAll(RegExp(r'(?<!\[)\d{8,}'), '[NUM]');
-    t = t.replaceAllMapped(RegExp(r'(?<![\w/])(?=[A-Za-z0-9_\-]{20,}(?![\w/]))([A-Za-z0-9_\-]{20,})'), (m) {
+    t = t.replaceAllMapped(RegExp(r'(?<![\w/])([A-Za-z0-9_\-]{20,})(?![\w/])'), (m) {
       final s = m.group(1)!;
       final hasLetter = RegExp('[A-Za-z]').hasMatch(s), hasDigit = RegExp(r'\d').hasMatch(s);
       return hasLetter && hasDigit ? '[TOKEN]' : s;
     });
+    t = t.replaceAll(RegExp(r'\d[\d \-]{6,}\d'), '[NUM]');
+    t = t.replaceAll(RegExp(r'\d{8,}'), '[NUM]');
     return t;
   }
 

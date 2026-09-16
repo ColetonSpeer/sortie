@@ -42,7 +42,8 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
   int _blockedImages = 0;
   Object? _error;
 
-  SortCoordinator get _coord => ref.read(sortCoordinatorProvider(widget.accountId));
+  /// Cached so dispose() can release the hold without touching `ref`.
+  late final SortCoordinator _coord = ref.read(sortCoordinatorProvider(widget.accountId));
 
   @override
   void initState() {
@@ -78,6 +79,12 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     if (_holding || _key == null) return;
     _holding = true;
     _coord.onMessageOpened(_key!);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _coord; // resolve while the element is still mounted
   }
 
   void _release() {
