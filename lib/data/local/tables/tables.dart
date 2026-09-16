@@ -60,7 +60,9 @@ class Messages extends Table {
   TextColumn get subject => text().withDefault(const Constant(''))();
   TextColumn get fromEmail => text().nullable()();
   TextColumn get fromName => text().nullable()();
-  TextColumn get toJson => text().withDefault(const Constant('[]'))();
+  /// Recipient list as JSON. Named `toAddressesJson` in Dart because drift's
+  /// generated data class already has a `toJson()` method.
+  TextColumn get toAddressesJson => text().named('to_json').withDefault(const Constant('[]'))();
   TextColumn get ccJson => text().withDefault(const Constant('[]'))();
   TextColumn get replyTo => text().nullable()();
   IntColumn get date => integer()();

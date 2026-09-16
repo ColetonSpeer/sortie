@@ -1,0 +1,36 @@
+name: Release Linux
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev libayatana-appindicator3-dev libnotify-dev
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - name: Build
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}; [ "$GITHUB_REF_TYPE" = tag ] || VERSION=0.0.0
+          flutter build linux --release --build-name=$VERSION --build-number=$GITHUB_RUN_NUMBER
+          tar -C build/linux/x64/release -czf sortie-linux-x64.tar.gz bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sortie-linux-x64
+          path: sortie-linux-x64.tar.gz
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sortie-linux-x64.tar.gz

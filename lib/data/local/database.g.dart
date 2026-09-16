@@ -2117,9 +2117,11 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _toJsonMeta = const VerificationMeta('toJson');
+  static const VerificationMeta _toAddressesJsonMeta = const VerificationMeta(
+    'toAddressesJson',
+  );
   @override
-  late final GeneratedColumn<String> toJson = GeneratedColumn<String>(
+  late final GeneratedColumn<String> toAddressesJson = GeneratedColumn<String>(
     'to_json',
     aliasedName,
     false,
@@ -2304,7 +2306,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     subject,
     fromEmail,
     fromName,
-    toJson,
+    toAddressesJson,
     ccJson,
     replyTo,
     date,
@@ -2401,8 +2403,11 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     }
     if (data.containsKey('to_json')) {
       context.handle(
-        _toJsonMeta,
-        toJson.isAcceptableOrUnknown(data['to_json']!, _toJsonMeta),
+        _toAddressesJsonMeta,
+        toAddressesJson.isAcceptableOrUnknown(
+          data['to_json']!,
+          _toAddressesJsonMeta,
+        ),
       );
     }
     if (data.containsKey('cc_json')) {
@@ -2564,7 +2569,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
         DriftSqlType.string,
         data['${effectivePrefix}from_name'],
       ),
-      toJson: attachedDatabase.typeMapping.read(
+      toAddressesJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}to_json'],
       )!,
@@ -2649,7 +2654,10 @@ class Message extends DataClass implements Insertable<Message> {
   final String subject;
   final String? fromEmail;
   final String? fromName;
-  final String toJson;
+
+  /// Recipient list as JSON. Named  in Dart because drift's
+  /// generated data class already has a `toJson()` method.
+  final String toAddressesJson;
   final String ccJson;
   final String? replyTo;
   final int date;
@@ -2675,7 +2683,7 @@ class Message extends DataClass implements Insertable<Message> {
     required this.subject,
     this.fromEmail,
     this.fromName,
-    required this.toJson,
+    required this.toAddressesJson,
     required this.ccJson,
     this.replyTo,
     required this.date,
@@ -2714,7 +2722,7 @@ class Message extends DataClass implements Insertable<Message> {
     if (!nullToAbsent || fromName != null) {
       map['from_name'] = Variable<String>(fromName);
     }
-    map['to_json'] = Variable<String>(toJson);
+    map['to_json'] = Variable<String>(toAddressesJson);
     map['cc_json'] = Variable<String>(ccJson);
     if (!nullToAbsent || replyTo != null) {
       map['reply_to'] = Variable<String>(replyTo);
@@ -2766,7 +2774,7 @@ class Message extends DataClass implements Insertable<Message> {
       fromName: fromName == null && nullToAbsent
           ? const Value.absent()
           : Value(fromName),
-      toJson: Value(toJson),
+      toAddressesJson: Value(toAddressesJson),
       ccJson: Value(ccJson),
       replyTo: replyTo == null && nullToAbsent
           ? const Value.absent()
@@ -2814,7 +2822,7 @@ class Message extends DataClass implements Insertable<Message> {
       subject: serializer.fromJson<String>(json['subject']),
       fromEmail: serializer.fromJson<String?>(json['fromEmail']),
       fromName: serializer.fromJson<String?>(json['fromName']),
-      toJson: serializer.fromJson<String>(json['toJson']),
+      toAddressesJson: serializer.fromJson<String>(json['toAddressesJson']),
       ccJson: serializer.fromJson<String>(json['ccJson']),
       replyTo: serializer.fromJson<String?>(json['replyTo']),
       date: serializer.fromJson<int>(json['date']),
@@ -2845,7 +2853,7 @@ class Message extends DataClass implements Insertable<Message> {
       'subject': serializer.toJson<String>(subject),
       'fromEmail': serializer.toJson<String?>(fromEmail),
       'fromName': serializer.toJson<String?>(fromName),
-      'toJson': serializer.toJson<String>(toJson),
+      'toAddressesJson': serializer.toJson<String>(toAddressesJson),
       'ccJson': serializer.toJson<String>(ccJson),
       'replyTo': serializer.toJson<String?>(replyTo),
       'date': serializer.toJson<int>(date),
@@ -2874,7 +2882,7 @@ class Message extends DataClass implements Insertable<Message> {
     String? subject,
     Value<String?> fromEmail = const Value.absent(),
     Value<String?> fromName = const Value.absent(),
-    String? toJson,
+    String? toAddressesJson,
     String? ccJson,
     Value<String?> replyTo = const Value.absent(),
     int? date,
@@ -2900,7 +2908,7 @@ class Message extends DataClass implements Insertable<Message> {
     subject: subject ?? this.subject,
     fromEmail: fromEmail.present ? fromEmail.value : this.fromEmail,
     fromName: fromName.present ? fromName.value : this.fromName,
-    toJson: toJson ?? this.toJson,
+    toAddressesJson: toAddressesJson ?? this.toAddressesJson,
     ccJson: ccJson ?? this.ccJson,
     replyTo: replyTo.present ? replyTo.value : this.replyTo,
     date: date ?? this.date,
@@ -2936,7 +2944,9 @@ class Message extends DataClass implements Insertable<Message> {
       subject: data.subject.present ? data.subject.value : this.subject,
       fromEmail: data.fromEmail.present ? data.fromEmail.value : this.fromEmail,
       fromName: data.fromName.present ? data.fromName.value : this.fromName,
-      toJson: data.toJson.present ? data.toJson.value : this.toJson,
+      toAddressesJson: data.toAddressesJson.present
+          ? data.toAddressesJson.value
+          : this.toAddressesJson,
       ccJson: data.ccJson.present ? data.ccJson.value : this.ccJson,
       replyTo: data.replyTo.present ? data.replyTo.value : this.replyTo,
       date: data.date.present ? data.date.value : this.date,
@@ -2981,7 +2991,7 @@ class Message extends DataClass implements Insertable<Message> {
           ..write('subject: $subject, ')
           ..write('fromEmail: $fromEmail, ')
           ..write('fromName: $fromName, ')
-          ..write('toJson: $toJson, ')
+          ..write('toAddressesJson: $toAddressesJson, ')
           ..write('ccJson: $ccJson, ')
           ..write('replyTo: $replyTo, ')
           ..write('date: $date, ')
@@ -3012,7 +3022,7 @@ class Message extends DataClass implements Insertable<Message> {
     subject,
     fromEmail,
     fromName,
-    toJson,
+    toAddressesJson,
     ccJson,
     replyTo,
     date,
@@ -3042,7 +3052,7 @@ class Message extends DataClass implements Insertable<Message> {
           other.subject == this.subject &&
           other.fromEmail == this.fromEmail &&
           other.fromName == this.fromName &&
-          other.toJson == this.toJson &&
+          other.toAddressesJson == this.toAddressesJson &&
           other.ccJson == this.ccJson &&
           other.replyTo == this.replyTo &&
           other.date == this.date &&
@@ -3070,7 +3080,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   final Value<String> subject;
   final Value<String?> fromEmail;
   final Value<String?> fromName;
-  final Value<String> toJson;
+  final Value<String> toAddressesJson;
   final Value<String> ccJson;
   final Value<String?> replyTo;
   final Value<int> date;
@@ -3097,7 +3107,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     this.subject = const Value.absent(),
     this.fromEmail = const Value.absent(),
     this.fromName = const Value.absent(),
-    this.toJson = const Value.absent(),
+    this.toAddressesJson = const Value.absent(),
     this.ccJson = const Value.absent(),
     this.replyTo = const Value.absent(),
     this.date = const Value.absent(),
@@ -3125,7 +3135,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     this.subject = const Value.absent(),
     this.fromEmail = const Value.absent(),
     this.fromName = const Value.absent(),
-    this.toJson = const Value.absent(),
+    this.toAddressesJson = const Value.absent(),
     this.ccJson = const Value.absent(),
     this.replyTo = const Value.absent(),
     required int date,
@@ -3156,7 +3166,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Expression<String>? subject,
     Expression<String>? fromEmail,
     Expression<String>? fromName,
-    Expression<String>? toJson,
+    Expression<String>? toAddressesJson,
     Expression<String>? ccJson,
     Expression<String>? replyTo,
     Expression<int>? date,
@@ -3184,7 +3194,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
       if (subject != null) 'subject': subject,
       if (fromEmail != null) 'from_email': fromEmail,
       if (fromName != null) 'from_name': fromName,
-      if (toJson != null) 'to_json': toJson,
+      if (toAddressesJson != null) 'to_json': toAddressesJson,
       if (ccJson != null) 'cc_json': ccJson,
       if (replyTo != null) 'reply_to': replyTo,
       if (date != null) 'date': date,
@@ -3215,7 +3225,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Value<String>? subject,
     Value<String?>? fromEmail,
     Value<String?>? fromName,
-    Value<String>? toJson,
+    Value<String>? toAddressesJson,
     Value<String>? ccJson,
     Value<String?>? replyTo,
     Value<int>? date,
@@ -3243,7 +3253,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
       subject: subject ?? this.subject,
       fromEmail: fromEmail ?? this.fromEmail,
       fromName: fromName ?? this.fromName,
-      toJson: toJson ?? this.toJson,
+      toAddressesJson: toAddressesJson ?? this.toAddressesJson,
       ccJson: ccJson ?? this.ccJson,
       replyTo: replyTo ?? this.replyTo,
       date: date ?? this.date,
@@ -3293,8 +3303,8 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     if (fromName.present) {
       map['from_name'] = Variable<String>(fromName.value);
     }
-    if (toJson.present) {
-      map['to_json'] = Variable<String>(toJson.value);
+    if (toAddressesJson.present) {
+      map['to_json'] = Variable<String>(toAddressesJson.value);
     }
     if (ccJson.present) {
       map['cc_json'] = Variable<String>(ccJson.value);
@@ -3359,7 +3369,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
           ..write('subject: $subject, ')
           ..write('fromEmail: $fromEmail, ')
           ..write('fromName: $fromName, ')
-          ..write('toJson: $toJson, ')
+          ..write('toAddressesJson: $toAddressesJson, ')
           ..write('ccJson: $ccJson, ')
           ..write('replyTo: $replyTo, ')
           ..write('date: $date, ')
@@ -12906,7 +12916,7 @@ typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
   Value<String> subject,
   Value<String?> fromEmail,
   Value<String?> fromName,
-  Value<String> toJson,
+  Value<String> toAddressesJson,
   Value<String> ccJson,
   Value<String?> replyTo,
   required int date,
@@ -12934,7 +12944,7 @@ typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
   Value<String> subject,
   Value<String?> fromEmail,
   Value<String?> fromName,
-  Value<String> toJson,
+  Value<String> toAddressesJson,
   Value<String> ccJson,
   Value<String?> replyTo,
   Value<int> date,
@@ -13007,8 +13017,8 @@ class $$MessagesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get toJson => $composableBuilder(
-    column: $table.toJson,
+  ColumnFilters<String> get toAddressesJson => $composableBuilder(
+    column: $table.toAddressesJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13142,8 +13152,8 @@ class $$MessagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get toJson => $composableBuilder(
-    column: $table.toJson,
+  ColumnOrderings<String> get toAddressesJson => $composableBuilder(
+    column: $table.toAddressesJson,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13265,8 +13275,10 @@ class $$MessagesTableAnnotationComposer
   GeneratedColumn<String> get fromName =>
       $composableBuilder(column: $table.fromName, builder: (column) => column);
 
-  GeneratedColumn<String> get toJson =>
-      $composableBuilder(column: $table.toJson, builder: (column) => column);
+  GeneratedColumn<String> get toAddressesJson => $composableBuilder(
+    column: $table.toAddressesJson,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get ccJson =>
       $composableBuilder(column: $table.ccJson, builder: (column) => column);
@@ -13365,7 +13377,7 @@ class $$MessagesTableTableManager
                 Value<String> subject = const Value.absent(),
                 Value<String?> fromEmail = const Value.absent(),
                 Value<String?> fromName = const Value.absent(),
-                Value<String> toJson = const Value.absent(),
+                Value<String> toAddressesJson = const Value.absent(),
                 Value<String> ccJson = const Value.absent(),
                 Value<String?> replyTo = const Value.absent(),
                 Value<int> date = const Value.absent(),
@@ -13392,7 +13404,7 @@ class $$MessagesTableTableManager
                 subject: subject,
                 fromEmail: fromEmail,
                 fromName: fromName,
-                toJson: toJson,
+                toAddressesJson: toAddressesJson,
                 ccJson: ccJson,
                 replyTo: replyTo,
                 date: date,
@@ -13421,7 +13433,7 @@ class $$MessagesTableTableManager
                 Value<String> subject = const Value.absent(),
                 Value<String?> fromEmail = const Value.absent(),
                 Value<String?> fromName = const Value.absent(),
-                Value<String> toJson = const Value.absent(),
+                Value<String> toAddressesJson = const Value.absent(),
                 Value<String> ccJson = const Value.absent(),
                 Value<String?> replyTo = const Value.absent(),
                 required int date,
@@ -13448,7 +13460,7 @@ class $$MessagesTableTableManager
                 subject: subject,
                 fromEmail: fromEmail,
                 fromName: fromName,
-                toJson: toJson,
+                toAddressesJson: toAddressesJson,
                 ccJson: ccJson,
                 replyTo: replyTo,
                 date: date,
