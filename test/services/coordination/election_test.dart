@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sortie/data/coordination/control_folder.dart';
 import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/services/services.dart';
+import 'package:sortie/services/coordination/control_messages.dart';
 import 'package:sortie/services/coordination/coordination_service.dart';
 
 import 'harness.dart';
@@ -25,27 +27,56 @@ void main() {
     expect(devices.single.isThisDevice, isTrue);
   });
 
+  /// The fake server executes commands atomically, so two live services can
+  /// never interleave their claims; a competitor's claim is planted by hand
+  /// in the same server second as ours to exercise the tie-break.
+  void plantClaim(Harness h, String dev, int priority, {int epoch = 1}) {
+    final raw = h.wait(h.rawControl(FakeAsyncClock(h.fa)));
+    h.wait(raw.append(ControlMessageDraft(
+      type: 'lease-claim',
+      deviceId: Harness.idOf(dev),
+      messageId: ControlMessageIds.leaseClaim(Harness.idOf(dev), epoch),
+      seq: epoch,
+      epoch: epoch,
+      priority: priority,
+      body: {'deviceName': dev, 'platform': 'linux', 'priority': priority, 'epoch': epoch},
+    )));
+    h.wait(raw.dispose());
+  }
+
   coordinationTest('same-second claims: higher priority wins on both sides', (h) {
-    final phone = h.addDevice('bbb', priority: LeaderPriority.androidForegroundService);
     final desk = h.addDevice('aaa', priority: LeaderPriority.desktop);
-    h.startAll();
-    h.elapse(const Duration(seconds: 60));
+    desk.service.start();
+    h.elapse(const Duration(seconds: 7)); // backoff for p30 is exactly 7 s
+    expect(h.ofType('lease-claim').single.deviceId, desk.id);
+    plantClaim(h, 'bbb', LeaderPriority.androidForegroundService);
+    expect(h.ofType('lease-claim').map((c) => c.internalDate).toSet().length, 1, reason: 'same server second');
+    h.elapse(const Duration(seconds: 15));
     expect(desk.isLeader, isTrue);
     expect(desk.service.epoch, 1);
+    // The loser's device evaluates the same folder and reaches the same answer,
+    // deleting its own void claim on its first evaluation.
+    final phone = h.addDevice('bbb', priority: LeaderPriority.androidForegroundService);
+    phone.service.start();
+    h.elapse(const Duration(seconds: 5));
     expect(phone.state, CoordinationState.follower);
-    expect(h.ofType('lease-claim').map((c) => c.deviceId), [desk.id], reason: 'loser deleted its void claim');
     expect(phone.service.lastEvaluation?.activeLease?.deviceId, desk.id);
-    expect(desk.service.lastEvaluation?.activeLease?.deviceId, desk.id);
+    expect(h.ofType('lease-claim').map((c) => c.deviceId), [desk.id], reason: 'void claim removed by its owner');
   }, timers: noJitter);
 
-  coordinationTest('same-second claims with equal priority: smaller deviceId wins', (h) {
+  coordinationTest('same-second claims with equal priority: smaller deviceId wins (and we lose gracefully)', (h) {
     final b = h.addDevice('bbb');
-    final a = h.addDevice('aaa');
-    h.startAll();
-    h.elapse(const Duration(seconds: 60));
-    expect(a.isLeader, isTrue);
+    b.service.start();
+    h.elapse(const Duration(seconds: 7));
+    plantClaim(h, 'aaa', LeaderPriority.desktop); // lexically smaller, same second
+    h.elapse(const Duration(seconds: 15));
     expect(b.state, CoordinationState.follower);
-    expect(h.ofType('lease-claim').single.deviceId, a.id);
+    expect(b.service.lastEvaluation?.activeLease?.deviceId, Harness.idOf('aaa'));
+    expect(h.ofType('lease-claim').map((c) => c.deviceId), [Harness.idOf('aaa')], reason: 'b deleted its losing claim');
+    // Nobody heartbeats for the planted winner: after TTL b takes over with epoch 2.
+    h.elapse(const Duration(minutes: 4));
+    expect(b.isLeader, isTrue);
+    expect(b.service.epoch, 2);
   }, timers: noJitter);
 
   coordinationTest('a late claimant sees the fresh lease and stays follower without appending', (h) {
@@ -74,13 +105,14 @@ void main() {
     expect(b.state, CoordinationState.follower);
     // Simulate a crash: no release, no more beats.
     h.wait(a.service.stop(graceful: false));
-    final lastBeat = h.server.clock.now();
-    // Well before TTL nothing happens.
-    h.elapse(const Duration(seconds: 150));
+    final lastBeat = [...h.ofType('lease-claim'), ...h.ofType('lease-beat')].map((m) => m.internalDate).reduce((x, y) => x.isAfter(y) ? x : y);
+    // Until TTL after the last beat nothing happens.
+    final untilTtl = lastBeat.add(const Duration(seconds: 180)).difference(h.server.clock.now());
+    h.elapse(untilTtl - const Duration(seconds: 5));
     expect(b.state, CoordinationState.follower);
     expect(h.ofType('lease-claim').where((c) => c.deviceId == b.id), isEmpty);
     // After TTL (+ backoff + confirm) b leads with a new epoch.
-    h.elapse(const Duration(seconds: 60));
+    h.elapse(const Duration(seconds: 45));
     expect(b.isLeader, isTrue);
     expect(b.service.epoch, 2);
     final claim = h.ofType('lease-claim').firstWhere((c) => c.deviceId == b.id);

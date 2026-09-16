@@ -28,6 +28,6 @@ void initLogging({Level level = Level.INFO, void Function(String)? sink}) {
   Logger.root.level = level;
   Logger.root.onRecord.listen((r) {
     logBuffer.add(r);
-    sink?.call('${r.level.name} ${r.loggerName}: ${r.message}');
+    sink?.call('${r.level.name} ${r.loggerName}: ${r.message}${r.error != null ? ' | ${r.error}' : ''}');
   });
 }

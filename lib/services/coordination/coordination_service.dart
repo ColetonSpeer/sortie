@@ -268,9 +268,14 @@ class CoordinationService implements SortCoordinator {
     final eval = lease.evaluate(headers);
     _lastEval = eval;
     _publishDevices(eval, presence);
-    if (_leader != null) {
-      if (!eval.isHeldBy(_me.deviceId, _epoch!)) {
-        _logger.warning('${_me.shortId}: lost lease for epoch $_epoch to ${eval.activeLease}');
+    // Void claims of our own are deleted on the next evaluation (spec).
+    final ownVoid = eval.voidClaims.where((c) => c.deviceId == _me.deviceId).map((c) => c.uid).toList();
+    if (ownVoid.isNotEmpty) await control.expunge(ownVoid);
+    final myEpoch = _epoch;
+    if (myEpoch != null) {
+      // Leading (possibly still in the handoff wait before the loop starts).
+      if (!eval.isHeldBy(_me.deviceId, myEpoch)) {
+        _logger.warning('${_me.shortId}: lost lease for epoch $myEpoch to ${eval.activeLease}');
         await _demote(gen);
         await _decide(gen, eval);
       } else {
@@ -331,7 +336,7 @@ class CoordinationService implements SortCoordinator {
     _epoch = epoch;
     _setState(CoordinationState.leader);
     if (handoff && timers.handoffWait > Duration.zero) await Future<void>.delayed(timers.handoffWait);
-    if (gen != _generation || !_running) return;
+    if (gen != _generation || !_running || _epoch != epoch) return;
     final lease = _lease!;
     final journal = _journal!;
     final presence = _presence!;

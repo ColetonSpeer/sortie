@@ -51,10 +51,14 @@ class NotificationService {
           if (p != null && p.isNotEmpty) _taps.add(p);
         },
       );
-      final launch = await _plugin.getNotificationAppLaunchDetails();
-      final p = launch?.notificationResponse?.payload;
-      if (launch?.didNotificationLaunchApp == true && p != null && p.isNotEmpty) _taps.add(p);
       _ready = true;
+      try {
+        final launch = await _plugin.getNotificationAppLaunchDetails();
+        final p = launch?.notificationResponse?.payload;
+        if (launch?.didNotificationLaunchApp == true && p != null && p.isNotEmpty) _taps.add(p);
+      } on UnimplementedError {
+        // Linux: launch details are not supported; nothing to restore.
+      }
     } catch (e) {
       _log.warning('notification init failed', e);
     }
