@@ -5,21 +5,18 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../app/build_info.dart';
 import '../../app/providers.dart';
 import '../../core/logging.dart';
 import '../../domain/services/services.dart';
 import '../shell/format.dart';
-
-final _packageInfoProvider = FutureProvider<PackageInfo>((_) => PackageInfo.fromPlatform());
 
 class DiagnosticsPage extends ConsumerWidget {
   const DiagnosticsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref.watch(_packageInfoProvider);
     final status = ref.watch(syncStatusProvider).asData?.value ?? const <String, AccountSyncStatus>{};
     final lines = logBuffer.snapshot();
     final theme = Theme.of(context);
@@ -34,11 +31,7 @@ class DiagnosticsPage extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('Version'),
-          subtitle: Text(info.when(
-            data: (p) => '${p.appName} ${p.version}+${p.buildNumber}',
-            loading: () => '…',
-            error: (e, _) => 'unknown ($e)',
-          )),
+          subtitle: const Text('${BuildInfo.appName} ${BuildInfo.version}'),
         ),
         ListTile(
           leading: const Icon(Icons.computer_outlined),
@@ -87,7 +80,7 @@ class DiagnosticsPage extends ConsumerWidget {
         fileName: 'sortie-log-$stamp.txt',
         bytes: Uint8List.fromList(utf8.encode(lines.join('\n'))),
       );
-      if (path != null) messenger?.showSnackBar(SnackBar(content: Text('Saved to $path')));
+      if (path != null) messenger?.showSnackBar(SnackBar(content: Text('Saved to ${path.toFilePath()}')));
     } catch (e) {
       messenger?.showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }

@@ -308,8 +308,12 @@ class LeaderLoop {
   }
 
   Future<bool> _execute(SortDecision d, MessageHeader h) async {
+    var marked = false;
     try {
-      if (customKeywords) await _ops.store([h.uid], add: {SortieKeywords.done}, remove: {SortieKeywords.pending});
+      if (customKeywords) {
+        await _ops.store([h.uid], add: {SortieKeywords.done}, remove: {SortieKeywords.pending});
+        marked = true;
+      }
       final r = await _ops.move([h.uid], d.destination);
       await _journal.recordMoved([
         MovedItem(key: d.key, from: inbox, to: d.destination, cause: 'auto', decisionId: d.id, subject: h.subject, fromAddress: h.from?.email),
@@ -321,6 +325,15 @@ class LeaderLoop {
     } on ImapGatewayException catch (e) {
       if (e.isConnectionLost) rethrow;
       _log.warning('move of ${d.key} to ${d.destination} failed: $e');
+      if (marked) {
+        // Leave the message exactly as it was so it is not mistaken for done.
+        try {
+          await _ops.store([h.uid], add: {SortieKeywords.pending}, remove: {SortieKeywords.done});
+        } on ImapGatewayException catch (e2) {
+          if (e2.isConnectionLost) rethrow;
+        }
+      }
+      await _journal.store.setDecisionStatus(d.id, DecisionStatus.failed, finalFolder: null);
       return false;
     }
   }

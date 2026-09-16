@@ -22,7 +22,7 @@ void main() {
     h.elapse(const Duration(minutes: 3));
     expect(h.ofType('lease-beat').length, 1, reason: 'append new beat, delete previous');
     expect(a.isLeader, isTrue);
-    final devices = h.wait(a.service.watchDevices().first);
+    final devices = h.wait(a.devices());
     expect(devices.single.isLeader, isTrue);
     expect(devices.single.isThisDevice, isTrue);
   });
@@ -89,7 +89,7 @@ void main() {
     h.elapse(const Duration(seconds: 60));
     expect(b.state, CoordinationState.follower);
     expect(h.ofType('lease-claim').map((c) => c.deviceId), [a.id]);
-    final seen = h.wait(b.service.watchDevices().first);
+    final seen = h.wait(b.devices());
     expect(seen.map((d) => d.deviceId).toSet(), {a.id, b.id});
     expect(seen.firstWhere((d) => d.deviceId == a.id).isLeader, isTrue);
   });

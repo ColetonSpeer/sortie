@@ -4,14 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:launch_at_startup/launch_at_startup.dart';
-import 'package:logging/logging.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app.dart';
 import '../domain/entities/entities.dart';
 import '../platform/background/background_runner.dart';
 import '../platform/background/background_runner_provider.dart';
+import '../platform/desktop/autostart.dart';
 import '../platform/desktop/window_service.dart';
 import '../platform/device_info.dart';
 import '../router/app_router.dart';
@@ -28,7 +26,6 @@ class SortieBootstrap extends ConsumerStatefulWidget {
 }
 
 class _SortieBootstrapState extends ConsumerState<SortieBootstrap> {
-  static final _log = Logger('bootstrap');
   BackgroundRunner? _runner;
   bool? _lastAutostart;
 
@@ -86,13 +83,7 @@ class _SortieBootstrapState extends ConsumerState<SortieBootstrap> {
     }
     if (isDesktop && _lastAutostart != s.launchAtStartup) {
       _lastAutostart = s.launchAtStartup;
-      try {
-        final info = await PackageInfo.fromPlatform();
-        launchAtStartup.setup(appName: info.appName.isEmpty ? 'Sortie' : info.appName, appPath: Platform.resolvedExecutable, packageName: 'com.sortie.sortie');
-        s.launchAtStartup ? await launchAtStartup.enable() : await launchAtStartup.disable();
-      } catch (e) {
-        _log.warning('launch-at-startup unavailable', e);
-      }
+      await Autostart.set(enabled: s.launchAtStartup);
     }
   }
 

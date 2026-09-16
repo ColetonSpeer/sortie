@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME#v}; [ "$GITHUB_REF_TYPE" = tag ] || VERSION=0.0.0
-          flutter build windows --release --build-name=$VERSION --build-number=$GITHUB_RUN_NUMBER
+          flutter build windows --release --build-name=$VERSION --build-number=$GITHUB_RUN_NUMBER --dart-define=SORTIE_VERSION=$VERSION+$GITHUB_RUN_NUMBER
           7z a sortie-windows-x64.zip ./build/windows/x64/runner/Release/*
       - uses: actions/upload-artifact@v4
         with:

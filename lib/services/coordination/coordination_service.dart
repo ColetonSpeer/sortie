@@ -457,42 +457,25 @@ class CoordinationService implements SortCoordinator {
 
   // ---------------------------------------------------------- user actions
 
-  UserActions get _act => _actions ?? (throw StateError('coordinator not connected'));
-
-  Future<void> _afterAction() async {
+  /// Runs a user action over a fresh ops connection, then applies our own
+  /// journal records right away and lets the leader loop re-evaluate.
+  Future<void> _act(Future<void> Function(UserActions a) f) async {
+    final actions = _actions ?? (throw StateError('coordinator not connected'));
+    await f(actions);
     if (_control != null) await _evaluate(_generation);
     _leader?.scheduleEvaluate(Duration.zero);
   }
 
   @override
-  Future<void> undo(String decisionId) async {
-    await _act.undo(decisionId);
-    await _afterAction();
-  }
-
+  Future<void> undo(String decisionId) => _act((a) => a.undo(decisionId));
   @override
-  Future<void> moveNow(MessageKey key) async {
-    await _act.moveNow(key);
-    await _afterAction();
-  }
-
+  Future<void> moveNow(MessageKey key) => _act((a) => a.moveNow(key));
   @override
-  Future<void> keepInInbox(MessageKey key) async {
-    await _act.keepInInbox(key);
-    await _afterAction();
-  }
-
+  Future<void> keepInInbox(MessageKey key) => _act((a) => a.keepInInbox(key));
   @override
-  Future<void> changeDestination(MessageKey key, String folderPath) async {
-    await _act.changeDestination(key, folderPath);
-    await _afterAction();
-  }
-
+  Future<void> changeDestination(MessageKey key, String folderPath) => _act((a) => a.changeDestination(key, folderPath));
   @override
-  Future<void> markRight(MessageKey key) async {
-    await _act.markRight(key);
-    await _afterAction();
-  }
+  Future<void> markRight(MessageKey key) => _act((a) => a.markRight(key));
 
   @override
   void onMessageOpened(MessageKey key) {

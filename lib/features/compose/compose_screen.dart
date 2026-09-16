@@ -168,14 +168,19 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   void _snack(String s) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(s)));
 
   Future<void> _attach() async {
-    final result = await FilePicker.pickFiles(allowMultiple: true, withData: true);
-    if (result == null) return;
-    setState(() {
-      for (final f in result.files) {
-        if (f.bytes == null) continue;
-        _attachments.add(ComposeAttachment(fileName: f.name, mimeType: _mime(f.name), bytes: f.bytes!));
+    final files = await FilePicker.pickFiles();
+    if (files.isEmpty) return;
+    final picked = <ComposeAttachment>[];
+    for (final f in files) {
+      try {
+        final bytes = await f.readAsBytes();
+        picked.add(ComposeAttachment(fileName: f.name, mimeType: _mime(f.name), bytes: bytes));
+      } catch (e) {
+        _snack('Could not read ${f.name}: $e');
       }
-    });
+    }
+    if (!mounted) return;
+    setState(() => _attachments.addAll(picked));
   }
 
   static String _mime(String name) {

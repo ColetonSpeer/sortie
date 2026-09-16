@@ -222,6 +222,11 @@ void main() {
         h.wait(lm.heartbeat(r.epoch!));
         expect(h.ofType('lease-beat').length, 1);
         expect(h.wait(lm.fence(r.epoch!)), isTrue);
+        // A preempting claim of the next epoch makes the fence fail.
+        h.wait(folder.append(ControlMessageDraft(type: 'lease-claim', deviceId: Harness.idOf('zzz'), messageId: ControlMessageIds.leaseClaim(Harness.idOf('zzz'), r.epoch! + 1), seq: 1, epoch: r.epoch! + 1, priority: 100, body: const {})));
+        expect(h.wait(lm.fence(r.epoch!)), isFalse);
+        h.wait(folder.expunge([h.ofType('lease-claim').firstWhere((c) => c.deviceId == Harness.idOf('zzz')).uid]));
+        expect(h.wait(lm.fence(r.epoch!)), isTrue);
         h.wait(lm.release(r.epoch!));
         expect(h.ofType('lease-beat'), isEmpty);
         expect(h.ofType('lease-release').single.epoch, r.epoch);

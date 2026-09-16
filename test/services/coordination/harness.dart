@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,13 +57,19 @@ class Device {
   CoordinationState get state => service.currentState;
   bool get isLeader => state == CoordinationState.leader;
 
-  Future<Map<MessageKey, PendingBadge>> pending() => service.watchPending().first;
-  Future<List<SortLogEntry>> log() => service.watchLog().first;
+  /// First value of the badge stream (see [Harness.first]).
+  Future<Map<MessageKey, PendingBadge>> pending() => Harness.firstValue(service.watchPending());
+  Future<List<SortLogEntry>> log() => Harness.firstValue(service.watchLog());
+  Future<List<SeenDevice>> devices() => Harness.firstValue(service.watchDevices());
 }
 
 class Harness {
   Harness(this.fa, {FakeImapServer? server, this.timers = const LeaseTimers(), this.config = const SortConfig(mode: SortingMode.auto)})
-      : server = server ?? FakeImapServer();
+      : server = server ?? FakeImapServer() {
+    // Destinations the scripted classifier proposes.
+    this.server.createMailbox('Finance');
+    this.server.createMailbox('Newsletters');
+  }
 
   final FakeAsync fa;
   final FakeImapServer server;
@@ -127,6 +135,23 @@ class Harness {
   /// Lets pending async work settle without moving the server clock much.
   void settle([int ms = 50]) => fa.elapse(Duration(milliseconds: ms));
 
+  /// `Stream.first` awaits the subscription's cancel future, which for
+  /// broadcast / multi streams is a root-zone future that fakeAsync never
+  /// drives. This takes the first event without awaiting the cancel.
+  static Future<T> firstValue<T>(Stream<T> s) {
+    final c = Completer<T>();
+    late StreamSubscription<T> sub;
+    sub = s.listen((v) {
+      if (!c.isCompleted) c.complete(v);
+      unawaited(sub.cancel());
+    }, onError: (Object e, StackTrace st) {
+      if (!c.isCompleted) c.completeError(e, st);
+    });
+    return c.future;
+  }
+
+  T first<T>(Stream<T> s) => wait(firstValue(s));
+
   /// Resolves a future synchronously under fakeAsync.
   T wait<T>(Future<T> f, {Duration timeout = const Duration(seconds: 5)}) {
     T? out;
@@ -147,6 +172,25 @@ class Harness {
     if (err != null) throw err!;
     if (!done) throw StateError('future did not complete within $timeout');
     return out as T;
+  }
+
+  /// Adds and starts a device, waiting until it leads (claim + confirm +
+  /// handoff take ~35 s with default timers).
+  Device lead(String id, {ScriptedClassifier? classifier, SortConfig? config, int priority = LeaderPriority.desktop, Duration warmup = const Duration(seconds: 40)}) {
+    final d = addDevice(id, classifier: classifier, config: config, priority: priority);
+    d.service.start();
+    elapse(warmup);
+    expect(d.isLeader, isTrue, reason: '$id should lead after warm-up');
+    return d;
+  }
+
+  /// Adds and starts a device that ends up following.
+  Device follow(String id, {ScriptedClassifier? classifier, SortConfig? config, int priority = LeaderPriority.desktop}) {
+    final d = addDevice(id, classifier: classifier, config: config, priority: priority);
+    d.service.start();
+    elapse(const Duration(seconds: 5));
+    expect(d.state, CoordinationState.follower, reason: '$id should follow');
+    return d;
   }
 
   void startAll() {
