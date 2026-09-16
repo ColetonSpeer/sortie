@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
-import '../data/local/database.dart';
+import '../data/local/database.dart' show SortieDatabase;
 import '../domain/entities/entities.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
+import 'ai_models.dart';
+import 'compose_models.dart';
+import 'onboarding_models.dart';
 
 /// Composition root. Every provider here is overridden in `main.dart` with the
 /// real implementation; the defaults throw so a missing override is loud.
@@ -23,7 +27,7 @@ final messageClassifierProvider = Provider<MessageClassifier>((_) => _unbound('m
 final deviceIdentityProvider = Provider<DeviceIdentity>((_) => _unbound('deviceIdentity'));
 
 /// One coordinator per account, created lazily by the override in main.dart.
-final sortCoordinatorProvider = Provider.family<SortCoordinator, String>((_, __) => _unbound('sortCoordinator'));
+final sortCoordinatorProvider = Provider.family<SortCoordinator, String>((_, _) => _unbound('sortCoordinator'));
 
 /// Convenience streams shared by features.
 final accountsProvider = StreamProvider<List<Account>>((ref) => ref.watch(accountRepositoryProvider).watchAll());
@@ -34,3 +38,78 @@ final foldersProvider = StreamProvider.family<List<Folder>, String>((ref, accoun
 final syncStatusProvider = StreamProvider<Map<String, AccountSyncStatus>>((ref) => ref.watch(mailSyncServiceProvider).watchAllStatus());
 final pendingBadgesProvider = StreamProvider.family<Map<MessageKey, PendingBadge>, String>((ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).watchPending());
 final coordinationStateProvider = StreamProvider.family<CoordinationState, String>((ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).state);
+
+// ---------------------------------------------------------------------------
+// UI-layer providers (added by the UI module). The composition root must
+// override every `_unbound` one below with the real implementation.
+// ---------------------------------------------------------------------------
+
+/// Autodiscovery: email -> candidate IMAP/SMTP servers (best first).
+final autodiscoveryProvider =
+    Provider<Future<List<ServerCandidate>> Function(String email)>((_) => _unbound('autodiscovery'));
+
+/// Test IMAP + SMTP login for an account with the given password; throws on failure.
+final loginProbeProvider =
+    Provider<Future<void> Function(Account account, String password)>((_) => _unbound('loginProbe'));
+
+/// Builds RFC 5322 bytes from a draft (the compose module's MessageComposer).
+final composeMessageProvider =
+    Provider<Future<List<int>> Function(ComposeDraft draft)>((_) => _unbound('composeMessage'));
+
+/// Lists model ids available at the configured AI endpoint.
+final listModelsProvider =
+    Provider<Future<List<String>> Function(AiSettings settings, String? apiKey)>((_) => _unbound('listModels'));
+
+/// Sends one tiny request to the AI endpoint and reports the outcome.
+final testAiConnectionProvider =
+    Provider<Future<ConnectionTestSummary> Function(AiSettings settings, String? apiKey)>(
+        (_) => _unbound('testAiConnection'));
+
+/// Addresses harvested from recent headers, most recent first.
+final recentAddressesProvider = FutureProvider.family<List<MailAddress>, String>((ref, accountId) async {
+  final repo = ref.watch(messageRepositoryProvider);
+  final folders = await ref.watch(folderRepositoryProvider).all(accountId);
+  final seen = <String, MailAddress>{};
+  final targets = <String?>[null];
+  for (final f in folders) {
+    if (f.specialUse == SpecialUse.sent) targets.add(f.path);
+  }
+  for (final path in targets) {
+    final headers = await repo.list(MessageQuery(accountId: accountId, folderPath: path, limit: 300));
+    for (final h in headers) {
+      for (final a in [if (h.from != null) h.from!, ...h.to, ...h.cc, if (h.replyTo != null) h.replyTo!]) {
+        final k = a.email.toLowerCase();
+        if (k.isEmpty || seen.containsKey(k)) continue;
+        seen[k] = a;
+      }
+    }
+  }
+  return seen.values.toList();
+});
+
+/// Identities of one account.
+final identitiesProvider = StreamProvider.family<List<Identity>, String>(
+    (ref, accountId) => ref.watch(accountRepositoryProvider).watchIdentities(accountId));
+
+/// Messages of one folder, optionally filtered by a search string. Keyed by a
+/// record because [MessageQuery] has no value equality.
+typedef FolderMessagesKey = ({String accountId, String folderPath, String search});
+final messagesProvider = StreamProvider.family<List<MessageHeader>, FolderMessagesKey>((ref, k) =>
+    ref.watch(messageRepositoryProvider).watch(MessageQuery(
+        accountId: k.accountId, folderPath: k.folderPath, search: k.search.isEmpty ? null : k.search, limit: 500)));
+
+/// Follows one message across moves.
+final messageByHashProvider = StreamProvider.family<MessageHeader?, MessageKey>(
+    (ref, key) => ref.watch(messageRepositoryProvider).watchByMessageIdHash(key.accountId, key.messageIdHash));
+
+/// Sort log and seen devices of one account's coordinator.
+final sortLogProvider = StreamProvider.family<List<SortLogEntry>, String>(
+    (ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).watchLog());
+final seenDevicesProvider = StreamProvider.family<List<SeenDevice>, String>(
+    (ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).watchDevices());
+
+/// Currently selected account id in the shell (UI state only).
+final selectedAccountIdProvider = StateProvider<String?>((_) => null);
+
+/// Ids of messages selected in the message list for bulk actions (UI state only).
+final selectedMessagesProvider = StateProvider<Set<MessageKey>>((_) => const {});

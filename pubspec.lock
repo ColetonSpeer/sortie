@@ -330,7 +330,7 @@ packages:
     source: hosted
     version: "2.1.7"
   event_bus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: event_bus
       sha256: "1a55e97923769c286d295240048fc180e7b0768902c3c2e869fe059aafa15304"
@@ -1171,7 +1171,7 @@ packages:
     source: hosted
     version: "3.6.0"
   sqlite3_flutter_libs:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: sqlite3_flutter_libs
       sha256: "3ed7553eee7bb368f8950f58ba29f634e06e813c029aff6a0d60862b96de8454"

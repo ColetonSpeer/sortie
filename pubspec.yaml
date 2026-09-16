@@ -15,6 +15,7 @@ dependencies:
   drift: ^2.35.0
   drift_flutter: ^0.3.1
   enough_mail: ^2.1.7
+  event_bus: ^2.0.1
   file_picker: ^11.0.3
   flutter:
     sdk: flutter

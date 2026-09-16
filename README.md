@@ -50,8 +50,14 @@ sudo xcross tunnel        # in a second terminal, iOS 17+ device over USB
 xcross flutter run        # hot reload works
 ```
 
-Release (AOT) iOS builds require macOS; `release-ios.yml` produces an unsigned `.ipa`
-on a GitHub macOS runner for sideloading (AltStore, Sideloadly, or `xtool`).
+xcross is authenticated with the App Store Connect API key in `~/sortie-keys/`
+(`xcross auth --issuer-id … --key-id … --private-key …`), so signing needs no 2FA and
+profiles last a year.
+
+Release (AOT) iOS builds require macOS; `release-ios.yml` builds on a GitHub macOS
+runner. With the `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` and `APPLE_TEAM_ID`
+secrets set it produces a development-signed `.ipa` that installs on registered devices;
+otherwise an unsigned `.ipa` for AltStore / Sideloadly / `xtool`.
 
 ### Android release signing
 
