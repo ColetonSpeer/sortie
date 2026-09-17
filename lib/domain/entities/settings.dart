@@ -189,6 +189,7 @@ class DeviceSettings {
     this.notifyNewMail = true,
     this.loadRemoteImages = false,
     this.themeMode = 'system',
+    this.threadedView = true,
   });
   final bool mayLead;
   final bool preferThisDevice;
@@ -199,6 +200,9 @@ class DeviceSettings {
   final bool loadRemoteImages;
   final String themeMode;
 
+  /// Group the message list by conversation (References / In-Reply-To).
+  final bool threadedView;
+
   DeviceSettings copyWith({
     bool? mayLead,
     bool? preferThisDevice,
@@ -208,6 +212,7 @@ class DeviceSettings {
     bool? notifyNewMail,
     bool? loadRemoteImages,
     String? themeMode,
+    bool? threadedView,
   }) =>
       DeviceSettings(
         mayLead: mayLead ?? this.mayLead,
@@ -218,6 +223,7 @@ class DeviceSettings {
         notifyNewMail: notifyNewMail ?? this.notifyNewMail,
         loadRemoteImages: loadRemoteImages ?? this.loadRemoteImages,
         themeMode: themeMode ?? this.themeMode,
+        threadedView: threadedView ?? this.threadedView,
       );
 
   Map<String, dynamic> toJson() => {
@@ -229,6 +235,7 @@ class DeviceSettings {
         'notify': notifyNewMail,
         'remoteImages': loadRemoteImages,
         'theme': themeMode,
+        'threaded': threadedView,
       };
 
   static DeviceSettings fromJson(Map<String, dynamic> j) => DeviceSettings(
@@ -240,5 +247,6 @@ class DeviceSettings {
         notifyNewMail: (j['notify'] as bool?) ?? true,
         loadRemoteImages: (j['remoteImages'] as bool?) ?? false,
         themeMode: (j['theme'] as String?) ?? 'system',
+        threadedView: (j['threaded'] as bool?) ?? true,
       );
 }

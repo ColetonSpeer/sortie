@@ -7,6 +7,7 @@ import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
 import '../../router/app_router.dart';
 import '../mailbox/message_actions.dart';
+import '../mailbox/threading.dart';
 import 'html_body.dart';
 import 'message_header_view.dart';
 
@@ -41,6 +42,8 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
   bool _loadRemoteOnce = false;
   int _blockedImages = 0;
   Object? _error;
+  List<MessageHeader>? _threadSrc;
+  List<MessageThread> _threads = const [];
 
   /// Cached so dispose() can release the hold without touching `ref`.
   late final SortCoordinator _coord = ref.read(sortCoordinatorProvider(widget.accountId));
@@ -147,6 +150,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     final allowRemote = settings.loadRemoteImages || _loadRemoteOnce;
     final h = _header;
     final actions = MessageActions(context, ref);
+    final thread = h == null || !settings.threadedView ? null : _threadOf(h);
 
     return Scaffold(
       appBar: AppBar(
@@ -192,6 +196,12 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
           : h == null
               ? const Center(child: CircularProgressIndicator())
               : Column(children: [
+                  if (thread != null && !thread.isSingle)
+                    _ConversationBar(
+                      thread: thread,
+                      current: h,
+                      onOpen: (m) => context.go(Routes.message(widget.accountId, widget.folderPath, m.uid)),
+                    ),
                   if (badge != null) _PendingBanner(badge: badge, onMoveNow: () => actions.badgeMoveNow(key!), onKeep: () => actions.badgeKeep(key!)),
                   if (_blockedImages > 0 && !allowRemote)
                     MaterialBanner(
@@ -228,6 +238,22 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     );
   }
 
+  /// The conversation [h] belongs to within the folder this screen was opened
+  /// from (the same grouping the list pane shows).
+  MessageThread? _threadOf(MessageHeader h) {
+    final list = ref
+        .watch(messagesProvider((accountId: widget.accountId, folderPath: widget.folderPath, search: '')))
+        .asData
+        ?.value;
+    if (list == null || list.length < 2) return null;
+    if (!identical(list, _threadSrc)) {
+      final account = ref.watch(accountsProvider).asData?.value.where((a) => a.id == widget.accountId).firstOrNull;
+      _threadSrc = list;
+      _threads = buildThreads(list, ownAddresses: {if (account != null) account.email.toLowerCase()});
+    }
+    return _threads.where((t) => t.contains(h)).firstOrNull;
+  }
+
   void _compose({MessageHeader? reply, MessageHeader? replyAll, MessageHeader? forward}) {
     final src = reply ?? replyAll ?? forward!;
     context.push(Routes.composeWith(
@@ -260,6 +286,52 @@ class _PendingBanner extends StatelessWidget {
         TextButton(onPressed: onMoveNow, child: const Text('Move now')),
         TextButton(onPressed: onKeep, child: const Text('Keep here')),
       ],
+    );
+  }
+}
+
+/// "3 messages in this conversation" with older/newer navigation.
+class _ConversationBar extends StatelessWidget {
+  const _ConversationBar({required this.thread, required this.current, required this.onOpen});
+  final MessageThread thread;
+  final MessageHeader current;
+  final void Function(MessageHeader) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final msgs = thread.messages;
+    final i = msgs.indexWhere((m) => m.messageIdHash == current.messageIdHash);
+    final older = i > 0 ? msgs[i - 1] : null;
+    final newer = i >= 0 && i < msgs.length - 1 ? msgs[i + 1] : null;
+    return Material(
+      color: cs.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: Row(children: [
+          Icon(Icons.forum_outlined, size: 18, color: cs.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${msgs.length} messages in this conversation${i >= 0 ? ' · ${i + 1} of ${msgs.length}' : ''}',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Older message',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.expand_less),
+            onPressed: older == null ? null : () => onOpen(older),
+          ),
+          IconButton(
+            tooltip: 'Newer message',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.expand_more),
+            onPressed: newer == null ? null : () => onOpen(newer),
+          ),
+        ]),
+      ),
     );
   }
 }

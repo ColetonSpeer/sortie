@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,9 +7,12 @@ import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
 import '../../router/app_router.dart';
+import '../settings/settings_common.dart';
 import '../shell/adaptive_scaffold.dart';
 import 'message_actions.dart';
 import 'message_tile.dart';
+import 'thread_tile.dart';
+import 'threading.dart';
 
 /// Middle pane: search, list of tiles, swipe actions, multi-select toolbar.
 class MessageListPane extends ConsumerStatefulWidget {
@@ -32,13 +36,40 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
   final _search = TextEditingController();
   bool _searching = false;
 
+  // buildThreads memo: the stream hands us a new list only when data changed.
+  List<MessageHeader>? _threadedFrom;
+  Set<String>? _threadedOwn;
+  List<MessageThread> _threads = const [];
+
   @override
   void didUpdateWidget(covariant MessageListPane old) {
     super.didUpdateWidget(old);
     if (old.folderPath != widget.folderPath || old.accountId != widget.accountId) {
       ref.read(selectedMessagesProvider.notifier).state = const {};
+      ref.read(expandedThreadsProvider.notifier).state = const {};
     }
   }
+
+  /// The user's own addresses (account + identities), lower-cased.
+  Set<String> _ownAddresses() {
+    final account = ref.watch(accountsProvider).asData?.value.where((a) => a.id == widget.accountId).firstOrNull;
+    final identities = ref.watch(identitiesProvider(widget.accountId)).asData?.value ?? const [];
+    return {
+      if (account != null) account.email.toLowerCase(),
+      for (final i in identities) i.email.toLowerCase(),
+    };
+  }
+
+  List<MessageThread> _threadsFor(List<MessageHeader> list, Set<String> own) {
+    if (!identical(list, _threadedFrom) || !setEquals(_threadedOwn, own)) {
+      _threadedFrom = list;
+      _threadedOwn = own;
+      _threads = buildThreads(list, ownAddresses: own);
+    }
+    return _threads;
+  }
+
+  void _select(Set<MessageKey> s) => ref.read(selectedMessagesProvider.notifier).state = s;
 
   @override
   void dispose() {
@@ -55,6 +86,25 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     final folder = ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.path == widget.folderPath).firstOrNull;
     final title = folder == null ? widget.folderPath : (folder.isInbox ? 'Inbox' : folder.name);
     final touch = MediaQuery.sizeOf(context).width < AdaptiveScaffold.compactBreakpoint;
+    final threaded = ref.watch(deviceSettingsProvider).asData?.value.threadedView ?? true;
+    final own = threaded ? _ownAddresses() : const <String>{};
+
+    Widget tile(MessageHeader h) {
+      final t = MessageTile(
+        header: h,
+        badge: badges[h.key],
+        selected: h.uid == widget.selectedUid,
+        checked: selection.contains(h.key),
+        selectionMode: selection.isNotEmpty,
+        onTap: () => context.go(Routes.message(widget.accountId, widget.folderPath, h.uid)),
+        onToggleCheck: () {
+          final s = Set<MessageKey>.of(selection);
+          s.contains(h.key) ? s.remove(h.key) : s.add(h.key);
+          _select(s);
+        },
+      );
+      return touch ? _Swipeable(header: h, child: t) : t;
+    }
 
     return Scaffold(
       appBar: selection.isNotEmpty
@@ -91,6 +141,15 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                   icon: const Icon(Icons.refresh),
                   onPressed: () => ref.read(mailSyncServiceProvider).syncNow(widget.accountId, folderPath: widget.folderPath),
                 ),
+                PopupMenuButton<String>(
+                  tooltip: 'More',
+                  onSelected: (v) {
+                    if (v == 'threaded') saveDeviceSettings(ref, (d) => d.copyWith(threadedView: !threaded));
+                  },
+                  itemBuilder: (_) => [
+                    CheckedPopupMenuItem(value: 'threaded', checked: threaded, child: const Text('Group by conversation')),
+                  ],
+                ),
               ],
             ),
       body: messages.when(
@@ -103,28 +162,33 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.outline)),
             );
           }
+          if (threaded) {
+            final threads = _threadsFor(list, own);
+            return ListView.separated(
+              key: PageStorageKey('threads:${widget.accountId}:${widget.folderPath}'),
+              itemCount: threads.length,
+              separatorBuilder: (_, _) => const Divider(height: 1, indent: 58),
+              itemBuilder: (context, i) {
+                final t = threads[i];
+                final keys = t.messages.map((m) => m.key).toSet();
+                return ThreadTile(
+                  key: ValueKey('thread:${t.id}'),
+                  thread: t,
+                  ownAddresses: own,
+                  selection: selection,
+                  badge: badges[t.latest.key],
+                  buildMessageTile: tile,
+                  onSelectAll: () => _select({...selection, ...keys}),
+                  onToggleAll: () => _select(selection.containsAll(keys) ? selection.difference(keys) : {...selection, ...keys}),
+                );
+              },
+            );
+          }
           return ListView.separated(
             key: PageStorageKey('msgs:${widget.accountId}:${widget.folderPath}'),
             itemCount: list.length,
             separatorBuilder: (_, _) => const Divider(height: 1, indent: 58),
-            itemBuilder: (context, i) {
-              final h = list[i];
-              final tile = MessageTile(
-                header: h,
-                badge: badges[h.key],
-                selected: h.uid == widget.selectedUid,
-                checked: selection.contains(h.key),
-                selectionMode: selection.isNotEmpty,
-                onTap: () => context.go(Routes.message(widget.accountId, widget.folderPath, h.uid)),
-                onToggleCheck: () {
-                  final s = Set<MessageKey>.of(selection);
-                  s.contains(h.key) ? s.remove(h.key) : s.add(h.key);
-                  ref.read(selectedMessagesProvider.notifier).state = s;
-                },
-              );
-              if (!touch) return tile;
-              return _Swipeable(header: h, child: tile);
-            },
+            itemBuilder: (context, i) => tile(list[i]),
           );
         },
       ),

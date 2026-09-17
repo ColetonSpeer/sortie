@@ -25,7 +25,7 @@ abstract final class DemoData {
       Folder(accountId: accountId, path: path, name: name, delimiter: '/', specialUse: use, unseenCount: unseen, messageCount: count);
 
   static final folders = [
-    _f('INBOX', 'INBOX', use: SpecialUse.inbox, unseen: 9, count: 20),
+    _f('INBOX', 'INBOX', use: SpecialUse.inbox, unseen: 11, count: 25),
     _f('Sent', 'Sent', use: SpecialUse.sent, count: 4),
     _f('Drafts', 'Drafts', use: SpecialUse.drafts, count: 1),
     _f('Trash', 'Trash', use: SpecialUse.trash),
@@ -46,6 +46,7 @@ abstract final class DemoData {
     ('Mom (demo)', 'mom@family.example.invalid'),
     ('Project Bot', 'bot@projects.example.invalid'),
     ('Sam Colleague', 'sam@work.example.invalid'),
+    ('Demo User', 'demo@example.invalid'),
   ];
 
   static const _subjects = [
@@ -59,13 +60,38 @@ abstract final class DemoData {
     'Quick question about the deck',
     'Newsletter: demo edition',
     'Dinner recipe you asked for',
+    'Your statement is available (fake)',
+    'Parking on Friday',
+    'Weekly digest: 3 more things (fake)',
+    'Grandma says hi',
+    'Deploy #52 finished',
+    'Office plants rota',
+    'Card ending 0000 — sample only',
+    'Slides for Monday',
+    'Newsletter: another demo edition',
+    'Recipe round two',
   ];
 
-  static MessageHeader _msg(int i, String folder, {bool seen = true, bool flagged = false, bool attach = false, List<MailAddress>? to}) {
-    final s = _senders[i % _senders.length];
-    final subject = _subjects[i % _subjects.length];
-    final date = DateTime.now().subtract(Duration(hours: i * 7 + (i % 3) * 2));
-    final mid = '<demo-$i@example.invalid>';
+  static String _mid(int i) => '<demo-$i@example.invalid>';
+
+  static MessageHeader _msg(
+    int i,
+    String folder, {
+    bool seen = true,
+    bool flagged = false,
+    bool attach = false,
+    List<MailAddress>? to,
+    int? sender,
+    String? subject,
+    int? hoursAgo,
+    String? inReplyTo,
+    List<String> references = const [],
+  }) {
+    final si = sender ?? i % 6;
+    final s = _senders[si];
+    subject ??= _subjects[i % _subjects.length];
+    final date = DateTime.now().subtract(Duration(hours: hoursAgo ?? (i * 7 + (i % 3) * 2)));
+    final mid = _mid(i);
     return MessageHeader(
       accountId: accountId,
       folderPath: folder,
@@ -77,8 +103,10 @@ abstract final class DemoData {
       from: MailAddress(s.$2, s.$1),
       to: to ?? const [MailAddress('demo@example.invalid', 'Demo User')],
       date: date,
-      listId: i % 6 == 2 ? '<digest.newsletter.example.invalid>' : null,
-      hasListUnsubscribe: i % 6 == 2,
+      inReplyTo: inReplyTo,
+      references: references,
+      listId: si == 2 ? '<digest.newsletter.example.invalid>' : null,
+      hasListUnsubscribe: si == 2,
       flags: {if (seen) r'\Seen', if (flagged) r'\Flagged'},
       size: 4200 + i * 311,
       snippet: 'This is fake demo text for message $i. Nothing here is real — it exists only so the UI has something to show.',
@@ -88,10 +116,28 @@ abstract final class DemoData {
     );
   }
 
+  static const _pat = MailAddress('pat@example.invalid', 'Pat Example');
+  static const _sam = MailAddress('sam@work.example.invalid', 'Sam Colleague');
+  static const _me = MailAddress('demo@example.invalid', 'Demo User');
+
+  /// Messages 0-19 sit in the inbox; three of them are roots or replies of
+  /// the conversations below (shared References so the threaded view groups
+  /// them): 37 -> 5 -> 38 (planning), 39 -> 1 -> 40 (lunch, ends with a reply
+  /// from the user), 4 -> [missing] -> 41 (build, intermediate not in folder).
   static final messages = <MessageHeader>[
     for (var i = 0; i < 20; i++)
       _msg(i, 'INBOX', seen: i >= 9, flagged: i == 3 || i == 11, attach: i % 5 == 0,
-          to: i == 7 ? const [MailAddress('alias@example.invalid', 'Demo Alias')] : null),
+          to: i == 7 ? const [MailAddress('alias@example.invalid', 'Demo Alias')] : null,
+          inReplyTo: i == 5 ? _mid(37) : (i == 1 ? _mid(39) : null),
+          references: i == 5 ? [_mid(37)] : (i == 1 ? [_mid(39)] : const [])),
+    _msg(37, 'INBOX', sender: 1, subject: 'Q3 planning notes', hoursAgo: 60, to: const [_me, _sam]),
+    _msg(38, 'INBOX', sender: 5, subject: 'Re: Q3 planning notes', hoursAgo: 20, seen: false,
+        to: const [_me, _pat], inReplyTo: _mid(5), references: [_mid(37), _mid(5)]),
+    _msg(39, 'INBOX', sender: 5, subject: 'Lunch on Thursday?', hoursAgo: 30, to: const [_me, _pat]),
+    _msg(40, 'INBOX', sender: 6, subject: 'Re: Lunch on Thursday?', hoursAgo: 5, to: const [_pat, _sam],
+        inReplyTo: _mid(1), references: [_mid(39), _mid(1)]),
+    _msg(41, 'INBOX', sender: 5, subject: 'Re: Build #318 passed', hoursAgo: 3, seen: false,
+        inReplyTo: _mid(99), references: [_mid(4), _mid(99)]),
     for (var i = 20; i < 24; i++) _msg(i, 'Sent'),
     for (var i = 24; i < 27; i++) _msg(i, 'Work/Invoices', seen: i != 24, attach: true),
     _msg(27, 'Newsletters'),
