@@ -54,6 +54,13 @@ xcross is authenticated with the App Store Connect API key in `~/sortie-keys/`
 (`xcross auth --issuer-id … --key-id … --private-key …`), so signing needs no 2FA and
 profiles last a year.
 
+Known Linux-only plugin bug: `flutter_foreground_task` 11.0.3 imports
+`FlutterForegroundTaskEarlyRegistration.h` but ships the header as
+`Flutterforegroundtaskearlyregistration.h`; xcross builds fail until a correctly-cased
+copy exists next to it in `~/.pub-cache/hosted/pub.dev/flutter_foreground_task-11.0.3/ios/…/include/flutter_foreground_task_early_registration/`
+(and in `~/.cache/xcross/swiftpm/*/plugins/Packages/flutter_foreground_task/…`).
+Builds are memory-hungry: run them with `taskset -c 0-3` on this laptop.
+
 Release (AOT) iOS builds require macOS; `release-ios.yml` builds on a GitHub macOS
 runner. With the `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` and `APPLE_TEAM_ID`
 secrets set it produces a development-signed `.ipa` that installs on registered devices;
