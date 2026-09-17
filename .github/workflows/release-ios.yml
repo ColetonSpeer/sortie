@@ -12,6 +12,11 @@ on:
 jobs:
   ios:
     runs-on: macos-15
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -33,12 +38,7 @@ jobs:
           mkdir -p Payload && cp -r build/ios/iphoneos/Runner.app Payload/ && zip -qr sortie-unsigned.ipa Payload
 
       - name: Signed archive (development, automatic signing via ASC API key)
-        if: ${{ secrets.ASC_KEY_ID != '' }}
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        if: ${{ env.ASC_KEY_ID != '' }}
         run: |
           mkdir -p ~/private_keys
           echo "$ASC_KEY_P8_BASE64" | base64 -d > ~/private_keys/AuthKey_$ASC_KEY_ID.p8
