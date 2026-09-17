@@ -11,7 +11,7 @@ on:
 # Without them the job still produces an unsigned .ipa for manual sideloading.
 jobs:
   ios:
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
