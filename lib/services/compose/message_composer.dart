@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:enough_mail/enough_mail.dart' as em;
@@ -236,6 +237,13 @@ class MessageComposer {
 
   // ---------------------------------------------------------------- compose
 
+  static final _rng = Random.secure();
+  String _newMessageId(String fromEmail) {
+    final domain = fromEmail.contains('@') ? fromEmail.substring(fromEmail.indexOf('@') + 1) : 'sortie.local';
+    final rand = List.generate(12, (_) => _rng.nextInt(36).toRadixString(36)).join();
+    return '<${clock.now().toUtc().millisecondsSinceEpoch.toRadixString(36)}.$rand@$domain>';
+  }
+
   ComposedMessage compose(ComposeRequest r) {
     final id = r.identity;
     final b = em.MessageBuilder()
@@ -278,6 +286,10 @@ class MessageComposer {
         );
       }
     }
+    // Always stamp a Message-ID: threading, the sort journal and Sent-folder
+    // de-duplication all key on it, and enough_mail does not add one itself.
+    b.messageId ??= _newMessageId(id.email);
+    b.setHeader('Message-ID', b.messageId!);
     final mime = b.buildMimeMessage();
     final rendered = mime.renderMessage();
     final recipients = <String>[];

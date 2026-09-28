@@ -82,15 +82,11 @@ class EnoughImapGateway implements ImapGateway {
       final names = caps.map((c) => c.name).toList();
       var enabledQresync = false;
       var enabledCondStore = false;
-      if (names.contains('QRESYNC')) {
-        try {
-          await client.enable(['QRESYNC']);
-          enabledQresync = true;
-          enabledCondStore = true;
-        } catch (e) {
-          _log.fine('ENABLE QRESYNC refused: ${_short(e)}');
-        }
-      }
+      // QRESYNC is deliberately NOT enabled: once it is on, servers emit
+      // `* VANISHED` after UID MOVE/EXPUNGE and enough_mail's response parser
+      // drops the COPYUID (and other) result codes when it sees them. The
+      // folder synchronizer falls back to UID SEARCH diffs for deletions.
+      // (QRESYNC support remains in select(); `enabledQresync` stays false.)
       if (!enabledCondStore && names.contains('CONDSTORE')) {
         try {
           await client.enable(['CONDSTORE']);

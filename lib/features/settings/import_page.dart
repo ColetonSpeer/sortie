@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -45,7 +46,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   Future<void> _discover() async {
     try {
-      final found = await ref.read(thunderbirdImporterProvider).discoverProfiles();
+      final found = await ref.read(thunderbirdImporterProvider).discoverProfiles().timeout(const Duration(seconds: 20));
       if (mounted) setState(() => _profiles = found);
     } catch (e) {
       if (mounted) setState(() => _profiles = const []);
@@ -70,7 +71,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       _preview = null;
     });
     try {
-      final preview = await ref.read(thunderbirdImporterProvider).scan(Directory(path));
+      final preview = await ref.read(thunderbirdImporterProvider).scan(Directory(path)).timeout(const Duration(seconds: 60));
       for (final c in _passwords.values) {
         c.dispose();
       }
@@ -103,7 +104,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final pw = _passwords[a.key]?.text ?? '';
         if (pw.isNotEmpty) passwords[a.email.isEmpty ? a.key : a.email] = pw;
       }
-      final result = await ref.read(thunderbirdImporterProvider).apply(preview, _selection, passwordsByAccountEmail: passwords);
+      final result = await ref.read(thunderbirdImporterProvider).apply(preview, _selection, passwordsByAccountEmail: passwords).timeout(const Duration(minutes: 3));
       setState(() => _result = result);
     } catch (e) {
       setState(() => _error = 'Import failed: $e');

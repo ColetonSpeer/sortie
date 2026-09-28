@@ -33,10 +33,25 @@ abstract final class MimeMapper {
   static List<MailAddress> addresses(List<em.MailAddress>? list) =>
       (list ?? const []).map(address).whereType<MailAddress>().toList();
 
-  static DateTime? internalDate(em.MimeMessage m) {
-    final raw = m.internalDate;
+  static DateTime? internalDate(em.MimeMessage m) => parseImapDate(m.internalDate);
+
+  static const _months = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12};
+  static final _imapDate = RegExp(r'^\s*"?\s*(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+([+-])(\d{2})(\d{2})\s*"?\s*$');
+
+  /// IMAP INTERNALDATE (`28-Sep-2026 17:06:41 +0000`, RFC 3501 date-time),
+  /// falling back to RFC 2822 for servers that return that instead.
+  static DateTime? parseImapDate(String? raw) {
     if (raw == null) return null;
-    return em.DateCodec.decodeDate(raw)?.toUtc();
+    final m = _imapDate.firstMatch(raw);
+    if (m != null) {
+      final month = _months[m.group(2)!.toLowerCase()];
+      if (month != null) {
+        final sign = m.group(7) == '-' ? -1 : 1;
+        final offset = Duration(hours: int.parse(m.group(8)!), minutes: int.parse(m.group(9)!)) * sign;
+        return DateTime.utc(int.parse(m.group(3)!), month, int.parse(m.group(1)!), int.parse(m.group(4)!), int.parse(m.group(5)!), int.parse(m.group(6)!)).subtract(offset);
+      }
+    }
+    return em.DateCodec.decodeDate(raw.replaceAll('"', ''))?.toUtc();
   }
 
   static Set<String> flags(em.MimeMessage m) => (m.flags ?? const []).toSet();

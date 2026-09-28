@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app/bootstrap.dart';
 import 'app/composition_root.dart';
@@ -19,7 +21,11 @@ const bool kDemo = bool.fromEnvironment('SORTIE_DEMO');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  initLogging(level: kDebugMode ? Level.FINE : Level.INFO, sink: kDebugMode ? debugPrint : null);
+  final logFile = FileLogSink(p.join((await getApplicationSupportDirectory()).path, 'sortie.log'));
+  initLogging(level: kDebugMode ? Level.FINE : Level.INFO, sink: (line) {
+    logFile(line);
+    if (kDebugMode) debugPrint(line);
+  });
   final log = Logger('main');
 
   if (isDesktop) {
