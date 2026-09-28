@@ -207,6 +207,20 @@ class LeaderLoop {
     scheduleEvaluate(Duration.zero);
   }
 
+  /// Body text for rules (`body contains …`) and the model layer. Uses the
+  /// local cache and fetches small messages once; failures just mean no body.
+  Future<String?> _bodyTextFor(MessageHeader h) async {
+    try {
+      final cached = await _messages.cachedBody(accountId, h.messageIdHash);
+      if (cached != null) return cached.text;
+      if (h.size > 512 * 1024) return null;
+      final body = await _sync.body(accountId, h.folderPath, h.uid).timeout(const Duration(seconds: 20));
+      return body.text;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _classify(List<MessageHeader> headers) async {
     final config = await _journal.store.config();
     if (config.mode == SortingMode.off) return;
@@ -215,7 +229,7 @@ class LeaderLoop {
     for (final h in headers) {
       if (h.hasSortieDone || !seen.add(h.messageIdHash)) continue;
       if (await _journal.store.hasAnyDecision(h.messageIdHash)) continue;
-      inputs.add(ClassificationInput(header: h));
+      inputs.add(ClassificationInput(header: h, bodyText: await _bodyTextFor(h)));
     }
     if (inputs.isEmpty) return;
     final raw = await _classifier.classify(accountId, inputs, config);

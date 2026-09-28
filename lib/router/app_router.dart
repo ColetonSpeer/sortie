@@ -6,12 +6,15 @@ import 'package:go_router/go_router.dart';
 import '../app/providers.dart';
 import '../features/accounts/accounts_screen.dart';
 import '../features/accounts/identities_screen.dart';
+import '../features/calendar/calendar_screen.dart';
+import '../features/calendar/calendar_settings_page.dart';
 import '../features/compose/compose_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/ai_settings_page.dart';
 import '../features/settings/devices_page.dart';
 import '../features/settings/diagnostics_page.dart';
 import '../features/settings/folders_page.dart';
+import '../features/settings/import_page.dart';
 import '../features/settings/notifications_page.dart';
 import '../features/settings/privacy_page.dart';
 import '../features/settings/settings_screen.dart';
@@ -26,6 +29,8 @@ abstract final class Routes {
   static const compose = '/compose';
   static const sortLog = '/sort-log';
   static const settings = '/settings';
+  static const calendar = '/calendar';
+  static const settingsImport = '/settings/import';
 
   static String identities(String accountId) => '/accounts/${Uri.encodeComponent(accountId)}/identities';
   static String mailbox(String accountId, String folder) =>
@@ -108,6 +113,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(path: Routes.sortLog, builder: (_, _) => const SortLogScreen()),
+      GoRoute(path: Routes.calendar, builder: (_, _) => const CalendarScreen()),
       GoRoute(
         path: Routes.settings,
         builder: (_, _) => const SettingsScreen(),
@@ -119,6 +125,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'devices', builder: (_, _) => const DevicesPage()),
           GoRoute(path: 'notifications', builder: (_, _) => const NotificationsPage()),
           GoRoute(path: 'diagnostics', builder: (_, _) => const DiagnosticsPage()),
+          GoRoute(path: 'import', builder: (_, _) => const ImportPage()),
+          GoRoute(path: 'calendar', builder: (_, _) => const CalendarSettingsPage()),
         ],
       ),
     ],

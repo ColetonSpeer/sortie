@@ -43,7 +43,17 @@ class SettingsScreen extends ConsumerWidget {
         link('folders', Icons.folder_outlined, 'Folders', 'Exclusions and descriptions'),
         link('devices', Icons.devices_outlined, 'Devices', 'Which device sorts'),
         link('notifications', Icons.notifications_outlined, 'Notifications', device.notifyNewMail ? 'On' : 'Off'),
+        link('calendar', Icons.calendar_month_outlined, 'Calendar', 'Reminders, week start, sync, Google'),
         link('diagnostics', Icons.bug_report_outlined, 'Diagnostics', 'Logs, version, export'),
+        const Divider(),
+        ListTile(
+          key: const Key('importThunderbird'),
+          leading: const Icon(Icons.move_to_inbox_outlined),
+          title: const Text('Import from Thunderbird'),
+          subtitle: const Text('Accounts, identities, signatures, filters, calendars'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.settingsImport),
+        ),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.brightness_6_outlined),

@@ -33,12 +33,15 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
+  rrule: ^0.2.18
   sqlite3: ^3.6.0
+  timezone: ^0.11.1
   tray_manager: ^0.5.3
   url_launcher: ^6.3.2
   uuid: ^4.6.0
   window_manager: ^0.5.2
   workmanager: ^0.10.10
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:

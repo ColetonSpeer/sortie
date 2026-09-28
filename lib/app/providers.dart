@@ -1,10 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../data/calendar/google_oauth.dart';
 import '../data/local/database.dart' show SortieDatabase;
 import '../domain/entities/entities.dart';
+import '../domain/repositories/calendar_repository.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
+import '../services/calendar/calendar_service.dart';
+import '../services/import/calendar_import_sink.dart';
+import '../services/import/thunderbird/thunderbird_importer.dart';
+import '../services/sorter/user_rules.dart';
 import 'ai_models.dart';
 import 'compose_models.dart';
 import 'onboarding_models.dart';
@@ -113,3 +119,53 @@ final selectedAccountIdProvider = StateProvider<String?>((_) => null);
 
 /// Ids of messages selected in the message list for bulk actions (UI state only).
 final selectedMessagesProvider = StateProvider<Set<MessageKey>>((_) => const {});
+
+// ---------------------------------------------------------------------------
+// Import (Thunderbird). Additive wiring; only the rule store needs a real
+// override (the composition root passes the sorter's UserRulesService).
+// ---------------------------------------------------------------------------
+
+/// Persistence for user sort rules (the sorter's UserRulesService).
+final sortRuleStoreProvider = Provider<SortRuleStore>((_) => _unbound('sortRuleStore'));
+
+/// Where imported calendars go. Until the calendar module registers its own
+/// sink the default parks them under settings key `import.calendars.pending`.
+final calendarImportSinkProvider =
+    Provider<CalendarImportSink>((ref) => PendingCalendarImportSink(ref.watch(settingsRepositoryProvider)));
+
+/// Finds Thunderbird profiles on this machine (tests inject a fixed list).
+final thunderbirdProfileLocatorProvider = Provider<ProfileLocator>((_) => PlatformProfileLocator());
+
+final thunderbirdImporterProvider = Provider<ThunderbirdImporter>((ref) {
+  Future<void> saveConfig(String accountId, SortConfig c) async {
+    try {
+      await ref.read(sortCoordinatorProvider(accountId)).putConfig(c);
+    } catch (_) {
+      // Coordinator offline / not started: the local mirror below still wins.
+    }
+    await ref.read(settingsRepositoryProvider).saveSortConfig(accountId, c);
+  }
+
+  return ThunderbirdImporter(
+    locator: ref.watch(thunderbirdProfileLocatorProvider),
+    accounts: ref.watch(accountRepositoryProvider),
+    folders: ref.watch(folderRepositoryProvider),
+    settings: ref.watch(settingsRepositoryProvider),
+    credentials: ref.watch(credentialStoreProvider),
+    rules: ref.watch(sortRuleStoreProvider),
+    calendarSink: ref.watch(calendarImportSinkProvider),
+    loginProbe: ref.watch(loginProbeProvider),
+    saveSortConfig: saveConfig,
+    onAccountCreated: (id) => ref.read(mailSyncServiceProvider).startAccount(id),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Calendar module. Overridden in the composition root and the demo build.
+// ---------------------------------------------------------------------------
+
+final calendarRepositoryProvider = Provider<CalendarRepository>((_) => _unbound('calendarRepository'));
+final calendarServiceProvider = Provider<CalendarService>((_) => _unbound('calendarService'));
+
+/// Google account links (refresh tokens keyed by email) shared by calendars.
+final googleOAuthProvider = Provider<GoogleAccountLinks>((_) => _unbound('googleOAuth'));

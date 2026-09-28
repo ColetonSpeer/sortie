@@ -2655,7 +2655,7 @@ class Message extends DataClass implements Insertable<Message> {
   final String? fromEmail;
   final String? fromName;
 
-  /// Recipient list as JSON. Named  in Dart because drift's
+  /// Recipient list as JSON. Named `toAddressesJson` in Dart because drift's
   /// generated data class already has a `toJson()` method.
   final String toAddressesJson;
   final String ccJson;
@@ -11456,6 +11456,2801 @@ class JournalCursorsCompanion extends UpdateCompanion<JournalCursor> {
   }
 }
 
+class $CalendarsTable extends Calendars
+    with TableInfo<$CalendarsTable, CalendarRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _usernameMeta = const VerificationMeta(
+    'username',
+  );
+  @override
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+    'username',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _readOnlyMeta = const VerificationMeta(
+    'readOnly',
+  );
+  @override
+  late final GeneratedColumn<bool> readOnly = GeneratedColumn<bool>(
+    'read_only',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("read_only" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _authKindMeta = const VerificationMeta(
+    'authKind',
+  );
+  @override
+  late final GeneratedColumn<String> authKind = GeneratedColumn<String>(
+    'auth_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _googleEmailMeta = const VerificationMeta(
+    'googleEmail',
+  );
+  @override
+  late final GeneratedColumn<String> googleEmail = GeneratedColumn<String>(
+    'google_email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncTokenMeta = const VerificationMeta(
+    'syncToken',
+  );
+  @override
+  late final GeneratedColumn<String> syncToken = GeneratedColumn<String>(
+    'sync_token',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ctagMeta = const VerificationMeta('ctag');
+  @override
+  late final GeneratedColumn<String> ctag = GeneratedColumn<String>(
+    'ctag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSyncAtMeta = const VerificationMeta(
+    'lastSyncAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
+    'last_sync_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    kind,
+    url,
+    username,
+    color,
+    enabled,
+    readOnly,
+    authKind,
+    googleEmail,
+    syncToken,
+    ctag,
+    etag,
+    lastSyncAt,
+    lastError,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendars';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    }
+    if (data.containsKey('username')) {
+      context.handle(
+        _usernameMeta,
+        username.isAcceptableOrUnknown(data['username']!, _usernameMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('read_only')) {
+      context.handle(
+        _readOnlyMeta,
+        readOnly.isAcceptableOrUnknown(data['read_only']!, _readOnlyMeta),
+      );
+    }
+    if (data.containsKey('auth_kind')) {
+      context.handle(
+        _authKindMeta,
+        authKind.isAcceptableOrUnknown(data['auth_kind']!, _authKindMeta),
+      );
+    }
+    if (data.containsKey('google_email')) {
+      context.handle(
+        _googleEmailMeta,
+        googleEmail.isAcceptableOrUnknown(
+          data['google_email']!,
+          _googleEmailMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_token')) {
+      context.handle(
+        _syncTokenMeta,
+        syncToken.isAcceptableOrUnknown(data['sync_token']!, _syncTokenMeta),
+      );
+    }
+    if (data.containsKey('ctag')) {
+      context.handle(
+        _ctagMeta,
+        ctag.isAcceptableOrUnknown(data['ctag']!, _ctagMeta),
+      );
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    }
+    if (data.containsKey('last_sync_at')) {
+      context.handle(
+        _lastSyncAtMeta,
+        lastSyncAt.isAcceptableOrUnknown(
+          data['last_sync_at']!,
+          _lastSyncAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      )!,
+      username: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}username'],
+      ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      readOnly: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}read_only'],
+      )!,
+      authKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}auth_kind'],
+      )!,
+      googleEmail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}google_email'],
+      ),
+      syncToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_token'],
+      ),
+      ctag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ctag'],
+      ),
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      ),
+      lastSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_sync_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $CalendarsTable createAlias(String alias) {
+    return $CalendarsTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarRow extends DataClass implements Insertable<CalendarRow> {
+  final String id;
+  final String name;
+
+  /// caldav | ics | local
+  final String kind;
+  final String url;
+  final String? username;
+  final int color;
+  final bool enabled;
+  final bool readOnly;
+
+  /// none | basic | googleOAuth
+  final String authKind;
+  final String? googleEmail;
+  final String? syncToken;
+  final String? ctag;
+  final String? etag;
+  final int? lastSyncAt;
+  final String? lastError;
+  final int sortOrder;
+  const CalendarRow({
+    required this.id,
+    required this.name,
+    required this.kind,
+    required this.url,
+    this.username,
+    required this.color,
+    required this.enabled,
+    required this.readOnly,
+    required this.authKind,
+    this.googleEmail,
+    this.syncToken,
+    this.ctag,
+    this.etag,
+    this.lastSyncAt,
+    this.lastError,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['kind'] = Variable<String>(kind);
+    map['url'] = Variable<String>(url);
+    if (!nullToAbsent || username != null) {
+      map['username'] = Variable<String>(username);
+    }
+    map['color'] = Variable<int>(color);
+    map['enabled'] = Variable<bool>(enabled);
+    map['read_only'] = Variable<bool>(readOnly);
+    map['auth_kind'] = Variable<String>(authKind);
+    if (!nullToAbsent || googleEmail != null) {
+      map['google_email'] = Variable<String>(googleEmail);
+    }
+    if (!nullToAbsent || syncToken != null) {
+      map['sync_token'] = Variable<String>(syncToken);
+    }
+    if (!nullToAbsent || ctag != null) {
+      map['ctag'] = Variable<String>(ctag);
+    }
+    if (!nullToAbsent || etag != null) {
+      map['etag'] = Variable<String>(etag);
+    }
+    if (!nullToAbsent || lastSyncAt != null) {
+      map['last_sync_at'] = Variable<int>(lastSyncAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  CalendarsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarsCompanion(
+      id: Value(id),
+      name: Value(name),
+      kind: Value(kind),
+      url: Value(url),
+      username: username == null && nullToAbsent
+          ? const Value.absent()
+          : Value(username),
+      color: Value(color),
+      enabled: Value(enabled),
+      readOnly: Value(readOnly),
+      authKind: Value(authKind),
+      googleEmail: googleEmail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(googleEmail),
+      syncToken: syncToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncToken),
+      ctag: ctag == null && nullToAbsent ? const Value.absent() : Value(ctag),
+      etag: etag == null && nullToAbsent ? const Value.absent() : Value(etag),
+      lastSyncAt: lastSyncAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory CalendarRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      kind: serializer.fromJson<String>(json['kind']),
+      url: serializer.fromJson<String>(json['url']),
+      username: serializer.fromJson<String?>(json['username']),
+      color: serializer.fromJson<int>(json['color']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      readOnly: serializer.fromJson<bool>(json['readOnly']),
+      authKind: serializer.fromJson<String>(json['authKind']),
+      googleEmail: serializer.fromJson<String?>(json['googleEmail']),
+      syncToken: serializer.fromJson<String?>(json['syncToken']),
+      ctag: serializer.fromJson<String?>(json['ctag']),
+      etag: serializer.fromJson<String?>(json['etag']),
+      lastSyncAt: serializer.fromJson<int?>(json['lastSyncAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'kind': serializer.toJson<String>(kind),
+      'url': serializer.toJson<String>(url),
+      'username': serializer.toJson<String?>(username),
+      'color': serializer.toJson<int>(color),
+      'enabled': serializer.toJson<bool>(enabled),
+      'readOnly': serializer.toJson<bool>(readOnly),
+      'authKind': serializer.toJson<String>(authKind),
+      'googleEmail': serializer.toJson<String?>(googleEmail),
+      'syncToken': serializer.toJson<String?>(syncToken),
+      'ctag': serializer.toJson<String?>(ctag),
+      'etag': serializer.toJson<String?>(etag),
+      'lastSyncAt': serializer.toJson<int?>(lastSyncAt),
+      'lastError': serializer.toJson<String?>(lastError),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  CalendarRow copyWith({
+    String? id,
+    String? name,
+    String? kind,
+    String? url,
+    Value<String?> username = const Value.absent(),
+    int? color,
+    bool? enabled,
+    bool? readOnly,
+    String? authKind,
+    Value<String?> googleEmail = const Value.absent(),
+    Value<String?> syncToken = const Value.absent(),
+    Value<String?> ctag = const Value.absent(),
+    Value<String?> etag = const Value.absent(),
+    Value<int?> lastSyncAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+    int? sortOrder,
+  }) => CalendarRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    kind: kind ?? this.kind,
+    url: url ?? this.url,
+    username: username.present ? username.value : this.username,
+    color: color ?? this.color,
+    enabled: enabled ?? this.enabled,
+    readOnly: readOnly ?? this.readOnly,
+    authKind: authKind ?? this.authKind,
+    googleEmail: googleEmail.present ? googleEmail.value : this.googleEmail,
+    syncToken: syncToken.present ? syncToken.value : this.syncToken,
+    ctag: ctag.present ? ctag.value : this.ctag,
+    etag: etag.present ? etag.value : this.etag,
+    lastSyncAt: lastSyncAt.present ? lastSyncAt.value : this.lastSyncAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  CalendarRow copyWithCompanion(CalendarsCompanion data) {
+    return CalendarRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      url: data.url.present ? data.url.value : this.url,
+      username: data.username.present ? data.username.value : this.username,
+      color: data.color.present ? data.color.value : this.color,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      readOnly: data.readOnly.present ? data.readOnly.value : this.readOnly,
+      authKind: data.authKind.present ? data.authKind.value : this.authKind,
+      googleEmail: data.googleEmail.present
+          ? data.googleEmail.value
+          : this.googleEmail,
+      syncToken: data.syncToken.present ? data.syncToken.value : this.syncToken,
+      ctag: data.ctag.present ? data.ctag.value : this.ctag,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      lastSyncAt: data.lastSyncAt.present
+          ? data.lastSyncAt.value
+          : this.lastSyncAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('url: $url, ')
+          ..write('username: $username, ')
+          ..write('color: $color, ')
+          ..write('enabled: $enabled, ')
+          ..write('readOnly: $readOnly, ')
+          ..write('authKind: $authKind, ')
+          ..write('googleEmail: $googleEmail, ')
+          ..write('syncToken: $syncToken, ')
+          ..write('ctag: $ctag, ')
+          ..write('etag: $etag, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    kind,
+    url,
+    username,
+    color,
+    enabled,
+    readOnly,
+    authKind,
+    googleEmail,
+    syncToken,
+    ctag,
+    etag,
+    lastSyncAt,
+    lastError,
+    sortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.kind == this.kind &&
+          other.url == this.url &&
+          other.username == this.username &&
+          other.color == this.color &&
+          other.enabled == this.enabled &&
+          other.readOnly == this.readOnly &&
+          other.authKind == this.authKind &&
+          other.googleEmail == this.googleEmail &&
+          other.syncToken == this.syncToken &&
+          other.ctag == this.ctag &&
+          other.etag == this.etag &&
+          other.lastSyncAt == this.lastSyncAt &&
+          other.lastError == this.lastError &&
+          other.sortOrder == this.sortOrder);
+}
+
+class CalendarsCompanion extends UpdateCompanion<CalendarRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> kind;
+  final Value<String> url;
+  final Value<String?> username;
+  final Value<int> color;
+  final Value<bool> enabled;
+  final Value<bool> readOnly;
+  final Value<String> authKind;
+  final Value<String?> googleEmail;
+  final Value<String?> syncToken;
+  final Value<String?> ctag;
+  final Value<String?> etag;
+  final Value<int?> lastSyncAt;
+  final Value<String?> lastError;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const CalendarsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.url = const Value.absent(),
+    this.username = const Value.absent(),
+    this.color = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.readOnly = const Value.absent(),
+    this.authKind = const Value.absent(),
+    this.googleEmail = const Value.absent(),
+    this.syncToken = const Value.absent(),
+    this.ctag = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.lastSyncAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarsCompanion.insert({
+    required String id,
+    required String name,
+    required String kind,
+    this.url = const Value.absent(),
+    this.username = const Value.absent(),
+    required int color,
+    this.enabled = const Value.absent(),
+    this.readOnly = const Value.absent(),
+    this.authKind = const Value.absent(),
+    this.googleEmail = const Value.absent(),
+    this.syncToken = const Value.absent(),
+    this.ctag = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.lastSyncAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       kind = Value(kind),
+       color = Value(color);
+  static Insertable<CalendarRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? kind,
+    Expression<String>? url,
+    Expression<String>? username,
+    Expression<int>? color,
+    Expression<bool>? enabled,
+    Expression<bool>? readOnly,
+    Expression<String>? authKind,
+    Expression<String>? googleEmail,
+    Expression<String>? syncToken,
+    Expression<String>? ctag,
+    Expression<String>? etag,
+    Expression<int>? lastSyncAt,
+    Expression<String>? lastError,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (kind != null) 'kind': kind,
+      if (url != null) 'url': url,
+      if (username != null) 'username': username,
+      if (color != null) 'color': color,
+      if (enabled != null) 'enabled': enabled,
+      if (readOnly != null) 'read_only': readOnly,
+      if (authKind != null) 'auth_kind': authKind,
+      if (googleEmail != null) 'google_email': googleEmail,
+      if (syncToken != null) 'sync_token': syncToken,
+      if (ctag != null) 'ctag': ctag,
+      if (etag != null) 'etag': etag,
+      if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
+      if (lastError != null) 'last_error': lastError,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? kind,
+    Value<String>? url,
+    Value<String?>? username,
+    Value<int>? color,
+    Value<bool>? enabled,
+    Value<bool>? readOnly,
+    Value<String>? authKind,
+    Value<String?>? googleEmail,
+    Value<String?>? syncToken,
+    Value<String?>? ctag,
+    Value<String?>? etag,
+    Value<int?>? lastSyncAt,
+    Value<String?>? lastError,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return CalendarsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      kind: kind ?? this.kind,
+      url: url ?? this.url,
+      username: username ?? this.username,
+      color: color ?? this.color,
+      enabled: enabled ?? this.enabled,
+      readOnly: readOnly ?? this.readOnly,
+      authKind: authKind ?? this.authKind,
+      googleEmail: googleEmail ?? this.googleEmail,
+      syncToken: syncToken ?? this.syncToken,
+      ctag: ctag ?? this.ctag,
+      etag: etag ?? this.etag,
+      lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      lastError: lastError ?? this.lastError,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (readOnly.present) {
+      map['read_only'] = Variable<bool>(readOnly.value);
+    }
+    if (authKind.present) {
+      map['auth_kind'] = Variable<String>(authKind.value);
+    }
+    if (googleEmail.present) {
+      map['google_email'] = Variable<String>(googleEmail.value);
+    }
+    if (syncToken.present) {
+      map['sync_token'] = Variable<String>(syncToken.value);
+    }
+    if (ctag.present) {
+      map['ctag'] = Variable<String>(ctag.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (lastSyncAt.present) {
+      map['last_sync_at'] = Variable<int>(lastSyncAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('url: $url, ')
+          ..write('username: $username, ')
+          ..write('color: $color, ')
+          ..write('enabled: $enabled, ')
+          ..write('readOnly: $readOnly, ')
+          ..write('authKind: $authKind, ')
+          ..write('googleEmail: $googleEmail, ')
+          ..write('syncToken: $syncToken, ')
+          ..write('ctag: $ctag, ')
+          ..write('etag: $etag, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CalendarEventsTable extends CalendarEvents
+    with TableInfo<$CalendarEventsTable, CalendarEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calendarIdMeta = const VerificationMeta(
+    'calendarId',
+  );
+  @override
+  late final GeneratedColumn<String> calendarId = GeneratedColumn<String>(
+    'calendar_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES calendars (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrefMeta = const VerificationMeta('href');
+  @override
+  late final GeneratedColumn<String> href = GeneratedColumn<String>(
+    'href',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startAtMeta = const VerificationMeta(
+    'startAt',
+  );
+  @override
+  late final GeneratedColumn<int> startAt = GeneratedColumn<int>(
+    'start_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endAtMeta = const VerificationMeta('endAt');
+  @override
+  late final GeneratedColumn<int> endAt = GeneratedColumn<int>(
+    'end_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isAllDayMeta = const VerificationMeta(
+    'isAllDay',
+  );
+  @override
+  late final GeneratedColumn<bool> isAllDay = GeneratedColumn<bool>(
+    'is_all_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_all_day" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _floatingMeta = const VerificationMeta(
+    'floating',
+  );
+  @override
+  late final GeneratedColumn<bool> floating = GeneratedColumn<bool>(
+    'floating',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("floating" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _tzidMeta = const VerificationMeta('tzid');
+  @override
+  late final GeneratedColumn<String> tzid = GeneratedColumn<String>(
+    'tzid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rruleMeta = const VerificationMeta('rrule');
+  @override
+  late final GeneratedColumn<String> rrule = GeneratedColumn<String>(
+    'rrule',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _exdatesJsonMeta = const VerificationMeta(
+    'exdatesJson',
+  );
+  @override
+  late final GeneratedColumn<String> exdatesJson = GeneratedColumn<String>(
+    'exdates_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _recurrenceIdMeta = const VerificationMeta(
+    'recurrenceId',
+  );
+  @override
+  late final GeneratedColumn<int> recurrenceId = GeneratedColumn<int>(
+    'recurrence_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _organizerMeta = const VerificationMeta(
+    'organizer',
+  );
+  @override
+  late final GeneratedColumn<String> organizer = GeneratedColumn<String>(
+    'organizer',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _attendeesJsonMeta = const VerificationMeta(
+    'attendeesJson',
+  );
+  @override
+  late final GeneratedColumn<String> attendeesJson = GeneratedColumn<String>(
+    'attendees_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _alarmsJsonMeta = const VerificationMeta(
+    'alarmsJson',
+  );
+  @override
+  late final GeneratedColumn<String> alarmsJson = GeneratedColumn<String>(
+    'alarms_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _rawIcsMeta = const VerificationMeta('rawIcs');
+  @override
+  late final GeneratedColumn<String> rawIcs = GeneratedColumn<String>(
+    'raw_ics',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _conflictedMeta = const VerificationMeta(
+    'conflicted',
+  );
+  @override
+  late final GeneratedColumn<bool> conflicted = GeneratedColumn<bool>(
+    'conflicted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("conflicted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    calendarId,
+    uid,
+    href,
+    etag,
+    summary,
+    description,
+    location,
+    startAt,
+    endAt,
+    isAllDay,
+    floating,
+    tzid,
+    rrule,
+    exdatesJson,
+    recurrenceId,
+    status,
+    organizer,
+    attendeesJson,
+    alarmsJson,
+    rawIcs,
+    updatedAt,
+    dirty,
+    conflicted,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendar_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('calendar_id')) {
+      context.handle(
+        _calendarIdMeta,
+        calendarId.isAcceptableOrUnknown(data['calendar_id']!, _calendarIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calendarIdMeta);
+    }
+    if (data.containsKey('uid')) {
+      context.handle(
+        _uidMeta,
+        uid.isAcceptableOrUnknown(data['uid']!, _uidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('href')) {
+      context.handle(
+        _hrefMeta,
+        href.isAcceptableOrUnknown(data['href']!, _hrefMeta),
+      );
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('start_at')) {
+      context.handle(
+        _startAtMeta,
+        startAt.isAcceptableOrUnknown(data['start_at']!, _startAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startAtMeta);
+    }
+    if (data.containsKey('end_at')) {
+      context.handle(
+        _endAtMeta,
+        endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endAtMeta);
+    }
+    if (data.containsKey('is_all_day')) {
+      context.handle(
+        _isAllDayMeta,
+        isAllDay.isAcceptableOrUnknown(data['is_all_day']!, _isAllDayMeta),
+      );
+    }
+    if (data.containsKey('floating')) {
+      context.handle(
+        _floatingMeta,
+        floating.isAcceptableOrUnknown(data['floating']!, _floatingMeta),
+      );
+    }
+    if (data.containsKey('tzid')) {
+      context.handle(
+        _tzidMeta,
+        tzid.isAcceptableOrUnknown(data['tzid']!, _tzidMeta),
+      );
+    }
+    if (data.containsKey('rrule')) {
+      context.handle(
+        _rruleMeta,
+        rrule.isAcceptableOrUnknown(data['rrule']!, _rruleMeta),
+      );
+    }
+    if (data.containsKey('exdates_json')) {
+      context.handle(
+        _exdatesJsonMeta,
+        exdatesJson.isAcceptableOrUnknown(
+          data['exdates_json']!,
+          _exdatesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurrence_id')) {
+      context.handle(
+        _recurrenceIdMeta,
+        recurrenceId.isAcceptableOrUnknown(
+          data['recurrence_id']!,
+          _recurrenceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('organizer')) {
+      context.handle(
+        _organizerMeta,
+        organizer.isAcceptableOrUnknown(data['organizer']!, _organizerMeta),
+      );
+    }
+    if (data.containsKey('attendees_json')) {
+      context.handle(
+        _attendeesJsonMeta,
+        attendeesJson.isAcceptableOrUnknown(
+          data['attendees_json']!,
+          _attendeesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('alarms_json')) {
+      context.handle(
+        _alarmsJsonMeta,
+        alarmsJson.isAcceptableOrUnknown(data['alarms_json']!, _alarmsJsonMeta),
+      );
+    }
+    if (data.containsKey('raw_ics')) {
+      context.handle(
+        _rawIcsMeta,
+        rawIcs.isAcceptableOrUnknown(data['raw_ics']!, _rawIcsMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('conflicted')) {
+      context.handle(
+        _conflictedMeta,
+        conflicted.isAcceptableOrUnknown(data['conflicted']!, _conflictedMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarEventRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      calendarId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_id'],
+      )!,
+      uid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uid'],
+      )!,
+      href: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}href'],
+      ),
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      ),
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      startAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_at'],
+      )!,
+      endAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_at'],
+      )!,
+      isAllDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_all_day'],
+      )!,
+      floating: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}floating'],
+      )!,
+      tzid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tzid'],
+      ),
+      rrule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rrule'],
+      ),
+      exdatesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exdates_json'],
+      )!,
+      recurrenceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recurrence_id'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      ),
+      organizer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organizer'],
+      ),
+      attendeesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attendees_json'],
+      )!,
+      alarmsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alarms_json'],
+      )!,
+      rawIcs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_ics'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      conflicted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}conflicted'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CalendarEventsTable createAlias(String alias) {
+    return $CalendarEventsTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarEventRow extends DataClass
+    implements Insertable<CalendarEventRow> {
+  final String id;
+  final String calendarId;
+  final String uid;
+  final String? href;
+  final String? etag;
+  final String summary;
+  final String? description;
+  final String? location;
+  final int startAt;
+  final int endAt;
+  final bool isAllDay;
+  final bool floating;
+  final String? tzid;
+  final String? rrule;
+  final String exdatesJson;
+  final int? recurrenceId;
+  final String? status;
+  final String? organizer;
+  final String attendeesJson;
+  final String alarmsJson;
+  final String? rawIcs;
+  final int updatedAt;
+  final bool dirty;
+  final bool conflicted;
+  final bool deleted;
+  const CalendarEventRow({
+    required this.id,
+    required this.calendarId,
+    required this.uid,
+    this.href,
+    this.etag,
+    required this.summary,
+    this.description,
+    this.location,
+    required this.startAt,
+    required this.endAt,
+    required this.isAllDay,
+    required this.floating,
+    this.tzid,
+    this.rrule,
+    required this.exdatesJson,
+    this.recurrenceId,
+    this.status,
+    this.organizer,
+    required this.attendeesJson,
+    required this.alarmsJson,
+    this.rawIcs,
+    required this.updatedAt,
+    required this.dirty,
+    required this.conflicted,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['calendar_id'] = Variable<String>(calendarId);
+    map['uid'] = Variable<String>(uid);
+    if (!nullToAbsent || href != null) {
+      map['href'] = Variable<String>(href);
+    }
+    if (!nullToAbsent || etag != null) {
+      map['etag'] = Variable<String>(etag);
+    }
+    map['summary'] = Variable<String>(summary);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    map['start_at'] = Variable<int>(startAt);
+    map['end_at'] = Variable<int>(endAt);
+    map['is_all_day'] = Variable<bool>(isAllDay);
+    map['floating'] = Variable<bool>(floating);
+    if (!nullToAbsent || tzid != null) {
+      map['tzid'] = Variable<String>(tzid);
+    }
+    if (!nullToAbsent || rrule != null) {
+      map['rrule'] = Variable<String>(rrule);
+    }
+    map['exdates_json'] = Variable<String>(exdatesJson);
+    if (!nullToAbsent || recurrenceId != null) {
+      map['recurrence_id'] = Variable<int>(recurrenceId);
+    }
+    if (!nullToAbsent || status != null) {
+      map['status'] = Variable<String>(status);
+    }
+    if (!nullToAbsent || organizer != null) {
+      map['organizer'] = Variable<String>(organizer);
+    }
+    map['attendees_json'] = Variable<String>(attendeesJson);
+    map['alarms_json'] = Variable<String>(alarmsJson);
+    if (!nullToAbsent || rawIcs != null) {
+      map['raw_ics'] = Variable<String>(rawIcs);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['dirty'] = Variable<bool>(dirty);
+    map['conflicted'] = Variable<bool>(conflicted);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CalendarEventsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarEventsCompanion(
+      id: Value(id),
+      calendarId: Value(calendarId),
+      uid: Value(uid),
+      href: href == null && nullToAbsent ? const Value.absent() : Value(href),
+      etag: etag == null && nullToAbsent ? const Value.absent() : Value(etag),
+      summary: Value(summary),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      startAt: Value(startAt),
+      endAt: Value(endAt),
+      isAllDay: Value(isAllDay),
+      floating: Value(floating),
+      tzid: tzid == null && nullToAbsent ? const Value.absent() : Value(tzid),
+      rrule: rrule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rrule),
+      exdatesJson: Value(exdatesJson),
+      recurrenceId: recurrenceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceId),
+      status: status == null && nullToAbsent
+          ? const Value.absent()
+          : Value(status),
+      organizer: organizer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(organizer),
+      attendeesJson: Value(attendeesJson),
+      alarmsJson: Value(alarmsJson),
+      rawIcs: rawIcs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawIcs),
+      updatedAt: Value(updatedAt),
+      dirty: Value(dirty),
+      conflicted: Value(conflicted),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CalendarEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarEventRow(
+      id: serializer.fromJson<String>(json['id']),
+      calendarId: serializer.fromJson<String>(json['calendarId']),
+      uid: serializer.fromJson<String>(json['uid']),
+      href: serializer.fromJson<String?>(json['href']),
+      etag: serializer.fromJson<String?>(json['etag']),
+      summary: serializer.fromJson<String>(json['summary']),
+      description: serializer.fromJson<String?>(json['description']),
+      location: serializer.fromJson<String?>(json['location']),
+      startAt: serializer.fromJson<int>(json['startAt']),
+      endAt: serializer.fromJson<int>(json['endAt']),
+      isAllDay: serializer.fromJson<bool>(json['isAllDay']),
+      floating: serializer.fromJson<bool>(json['floating']),
+      tzid: serializer.fromJson<String?>(json['tzid']),
+      rrule: serializer.fromJson<String?>(json['rrule']),
+      exdatesJson: serializer.fromJson<String>(json['exdatesJson']),
+      recurrenceId: serializer.fromJson<int?>(json['recurrenceId']),
+      status: serializer.fromJson<String?>(json['status']),
+      organizer: serializer.fromJson<String?>(json['organizer']),
+      attendeesJson: serializer.fromJson<String>(json['attendeesJson']),
+      alarmsJson: serializer.fromJson<String>(json['alarmsJson']),
+      rawIcs: serializer.fromJson<String?>(json['rawIcs']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      conflicted: serializer.fromJson<bool>(json['conflicted']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'calendarId': serializer.toJson<String>(calendarId),
+      'uid': serializer.toJson<String>(uid),
+      'href': serializer.toJson<String?>(href),
+      'etag': serializer.toJson<String?>(etag),
+      'summary': serializer.toJson<String>(summary),
+      'description': serializer.toJson<String?>(description),
+      'location': serializer.toJson<String?>(location),
+      'startAt': serializer.toJson<int>(startAt),
+      'endAt': serializer.toJson<int>(endAt),
+      'isAllDay': serializer.toJson<bool>(isAllDay),
+      'floating': serializer.toJson<bool>(floating),
+      'tzid': serializer.toJson<String?>(tzid),
+      'rrule': serializer.toJson<String?>(rrule),
+      'exdatesJson': serializer.toJson<String>(exdatesJson),
+      'recurrenceId': serializer.toJson<int?>(recurrenceId),
+      'status': serializer.toJson<String?>(status),
+      'organizer': serializer.toJson<String?>(organizer),
+      'attendeesJson': serializer.toJson<String>(attendeesJson),
+      'alarmsJson': serializer.toJson<String>(alarmsJson),
+      'rawIcs': serializer.toJson<String?>(rawIcs),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'conflicted': serializer.toJson<bool>(conflicted),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CalendarEventRow copyWith({
+    String? id,
+    String? calendarId,
+    String? uid,
+    Value<String?> href = const Value.absent(),
+    Value<String?> etag = const Value.absent(),
+    String? summary,
+    Value<String?> description = const Value.absent(),
+    Value<String?> location = const Value.absent(),
+    int? startAt,
+    int? endAt,
+    bool? isAllDay,
+    bool? floating,
+    Value<String?> tzid = const Value.absent(),
+    Value<String?> rrule = const Value.absent(),
+    String? exdatesJson,
+    Value<int?> recurrenceId = const Value.absent(),
+    Value<String?> status = const Value.absent(),
+    Value<String?> organizer = const Value.absent(),
+    String? attendeesJson,
+    String? alarmsJson,
+    Value<String?> rawIcs = const Value.absent(),
+    int? updatedAt,
+    bool? dirty,
+    bool? conflicted,
+    bool? deleted,
+  }) => CalendarEventRow(
+    id: id ?? this.id,
+    calendarId: calendarId ?? this.calendarId,
+    uid: uid ?? this.uid,
+    href: href.present ? href.value : this.href,
+    etag: etag.present ? etag.value : this.etag,
+    summary: summary ?? this.summary,
+    description: description.present ? description.value : this.description,
+    location: location.present ? location.value : this.location,
+    startAt: startAt ?? this.startAt,
+    endAt: endAt ?? this.endAt,
+    isAllDay: isAllDay ?? this.isAllDay,
+    floating: floating ?? this.floating,
+    tzid: tzid.present ? tzid.value : this.tzid,
+    rrule: rrule.present ? rrule.value : this.rrule,
+    exdatesJson: exdatesJson ?? this.exdatesJson,
+    recurrenceId: recurrenceId.present ? recurrenceId.value : this.recurrenceId,
+    status: status.present ? status.value : this.status,
+    organizer: organizer.present ? organizer.value : this.organizer,
+    attendeesJson: attendeesJson ?? this.attendeesJson,
+    alarmsJson: alarmsJson ?? this.alarmsJson,
+    rawIcs: rawIcs.present ? rawIcs.value : this.rawIcs,
+    updatedAt: updatedAt ?? this.updatedAt,
+    dirty: dirty ?? this.dirty,
+    conflicted: conflicted ?? this.conflicted,
+    deleted: deleted ?? this.deleted,
+  );
+  CalendarEventRow copyWithCompanion(CalendarEventsCompanion data) {
+    return CalendarEventRow(
+      id: data.id.present ? data.id.value : this.id,
+      calendarId: data.calendarId.present
+          ? data.calendarId.value
+          : this.calendarId,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      href: data.href.present ? data.href.value : this.href,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      location: data.location.present ? data.location.value : this.location,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      endAt: data.endAt.present ? data.endAt.value : this.endAt,
+      isAllDay: data.isAllDay.present ? data.isAllDay.value : this.isAllDay,
+      floating: data.floating.present ? data.floating.value : this.floating,
+      tzid: data.tzid.present ? data.tzid.value : this.tzid,
+      rrule: data.rrule.present ? data.rrule.value : this.rrule,
+      exdatesJson: data.exdatesJson.present
+          ? data.exdatesJson.value
+          : this.exdatesJson,
+      recurrenceId: data.recurrenceId.present
+          ? data.recurrenceId.value
+          : this.recurrenceId,
+      status: data.status.present ? data.status.value : this.status,
+      organizer: data.organizer.present ? data.organizer.value : this.organizer,
+      attendeesJson: data.attendeesJson.present
+          ? data.attendeesJson.value
+          : this.attendeesJson,
+      alarmsJson: data.alarmsJson.present
+          ? data.alarmsJson.value
+          : this.alarmsJson,
+      rawIcs: data.rawIcs.present ? data.rawIcs.value : this.rawIcs,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      conflicted: data.conflicted.present
+          ? data.conflicted.value
+          : this.conflicted,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEventRow(')
+          ..write('id: $id, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('uid: $uid, ')
+          ..write('href: $href, ')
+          ..write('etag: $etag, ')
+          ..write('summary: $summary, ')
+          ..write('description: $description, ')
+          ..write('location: $location, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('isAllDay: $isAllDay, ')
+          ..write('floating: $floating, ')
+          ..write('tzid: $tzid, ')
+          ..write('rrule: $rrule, ')
+          ..write('exdatesJson: $exdatesJson, ')
+          ..write('recurrenceId: $recurrenceId, ')
+          ..write('status: $status, ')
+          ..write('organizer: $organizer, ')
+          ..write('attendeesJson: $attendeesJson, ')
+          ..write('alarmsJson: $alarmsJson, ')
+          ..write('rawIcs: $rawIcs, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('conflicted: $conflicted, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    calendarId,
+    uid,
+    href,
+    etag,
+    summary,
+    description,
+    location,
+    startAt,
+    endAt,
+    isAllDay,
+    floating,
+    tzid,
+    rrule,
+    exdatesJson,
+    recurrenceId,
+    status,
+    organizer,
+    attendeesJson,
+    alarmsJson,
+    rawIcs,
+    updatedAt,
+    dirty,
+    conflicted,
+    deleted,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarEventRow &&
+          other.id == this.id &&
+          other.calendarId == this.calendarId &&
+          other.uid == this.uid &&
+          other.href == this.href &&
+          other.etag == this.etag &&
+          other.summary == this.summary &&
+          other.description == this.description &&
+          other.location == this.location &&
+          other.startAt == this.startAt &&
+          other.endAt == this.endAt &&
+          other.isAllDay == this.isAllDay &&
+          other.floating == this.floating &&
+          other.tzid == this.tzid &&
+          other.rrule == this.rrule &&
+          other.exdatesJson == this.exdatesJson &&
+          other.recurrenceId == this.recurrenceId &&
+          other.status == this.status &&
+          other.organizer == this.organizer &&
+          other.attendeesJson == this.attendeesJson &&
+          other.alarmsJson == this.alarmsJson &&
+          other.rawIcs == this.rawIcs &&
+          other.updatedAt == this.updatedAt &&
+          other.dirty == this.dirty &&
+          other.conflicted == this.conflicted &&
+          other.deleted == this.deleted);
+}
+
+class CalendarEventsCompanion extends UpdateCompanion<CalendarEventRow> {
+  final Value<String> id;
+  final Value<String> calendarId;
+  final Value<String> uid;
+  final Value<String?> href;
+  final Value<String?> etag;
+  final Value<String> summary;
+  final Value<String?> description;
+  final Value<String?> location;
+  final Value<int> startAt;
+  final Value<int> endAt;
+  final Value<bool> isAllDay;
+  final Value<bool> floating;
+  final Value<String?> tzid;
+  final Value<String?> rrule;
+  final Value<String> exdatesJson;
+  final Value<int?> recurrenceId;
+  final Value<String?> status;
+  final Value<String?> organizer;
+  final Value<String> attendeesJson;
+  final Value<String> alarmsJson;
+  final Value<String?> rawIcs;
+  final Value<int> updatedAt;
+  final Value<bool> dirty;
+  final Value<bool> conflicted;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CalendarEventsCompanion({
+    this.id = const Value.absent(),
+    this.calendarId = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.href = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.description = const Value.absent(),
+    this.location = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    this.isAllDay = const Value.absent(),
+    this.floating = const Value.absent(),
+    this.tzid = const Value.absent(),
+    this.rrule = const Value.absent(),
+    this.exdatesJson = const Value.absent(),
+    this.recurrenceId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.organizer = const Value.absent(),
+    this.attendeesJson = const Value.absent(),
+    this.alarmsJson = const Value.absent(),
+    this.rawIcs = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.conflicted = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarEventsCompanion.insert({
+    required String id,
+    required String calendarId,
+    required String uid,
+    this.href = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.description = const Value.absent(),
+    this.location = const Value.absent(),
+    required int startAt,
+    required int endAt,
+    this.isAllDay = const Value.absent(),
+    this.floating = const Value.absent(),
+    this.tzid = const Value.absent(),
+    this.rrule = const Value.absent(),
+    this.exdatesJson = const Value.absent(),
+    this.recurrenceId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.organizer = const Value.absent(),
+    this.attendeesJson = const Value.absent(),
+    this.alarmsJson = const Value.absent(),
+    this.rawIcs = const Value.absent(),
+    required int updatedAt,
+    this.dirty = const Value.absent(),
+    this.conflicted = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       calendarId = Value(calendarId),
+       uid = Value(uid),
+       startAt = Value(startAt),
+       endAt = Value(endAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CalendarEventRow> custom({
+    Expression<String>? id,
+    Expression<String>? calendarId,
+    Expression<String>? uid,
+    Expression<String>? href,
+    Expression<String>? etag,
+    Expression<String>? summary,
+    Expression<String>? description,
+    Expression<String>? location,
+    Expression<int>? startAt,
+    Expression<int>? endAt,
+    Expression<bool>? isAllDay,
+    Expression<bool>? floating,
+    Expression<String>? tzid,
+    Expression<String>? rrule,
+    Expression<String>? exdatesJson,
+    Expression<int>? recurrenceId,
+    Expression<String>? status,
+    Expression<String>? organizer,
+    Expression<String>? attendeesJson,
+    Expression<String>? alarmsJson,
+    Expression<String>? rawIcs,
+    Expression<int>? updatedAt,
+    Expression<bool>? dirty,
+    Expression<bool>? conflicted,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (calendarId != null) 'calendar_id': calendarId,
+      if (uid != null) 'uid': uid,
+      if (href != null) 'href': href,
+      if (etag != null) 'etag': etag,
+      if (summary != null) 'summary': summary,
+      if (description != null) 'description': description,
+      if (location != null) 'location': location,
+      if (startAt != null) 'start_at': startAt,
+      if (endAt != null) 'end_at': endAt,
+      if (isAllDay != null) 'is_all_day': isAllDay,
+      if (floating != null) 'floating': floating,
+      if (tzid != null) 'tzid': tzid,
+      if (rrule != null) 'rrule': rrule,
+      if (exdatesJson != null) 'exdates_json': exdatesJson,
+      if (recurrenceId != null) 'recurrence_id': recurrenceId,
+      if (status != null) 'status': status,
+      if (organizer != null) 'organizer': organizer,
+      if (attendeesJson != null) 'attendees_json': attendeesJson,
+      if (alarmsJson != null) 'alarms_json': alarmsJson,
+      if (rawIcs != null) 'raw_ics': rawIcs,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (dirty != null) 'dirty': dirty,
+      if (conflicted != null) 'conflicted': conflicted,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarEventsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? calendarId,
+    Value<String>? uid,
+    Value<String?>? href,
+    Value<String?>? etag,
+    Value<String>? summary,
+    Value<String?>? description,
+    Value<String?>? location,
+    Value<int>? startAt,
+    Value<int>? endAt,
+    Value<bool>? isAllDay,
+    Value<bool>? floating,
+    Value<String?>? tzid,
+    Value<String?>? rrule,
+    Value<String>? exdatesJson,
+    Value<int?>? recurrenceId,
+    Value<String?>? status,
+    Value<String?>? organizer,
+    Value<String>? attendeesJson,
+    Value<String>? alarmsJson,
+    Value<String?>? rawIcs,
+    Value<int>? updatedAt,
+    Value<bool>? dirty,
+    Value<bool>? conflicted,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CalendarEventsCompanion(
+      id: id ?? this.id,
+      calendarId: calendarId ?? this.calendarId,
+      uid: uid ?? this.uid,
+      href: href ?? this.href,
+      etag: etag ?? this.etag,
+      summary: summary ?? this.summary,
+      description: description ?? this.description,
+      location: location ?? this.location,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
+      isAllDay: isAllDay ?? this.isAllDay,
+      floating: floating ?? this.floating,
+      tzid: tzid ?? this.tzid,
+      rrule: rrule ?? this.rrule,
+      exdatesJson: exdatesJson ?? this.exdatesJson,
+      recurrenceId: recurrenceId ?? this.recurrenceId,
+      status: status ?? this.status,
+      organizer: organizer ?? this.organizer,
+      attendeesJson: attendeesJson ?? this.attendeesJson,
+      alarmsJson: alarmsJson ?? this.alarmsJson,
+      rawIcs: rawIcs ?? this.rawIcs,
+      updatedAt: updatedAt ?? this.updatedAt,
+      dirty: dirty ?? this.dirty,
+      conflicted: conflicted ?? this.conflicted,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (calendarId.present) {
+      map['calendar_id'] = Variable<String>(calendarId.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (href.present) {
+      map['href'] = Variable<String>(href.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<int>(startAt.value);
+    }
+    if (endAt.present) {
+      map['end_at'] = Variable<int>(endAt.value);
+    }
+    if (isAllDay.present) {
+      map['is_all_day'] = Variable<bool>(isAllDay.value);
+    }
+    if (floating.present) {
+      map['floating'] = Variable<bool>(floating.value);
+    }
+    if (tzid.present) {
+      map['tzid'] = Variable<String>(tzid.value);
+    }
+    if (rrule.present) {
+      map['rrule'] = Variable<String>(rrule.value);
+    }
+    if (exdatesJson.present) {
+      map['exdates_json'] = Variable<String>(exdatesJson.value);
+    }
+    if (recurrenceId.present) {
+      map['recurrence_id'] = Variable<int>(recurrenceId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (organizer.present) {
+      map['organizer'] = Variable<String>(organizer.value);
+    }
+    if (attendeesJson.present) {
+      map['attendees_json'] = Variable<String>(attendeesJson.value);
+    }
+    if (alarmsJson.present) {
+      map['alarms_json'] = Variable<String>(alarmsJson.value);
+    }
+    if (rawIcs.present) {
+      map['raw_ics'] = Variable<String>(rawIcs.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (conflicted.present) {
+      map['conflicted'] = Variable<bool>(conflicted.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('uid: $uid, ')
+          ..write('href: $href, ')
+          ..write('etag: $etag, ')
+          ..write('summary: $summary, ')
+          ..write('description: $description, ')
+          ..write('location: $location, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('isAllDay: $isAllDay, ')
+          ..write('floating: $floating, ')
+          ..write('tzid: $tzid, ')
+          ..write('rrule: $rrule, ')
+          ..write('exdatesJson: $exdatesJson, ')
+          ..write('recurrenceId: $recurrenceId, ')
+          ..write('status: $status, ')
+          ..write('organizer: $organizer, ')
+          ..write('attendeesJson: $attendeesJson, ')
+          ..write('alarmsJson: $alarmsJson, ')
+          ..write('rawIcs: $rawIcs, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('conflicted: $conflicted, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CalendarSyncQueueTable extends CalendarSyncQueue
+    with TableInfo<$CalendarSyncQueueTable, CalendarSyncQueueRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarSyncQueueTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calendarIdMeta = const VerificationMeta(
+    'calendarId',
+  );
+  @override
+  late final GeneratedColumn<String> calendarId = GeneratedColumn<String>(
+    'calendar_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES calendars (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrefMeta = const VerificationMeta('href');
+  @override
+  late final GeneratedColumn<String> href = GeneratedColumn<String>(
+    'href',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    calendarId,
+    uid,
+    kind,
+    href,
+    etag,
+    createdAt,
+    attempts,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendar_sync_queue';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarSyncQueueRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('calendar_id')) {
+      context.handle(
+        _calendarIdMeta,
+        calendarId.isAcceptableOrUnknown(data['calendar_id']!, _calendarIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calendarIdMeta);
+    }
+    if (data.containsKey('uid')) {
+      context.handle(
+        _uidMeta,
+        uid.isAcceptableOrUnknown(data['uid']!, _uidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('href')) {
+      context.handle(
+        _hrefMeta,
+        href.isAcceptableOrUnknown(data['href']!, _hrefMeta),
+      );
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarSyncQueueRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarSyncQueueRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      calendarId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_id'],
+      )!,
+      uid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uid'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      href: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}href'],
+      ),
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $CalendarSyncQueueTable createAlias(String alias) {
+    return $CalendarSyncQueueTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarSyncQueueRow extends DataClass
+    implements Insertable<CalendarSyncQueueRow> {
+  final String id;
+  final String calendarId;
+  final String uid;
+
+  /// create | update | delete
+  final String kind;
+  final String? href;
+  final String? etag;
+  final int createdAt;
+  final int attempts;
+  final String? lastError;
+  const CalendarSyncQueueRow({
+    required this.id,
+    required this.calendarId,
+    required this.uid,
+    required this.kind,
+    this.href,
+    this.etag,
+    required this.createdAt,
+    required this.attempts,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['calendar_id'] = Variable<String>(calendarId);
+    map['uid'] = Variable<String>(uid);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || href != null) {
+      map['href'] = Variable<String>(href);
+    }
+    if (!nullToAbsent || etag != null) {
+      map['etag'] = Variable<String>(etag);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['attempts'] = Variable<int>(attempts);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  CalendarSyncQueueCompanion toCompanion(bool nullToAbsent) {
+    return CalendarSyncQueueCompanion(
+      id: Value(id),
+      calendarId: Value(calendarId),
+      uid: Value(uid),
+      kind: Value(kind),
+      href: href == null && nullToAbsent ? const Value.absent() : Value(href),
+      etag: etag == null && nullToAbsent ? const Value.absent() : Value(etag),
+      createdAt: Value(createdAt),
+      attempts: Value(attempts),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory CalendarSyncQueueRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarSyncQueueRow(
+      id: serializer.fromJson<String>(json['id']),
+      calendarId: serializer.fromJson<String>(json['calendarId']),
+      uid: serializer.fromJson<String>(json['uid']),
+      kind: serializer.fromJson<String>(json['kind']),
+      href: serializer.fromJson<String?>(json['href']),
+      etag: serializer.fromJson<String?>(json['etag']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'calendarId': serializer.toJson<String>(calendarId),
+      'uid': serializer.toJson<String>(uid),
+      'kind': serializer.toJson<String>(kind),
+      'href': serializer.toJson<String?>(href),
+      'etag': serializer.toJson<String?>(etag),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'attempts': serializer.toJson<int>(attempts),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  CalendarSyncQueueRow copyWith({
+    String? id,
+    String? calendarId,
+    String? uid,
+    String? kind,
+    Value<String?> href = const Value.absent(),
+    Value<String?> etag = const Value.absent(),
+    int? createdAt,
+    int? attempts,
+    Value<String?> lastError = const Value.absent(),
+  }) => CalendarSyncQueueRow(
+    id: id ?? this.id,
+    calendarId: calendarId ?? this.calendarId,
+    uid: uid ?? this.uid,
+    kind: kind ?? this.kind,
+    href: href.present ? href.value : this.href,
+    etag: etag.present ? etag.value : this.etag,
+    createdAt: createdAt ?? this.createdAt,
+    attempts: attempts ?? this.attempts,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  CalendarSyncQueueRow copyWithCompanion(CalendarSyncQueueCompanion data) {
+    return CalendarSyncQueueRow(
+      id: data.id.present ? data.id.value : this.id,
+      calendarId: data.calendarId.present
+          ? data.calendarId.value
+          : this.calendarId,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      href: data.href.present ? data.href.value : this.href,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarSyncQueueRow(')
+          ..write('id: $id, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('uid: $uid, ')
+          ..write('kind: $kind, ')
+          ..write('href: $href, ')
+          ..write('etag: $etag, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    calendarId,
+    uid,
+    kind,
+    href,
+    etag,
+    createdAt,
+    attempts,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarSyncQueueRow &&
+          other.id == this.id &&
+          other.calendarId == this.calendarId &&
+          other.uid == this.uid &&
+          other.kind == this.kind &&
+          other.href == this.href &&
+          other.etag == this.etag &&
+          other.createdAt == this.createdAt &&
+          other.attempts == this.attempts &&
+          other.lastError == this.lastError);
+}
+
+class CalendarSyncQueueCompanion extends UpdateCompanion<CalendarSyncQueueRow> {
+  final Value<String> id;
+  final Value<String> calendarId;
+  final Value<String> uid;
+  final Value<String> kind;
+  final Value<String?> href;
+  final Value<String?> etag;
+  final Value<int> createdAt;
+  final Value<int> attempts;
+  final Value<String?> lastError;
+  final Value<int> rowid;
+  const CalendarSyncQueueCompanion({
+    this.id = const Value.absent(),
+    this.calendarId = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.href = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarSyncQueueCompanion.insert({
+    required String id,
+    required String calendarId,
+    required String uid,
+    required String kind,
+    this.href = const Value.absent(),
+    this.etag = const Value.absent(),
+    required int createdAt,
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       calendarId = Value(calendarId),
+       uid = Value(uid),
+       kind = Value(kind),
+       createdAt = Value(createdAt);
+  static Insertable<CalendarSyncQueueRow> custom({
+    Expression<String>? id,
+    Expression<String>? calendarId,
+    Expression<String>? uid,
+    Expression<String>? kind,
+    Expression<String>? href,
+    Expression<String>? etag,
+    Expression<int>? createdAt,
+    Expression<int>? attempts,
+    Expression<String>? lastError,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (calendarId != null) 'calendar_id': calendarId,
+      if (uid != null) 'uid': uid,
+      if (kind != null) 'kind': kind,
+      if (href != null) 'href': href,
+      if (etag != null) 'etag': etag,
+      if (createdAt != null) 'created_at': createdAt,
+      if (attempts != null) 'attempts': attempts,
+      if (lastError != null) 'last_error': lastError,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarSyncQueueCompanion copyWith({
+    Value<String>? id,
+    Value<String>? calendarId,
+    Value<String>? uid,
+    Value<String>? kind,
+    Value<String?>? href,
+    Value<String?>? etag,
+    Value<int>? createdAt,
+    Value<int>? attempts,
+    Value<String?>? lastError,
+    Value<int>? rowid,
+  }) {
+    return CalendarSyncQueueCompanion(
+      id: id ?? this.id,
+      calendarId: calendarId ?? this.calendarId,
+      uid: uid ?? this.uid,
+      kind: kind ?? this.kind,
+      href: href ?? this.href,
+      etag: etag ?? this.etag,
+      createdAt: createdAt ?? this.createdAt,
+      attempts: attempts ?? this.attempts,
+      lastError: lastError ?? this.lastError,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (calendarId.present) {
+      map['calendar_id'] = Variable<String>(calendarId.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (href.present) {
+      map['href'] = Variable<String>(href.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarSyncQueueCompanion(')
+          ..write('id: $id, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('uid: $uid, ')
+          ..write('kind: $kind, ')
+          ..write('href: $href, ')
+          ..write('etag: $etag, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$SortieDatabase extends GeneratedDatabase {
   _$SortieDatabase(QueryExecutor e) : super(e);
   $SortieDatabaseManager get managers => $SortieDatabaseManager(this);
@@ -11477,6 +14272,10 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
   late final $AiUsageTable aiUsage = $AiUsageTable(this);
   late final $JournalEventsTable journalEvents = $JournalEventsTable(this);
   late final $JournalCursorsTable journalCursors = $JournalCursorsTable(this);
+  late final $CalendarsTable calendars = $CalendarsTable(this);
+  late final $CalendarEventsTable calendarEvents = $CalendarEventsTable(this);
+  late final $CalendarSyncQueueTable calendarSyncQueue =
+      $CalendarSyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11499,6 +14298,9 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
     aiUsage,
     journalEvents,
     journalCursors,
+    calendars,
+    calendarEvents,
+    calendarSyncQueue,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -11515,6 +14317,20 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('folders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'calendars',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('calendar_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'calendars',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('calendar_sync_queue', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -17554,6 +20370,1752 @@ typedef $$JournalCursorsTableProcessedTableManager =
       JournalCursor,
       PrefetchHooks Function()
     >;
+typedef $$CalendarsTableCreateCompanionBuilder = CalendarsCompanion Function({
+  required String id,
+  required String name,
+  required String kind,
+  Value<String> url,
+  Value<String?> username,
+  required int color,
+  Value<bool> enabled,
+  Value<bool> readOnly,
+  Value<String> authKind,
+  Value<String?> googleEmail,
+  Value<String?> syncToken,
+  Value<String?> ctag,
+  Value<String?> etag,
+  Value<int?> lastSyncAt,
+  Value<String?> lastError,
+  Value<int> sortOrder,
+  Value<int> rowid,
+});
+typedef $$CalendarsTableUpdateCompanionBuilder = CalendarsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> kind,
+  Value<String> url,
+  Value<String?> username,
+  Value<int> color,
+  Value<bool> enabled,
+  Value<bool> readOnly,
+  Value<String> authKind,
+  Value<String?> googleEmail,
+  Value<String?> syncToken,
+  Value<String?> ctag,
+  Value<String?> etag,
+  Value<int?> lastSyncAt,
+  Value<String?> lastError,
+  Value<int> sortOrder,
+  Value<int> rowid,
+});
+
+final class $$CalendarsTableReferences
+    extends BaseReferences<_$SortieDatabase, $CalendarsTable, CalendarRow> {
+  $$CalendarsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$CalendarEventsTable, List<CalendarEventRow>>
+  _calendarEventsRefsTable(_$SortieDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.calendarEvents,
+        aliasName: 'calendars__id__calendar_events__calendar_id',
+      );
+
+  $$CalendarEventsTableProcessedTableManager get calendarEventsRefs {
+    final manager = $$CalendarEventsTableTableManager(
+      $_db,
+      $_db.calendarEvents,
+    ).filter((f) => f.calendarId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_calendarEventsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $CalendarSyncQueueTable,
+    List<CalendarSyncQueueRow>
+  >
+  _calendarSyncQueueRefsTable(_$SortieDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.calendarSyncQueue,
+        aliasName: 'calendars__id__calendar_sync_queue__calendar_id',
+      );
+
+  $$CalendarSyncQueueTableProcessedTableManager get calendarSyncQueueRefs {
+    final manager = $$CalendarSyncQueueTableTableManager(
+      $_db,
+      $_db.calendarSyncQueue,
+    ).filter((f) => f.calendarId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _calendarSyncQueueRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CalendarsTableFilterComposer
+    extends Composer<_$SortieDatabase, $CalendarsTable> {
+  $$CalendarsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get username => $composableBuilder(
+    column: $table.username,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get readOnly => $composableBuilder(
+    column: $table.readOnly,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get authKind => $composableBuilder(
+    column: $table.authKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get googleEmail => $composableBuilder(
+    column: $table.googleEmail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncToken => $composableBuilder(
+    column: $table.syncToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ctag => $composableBuilder(
+    column: $table.ctag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> calendarEventsRefs(
+    Expression<bool> Function($$CalendarEventsTableFilterComposer f) f,
+  ) {
+    final $$CalendarEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.calendarId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> calendarSyncQueueRefs(
+    Expression<bool> Function($$CalendarSyncQueueTableFilterComposer f) f,
+  ) {
+    final $$CalendarSyncQueueTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarSyncQueue,
+      getReferencedColumn: (t) => t.calendarId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarSyncQueueTableFilterComposer(
+            $db: $db,
+            $table: $db.calendarSyncQueue,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CalendarsTableOrderingComposer
+    extends Composer<_$SortieDatabase, $CalendarsTable> {
+  $$CalendarsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get username => $composableBuilder(
+    column: $table.username,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get readOnly => $composableBuilder(
+    column: $table.readOnly,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get authKind => $composableBuilder(
+    column: $table.authKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get googleEmail => $composableBuilder(
+    column: $table.googleEmail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncToken => $composableBuilder(
+    column: $table.syncToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ctag => $composableBuilder(
+    column: $table.ctag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CalendarsTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $CalendarsTable> {
+  $$CalendarsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<bool> get readOnly =>
+      $composableBuilder(column: $table.readOnly, builder: (column) => column);
+
+  GeneratedColumn<String> get authKind =>
+      $composableBuilder(column: $table.authKind, builder: (column) => column);
+
+  GeneratedColumn<String> get googleEmail => $composableBuilder(
+    column: $table.googleEmail,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncToken =>
+      $composableBuilder(column: $table.syncToken, builder: (column) => column);
+
+  GeneratedColumn<String> get ctag =>
+      $composableBuilder(column: $table.ctag, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  Expression<T> calendarEventsRefs<T extends Object>(
+    Expression<T> Function($$CalendarEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CalendarEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.calendarId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> calendarSyncQueueRefs<T extends Object>(
+    Expression<T> Function($$CalendarSyncQueueTableAnnotationComposer a) f,
+  ) {
+    final $$CalendarSyncQueueTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.calendarSyncQueue,
+          getReferencedColumn: (t) => t.calendarId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CalendarSyncQueueTableAnnotationComposer(
+                $db: $db,
+                $table: $db.calendarSyncQueue,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CalendarsTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $CalendarsTable,
+          CalendarRow,
+          $$CalendarsTableFilterComposer,
+          $$CalendarsTableOrderingComposer,
+          $$CalendarsTableAnnotationComposer,
+          $$CalendarsTableCreateCompanionBuilder,
+          $$CalendarsTableUpdateCompanionBuilder,
+          (CalendarRow, $$CalendarsTableReferences),
+          CalendarRow,
+          PrefetchHooks Function({
+            bool calendarEventsRefs,
+            bool calendarSyncQueueRefs,
+          })
+        > {
+  $$CalendarsTableTableManager(_$SortieDatabase db, $CalendarsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> url = const Value.absent(),
+                Value<String?> username = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<bool> readOnly = const Value.absent(),
+                Value<String> authKind = const Value.absent(),
+                Value<String?> googleEmail = const Value.absent(),
+                Value<String?> syncToken = const Value.absent(),
+                Value<String?> ctag = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                Value<int?> lastSyncAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarsCompanion(
+                id: id,
+                name: name,
+                kind: kind,
+                url: url,
+                username: username,
+                color: color,
+                enabled: enabled,
+                readOnly: readOnly,
+                authKind: authKind,
+                googleEmail: googleEmail,
+                syncToken: syncToken,
+                ctag: ctag,
+                etag: etag,
+                lastSyncAt: lastSyncAt,
+                lastError: lastError,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String kind,
+                Value<String> url = const Value.absent(),
+                Value<String?> username = const Value.absent(),
+                required int color,
+                Value<bool> enabled = const Value.absent(),
+                Value<bool> readOnly = const Value.absent(),
+                Value<String> authKind = const Value.absent(),
+                Value<String?> googleEmail = const Value.absent(),
+                Value<String?> syncToken = const Value.absent(),
+                Value<String?> ctag = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                Value<int?> lastSyncAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarsCompanion.insert(
+                id: id,
+                name: name,
+                kind: kind,
+                url: url,
+                username: username,
+                color: color,
+                enabled: enabled,
+                readOnly: readOnly,
+                authKind: authKind,
+                googleEmail: googleEmail,
+                syncToken: syncToken,
+                ctag: ctag,
+                etag: etag,
+                lastSyncAt: lastSyncAt,
+                lastError: lastError,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CalendarsTable, CalendarRow>(table),
+                  $$CalendarsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({calendarEventsRefs = false, calendarSyncQueueRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (calendarEventsRefs) db.calendarEvents,
+                    if (calendarSyncQueueRefs) db.calendarSyncQueue,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (calendarEventsRefs)
+                        await $_getPrefetchedData<
+                          CalendarRow,
+                          $CalendarsTable,
+                          CalendarEventRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CalendarsTableReferences
+                              ._calendarEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CalendarsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).calendarEventsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.calendarId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (calendarSyncQueueRefs)
+                        await $_getPrefetchedData<
+                          CalendarRow,
+                          $CalendarsTable,
+                          CalendarSyncQueueRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CalendarsTableReferences
+                              ._calendarSyncQueueRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CalendarsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).calendarSyncQueueRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.calendarId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$CalendarsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $CalendarsTable,
+      CalendarRow,
+      $$CalendarsTableFilterComposer,
+      $$CalendarsTableOrderingComposer,
+      $$CalendarsTableAnnotationComposer,
+      $$CalendarsTableCreateCompanionBuilder,
+      $$CalendarsTableUpdateCompanionBuilder,
+      (CalendarRow, $$CalendarsTableReferences),
+      CalendarRow,
+      PrefetchHooks Function({
+        bool calendarEventsRefs,
+        bool calendarSyncQueueRefs,
+      })
+    >;
+typedef $$CalendarEventsTableCreateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      required String id,
+      required String calendarId,
+      required String uid,
+      Value<String?> href,
+      Value<String?> etag,
+      Value<String> summary,
+      Value<String?> description,
+      Value<String?> location,
+      required int startAt,
+      required int endAt,
+      Value<bool> isAllDay,
+      Value<bool> floating,
+      Value<String?> tzid,
+      Value<String?> rrule,
+      Value<String> exdatesJson,
+      Value<int?> recurrenceId,
+      Value<String?> status,
+      Value<String?> organizer,
+      Value<String> attendeesJson,
+      Value<String> alarmsJson,
+      Value<String?> rawIcs,
+      required int updatedAt,
+      Value<bool> dirty,
+      Value<bool> conflicted,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CalendarEventsTableUpdateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      Value<String> id,
+      Value<String> calendarId,
+      Value<String> uid,
+      Value<String?> href,
+      Value<String?> etag,
+      Value<String> summary,
+      Value<String?> description,
+      Value<String?> location,
+      Value<int> startAt,
+      Value<int> endAt,
+      Value<bool> isAllDay,
+      Value<bool> floating,
+      Value<String?> tzid,
+      Value<String?> rrule,
+      Value<String> exdatesJson,
+      Value<int?> recurrenceId,
+      Value<String?> status,
+      Value<String?> organizer,
+      Value<String> attendeesJson,
+      Value<String> alarmsJson,
+      Value<String?> rawIcs,
+      Value<int> updatedAt,
+      Value<bool> dirty,
+      Value<bool> conflicted,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+final class $$CalendarEventsTableReferences
+    extends
+        BaseReferences<
+          _$SortieDatabase,
+          $CalendarEventsTable,
+          CalendarEventRow
+        > {
+  $$CalendarEventsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CalendarsTable _calendarIdTable(_$SortieDatabase db) =>
+      db.calendars.createAlias('calendar_events__calendar_id__calendars__id');
+
+  $$CalendarsTableProcessedTableManager get calendarId {
+    final $_column = $_itemColumn<String>('calendar_id')!;
+
+    final manager = $$CalendarsTableTableManager(
+      $_db,
+      $_db.calendars,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_calendarIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CalendarEventsTableFilterComposer
+    extends Composer<_$SortieDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get href => $composableBuilder(
+    column: $table.href,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAllDay => $composableBuilder(
+    column: $table.isAllDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get floating => $composableBuilder(
+    column: $table.floating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tzid => $composableBuilder(
+    column: $table.tzid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rrule => $composableBuilder(
+    column: $table.rrule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exdatesJson => $composableBuilder(
+    column: $table.exdatesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recurrenceId => $composableBuilder(
+    column: $table.recurrenceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get organizer => $composableBuilder(
+    column: $table.organizer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attendeesJson => $composableBuilder(
+    column: $table.attendeesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alarmsJson => $composableBuilder(
+    column: $table.alarmsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawIcs => $composableBuilder(
+    column: $table.rawIcs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get conflicted => $composableBuilder(
+    column: $table.conflicted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CalendarsTableFilterComposer get calendarId {
+    final $$CalendarsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableFilterComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableOrderingComposer
+    extends Composer<_$SortieDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get href => $composableBuilder(
+    column: $table.href,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isAllDay => $composableBuilder(
+    column: $table.isAllDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get floating => $composableBuilder(
+    column: $table.floating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tzid => $composableBuilder(
+    column: $table.tzid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rrule => $composableBuilder(
+    column: $table.rrule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exdatesJson => $composableBuilder(
+    column: $table.exdatesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recurrenceId => $composableBuilder(
+    column: $table.recurrenceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organizer => $composableBuilder(
+    column: $table.organizer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get attendeesJson => $composableBuilder(
+    column: $table.attendeesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get alarmsJson => $composableBuilder(
+    column: $table.alarmsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawIcs => $composableBuilder(
+    column: $table.rawIcs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get conflicted => $composableBuilder(
+    column: $table.conflicted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CalendarsTableOrderingComposer get calendarId {
+    final $$CalendarsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableOrderingComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumn<String> get href =>
+      $composableBuilder(column: $table.href, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<int> get startAt =>
+      $composableBuilder(column: $table.startAt, builder: (column) => column);
+
+  GeneratedColumn<int> get endAt =>
+      $composableBuilder(column: $table.endAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isAllDay =>
+      $composableBuilder(column: $table.isAllDay, builder: (column) => column);
+
+  GeneratedColumn<bool> get floating =>
+      $composableBuilder(column: $table.floating, builder: (column) => column);
+
+  GeneratedColumn<String> get tzid =>
+      $composableBuilder(column: $table.tzid, builder: (column) => column);
+
+  GeneratedColumn<String> get rrule =>
+      $composableBuilder(column: $table.rrule, builder: (column) => column);
+
+  GeneratedColumn<String> get exdatesJson => $composableBuilder(
+    column: $table.exdatesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get recurrenceId => $composableBuilder(
+    column: $table.recurrenceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get organizer =>
+      $composableBuilder(column: $table.organizer, builder: (column) => column);
+
+  GeneratedColumn<String> get attendeesJson => $composableBuilder(
+    column: $table.attendeesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get alarmsJson => $composableBuilder(
+    column: $table.alarmsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawIcs =>
+      $composableBuilder(column: $table.rawIcs, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get conflicted => $composableBuilder(
+    column: $table.conflicted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  $$CalendarsTableAnnotationComposer get calendarId {
+    final $$CalendarsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $CalendarEventsTable,
+          CalendarEventRow,
+          $$CalendarEventsTableFilterComposer,
+          $$CalendarEventsTableOrderingComposer,
+          $$CalendarEventsTableAnnotationComposer,
+          $$CalendarEventsTableCreateCompanionBuilder,
+          $$CalendarEventsTableUpdateCompanionBuilder,
+          (CalendarEventRow, $$CalendarEventsTableReferences),
+          CalendarEventRow,
+          PrefetchHooks Function({bool calendarId})
+        > {
+  $$CalendarEventsTableTableManager(
+    _$SortieDatabase db,
+    $CalendarEventsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> calendarId = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<String?> href = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                Value<String> summary = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<int> startAt = const Value.absent(),
+                Value<int> endAt = const Value.absent(),
+                Value<bool> isAllDay = const Value.absent(),
+                Value<bool> floating = const Value.absent(),
+                Value<String?> tzid = const Value.absent(),
+                Value<String?> rrule = const Value.absent(),
+                Value<String> exdatesJson = const Value.absent(),
+                Value<int?> recurrenceId = const Value.absent(),
+                Value<String?> status = const Value.absent(),
+                Value<String?> organizer = const Value.absent(),
+                Value<String> attendeesJson = const Value.absent(),
+                Value<String> alarmsJson = const Value.absent(),
+                Value<String?> rawIcs = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> conflicted = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarEventsCompanion(
+                id: id,
+                calendarId: calendarId,
+                uid: uid,
+                href: href,
+                etag: etag,
+                summary: summary,
+                description: description,
+                location: location,
+                startAt: startAt,
+                endAt: endAt,
+                isAllDay: isAllDay,
+                floating: floating,
+                tzid: tzid,
+                rrule: rrule,
+                exdatesJson: exdatesJson,
+                recurrenceId: recurrenceId,
+                status: status,
+                organizer: organizer,
+                attendeesJson: attendeesJson,
+                alarmsJson: alarmsJson,
+                rawIcs: rawIcs,
+                updatedAt: updatedAt,
+                dirty: dirty,
+                conflicted: conflicted,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String calendarId,
+                required String uid,
+                Value<String?> href = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                Value<String> summary = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                required int startAt,
+                required int endAt,
+                Value<bool> isAllDay = const Value.absent(),
+                Value<bool> floating = const Value.absent(),
+                Value<String?> tzid = const Value.absent(),
+                Value<String?> rrule = const Value.absent(),
+                Value<String> exdatesJson = const Value.absent(),
+                Value<int?> recurrenceId = const Value.absent(),
+                Value<String?> status = const Value.absent(),
+                Value<String?> organizer = const Value.absent(),
+                Value<String> attendeesJson = const Value.absent(),
+                Value<String> alarmsJson = const Value.absent(),
+                Value<String?> rawIcs = const Value.absent(),
+                required int updatedAt,
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> conflicted = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarEventsCompanion.insert(
+                id: id,
+                calendarId: calendarId,
+                uid: uid,
+                href: href,
+                etag: etag,
+                summary: summary,
+                description: description,
+                location: location,
+                startAt: startAt,
+                endAt: endAt,
+                isAllDay: isAllDay,
+                floating: floating,
+                tzid: tzid,
+                rrule: rrule,
+                exdatesJson: exdatesJson,
+                recurrenceId: recurrenceId,
+                status: status,
+                organizer: organizer,
+                attendeesJson: attendeesJson,
+                alarmsJson: alarmsJson,
+                rawIcs: rawIcs,
+                updatedAt: updatedAt,
+                dirty: dirty,
+                conflicted: conflicted,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CalendarEventsTable, CalendarEventRow>(table),
+                  $$CalendarEventsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({calendarId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (calendarId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.calendarId,
+                        referencedTable: $$CalendarEventsTableReferences
+                            ._calendarIdTable(db),
+                        referencedColumn: $$CalendarEventsTableReferences
+                            ._calendarIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CalendarEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $CalendarEventsTable,
+      CalendarEventRow,
+      $$CalendarEventsTableFilterComposer,
+      $$CalendarEventsTableOrderingComposer,
+      $$CalendarEventsTableAnnotationComposer,
+      $$CalendarEventsTableCreateCompanionBuilder,
+      $$CalendarEventsTableUpdateCompanionBuilder,
+      (CalendarEventRow, $$CalendarEventsTableReferences),
+      CalendarEventRow,
+      PrefetchHooks Function({bool calendarId})
+    >;
+typedef $$CalendarSyncQueueTableCreateCompanionBuilder =
+    CalendarSyncQueueCompanion Function({
+      required String id,
+      required String calendarId,
+      required String uid,
+      required String kind,
+      Value<String?> href,
+      Value<String?> etag,
+      required int createdAt,
+      Value<int> attempts,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+typedef $$CalendarSyncQueueTableUpdateCompanionBuilder =
+    CalendarSyncQueueCompanion Function({
+      Value<String> id,
+      Value<String> calendarId,
+      Value<String> uid,
+      Value<String> kind,
+      Value<String?> href,
+      Value<String?> etag,
+      Value<int> createdAt,
+      Value<int> attempts,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+
+final class $$CalendarSyncQueueTableReferences
+    extends
+        BaseReferences<
+          _$SortieDatabase,
+          $CalendarSyncQueueTable,
+          CalendarSyncQueueRow
+        > {
+  $$CalendarSyncQueueTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CalendarsTable _calendarIdTable(_$SortieDatabase db) => db.calendars
+      .createAlias('calendar_sync_queue__calendar_id__calendars__id');
+
+  $$CalendarsTableProcessedTableManager get calendarId {
+    final $_column = $_itemColumn<String>('calendar_id')!;
+
+    final manager = $$CalendarsTableTableManager(
+      $_db,
+      $_db.calendars,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_calendarIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CalendarSyncQueueTableFilterComposer
+    extends Composer<_$SortieDatabase, $CalendarSyncQueueTable> {
+  $$CalendarSyncQueueTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get href => $composableBuilder(
+    column: $table.href,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CalendarsTableFilterComposer get calendarId {
+    final $$CalendarsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableFilterComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarSyncQueueTableOrderingComposer
+    extends Composer<_$SortieDatabase, $CalendarSyncQueueTable> {
+  $$CalendarSyncQueueTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get href => $composableBuilder(
+    column: $table.href,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CalendarsTableOrderingComposer get calendarId {
+    final $$CalendarsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableOrderingComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarSyncQueueTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $CalendarSyncQueueTable> {
+  $$CalendarSyncQueueTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get href =>
+      $composableBuilder(column: $table.href, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  $$CalendarsTableAnnotationComposer get calendarId {
+    final $$CalendarsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.calendarId,
+      referencedTable: $db.calendars,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calendars,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarSyncQueueTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $CalendarSyncQueueTable,
+          CalendarSyncQueueRow,
+          $$CalendarSyncQueueTableFilterComposer,
+          $$CalendarSyncQueueTableOrderingComposer,
+          $$CalendarSyncQueueTableAnnotationComposer,
+          $$CalendarSyncQueueTableCreateCompanionBuilder,
+          $$CalendarSyncQueueTableUpdateCompanionBuilder,
+          (CalendarSyncQueueRow, $$CalendarSyncQueueTableReferences),
+          CalendarSyncQueueRow,
+          PrefetchHooks Function({bool calendarId})
+        > {
+  $$CalendarSyncQueueTableTableManager(
+    _$SortieDatabase db,
+    $CalendarSyncQueueTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarSyncQueueTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarSyncQueueTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarSyncQueueTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> calendarId = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String?> href = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarSyncQueueCompanion(
+                id: id,
+                calendarId: calendarId,
+                uid: uid,
+                kind: kind,
+                href: href,
+                etag: etag,
+                createdAt: createdAt,
+                attempts: attempts,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String calendarId,
+                required String uid,
+                required String kind,
+                Value<String?> href = const Value.absent(),
+                Value<String?> etag = const Value.absent(),
+                required int createdAt,
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarSyncQueueCompanion.insert(
+                id: id,
+                calendarId: calendarId,
+                uid: uid,
+                kind: kind,
+                href: href,
+                etag: etag,
+                createdAt: createdAt,
+                attempts: attempts,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CalendarSyncQueueTable, CalendarSyncQueueRow>(
+                    table,
+                  ),
+                  $$CalendarSyncQueueTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({calendarId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (calendarId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.calendarId,
+                        referencedTable: $$CalendarSyncQueueTableReferences
+                            ._calendarIdTable(db),
+                        referencedColumn: $$CalendarSyncQueueTableReferences
+                            ._calendarIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CalendarSyncQueueTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $CalendarSyncQueueTable,
+      CalendarSyncQueueRow,
+      $$CalendarSyncQueueTableFilterComposer,
+      $$CalendarSyncQueueTableOrderingComposer,
+      $$CalendarSyncQueueTableAnnotationComposer,
+      $$CalendarSyncQueueTableCreateCompanionBuilder,
+      $$CalendarSyncQueueTableUpdateCompanionBuilder,
+      (CalendarSyncQueueRow, $$CalendarSyncQueueTableReferences),
+      CalendarSyncQueueRow,
+      PrefetchHooks Function({bool calendarId})
+    >;
 
 class $SortieDatabaseManager {
   final _$SortieDatabase _db;
@@ -17592,4 +22154,10 @@ class $SortieDatabaseManager {
       $$JournalEventsTableTableManager(_db, _db.journalEvents);
   $$JournalCursorsTableTableManager get journalCursors =>
       $$JournalCursorsTableTableManager(_db, _db.journalCursors);
+  $$CalendarsTableTableManager get calendars =>
+      $$CalendarsTableTableManager(_db, _db.calendars);
+  $$CalendarEventsTableTableManager get calendarEvents =>
+      $$CalendarEventsTableTableManager(_db, _db.calendarEvents);
+  $$CalendarSyncQueueTableTableManager get calendarSyncQueue =>
+      $$CalendarSyncQueueTableTableManager(_db, _db.calendarSyncQueue);
 }

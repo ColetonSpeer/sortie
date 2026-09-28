@@ -154,7 +154,7 @@ class SorterService implements MessageClassifier {
       }
       if (decisions[i] != null) continue;
 
-      final rule = rules.firstMatch(ruleList, h);
+      final rule = rules.firstMatch(ruleList, h, bodyText: inputs[i].bodyText);
       if (rule != null) {
         if (!dryRun) unawaited(rules.recordHit(rule.id));
         if (rule.action == RuleAction.moveTo && rule.folderPath != null && allowed.contains(rule.folderPath)) {

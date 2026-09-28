@@ -125,6 +125,12 @@ class FolderRail extends ConsumerWidget {
           const Divider(height: 1),
           ListTile(
             dense: true,
+            leading: const Icon(Icons.calendar_month_outlined),
+            title: const Text('Calendar'),
+            onTap: () => context.push(Routes.calendar),
+          ),
+          ListTile(
+            dense: true,
             leading: const Icon(Icons.history_outlined),
             title: const Text('Sort log'),
             onTap: () => context.push(Routes.sortLog),

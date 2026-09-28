@@ -22,6 +22,7 @@ class NotificationService {
   static final _log = Logger('notifications');
   static const _newMailChannel = 'new_mail';
   static const _sortedChannel = 'sorted';
+  static const _calendarChannel = 'calendar';
 
   final FlutterLocalNotificationsPlugin _plugin;
   final _taps = StreamController<String>.broadcast();
@@ -129,6 +130,22 @@ class NotificationService {
       );
     } catch (e) {
       _log.warning('notifySorted failed', e);
+    }
+  }
+
+  /// Calendar reminder; tap opens the calendar.
+  Future<void> notifyEventReminder({required String id, required String title, required String body}) async {
+    if (!_ready) return;
+    try {
+      await _plugin.show(
+        id: _id('reminder:$id'),
+        title: title,
+        body: body,
+        notificationDetails: _details(channelId: _calendarChannel, channelName: 'Calendar reminders', group: 'calendar'),
+        payload: Routes.calendar,
+      );
+    } catch (e) {
+      _log.warning('notifyEventReminder failed', e);
     }
   }
 

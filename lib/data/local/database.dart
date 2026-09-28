@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
+import 'tables/calendar_tables.dart';
 import 'tables/tables.dart';
 
+export 'tables/calendar_tables.dart';
 export 'tables/tables.dart';
 
 part 'database.g.dart';
@@ -24,12 +26,15 @@ part 'database.g.dart';
   AiUsage,
   JournalEvents,
   JournalCursors,
+  Calendars,
+  CalendarEvents,
+  CalendarSyncQueue,
 ])
 class SortieDatabase extends _$SortieDatabase {
   SortieDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,11 +47,25 @@ class SortieDatabase extends _$SortieDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_corrections_recent ON corrections(account_id, superseded, created_at DESC)');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_sender_stats_key ON sender_stats(account_id, key_kind, key)');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_journal_type ON journal_events(account_id, type, uid)');
+          await _createCalendarIndexes();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(calendars);
+            await m.createTable(calendarEvents);
+            await m.createTable(calendarSyncQueue);
+            await _createCalendarIndexes();
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  Future<void> _createCalendarIndexes() async {
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_cal_events_cal ON calendar_events(calendar_id, start_at)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_cal_events_uid ON calendar_events(calendar_id, uid)');
+  }
 
   /// FTS5 over subject / sender / body text, keyed by rowid of `messages`.
   Future<void> _createFts() async {

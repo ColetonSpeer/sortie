@@ -10,11 +10,13 @@ import 'package:path_provider/path_provider.dart';
 import '../core/clock.dart';
 import '../data/ai/ai_provider.dart';
 import '../data/ai/ai_provider_factory.dart';
+import '../data/calendar/google_oauth.dart';
 import '../data/credentials/encrypted_file_credential_store.dart';
 import '../data/credentials/fallback_credential_store.dart';
 import '../data/credentials/secure_storage_credential_store.dart';
 import '../data/local/database.dart' show SortieDatabase;
 import '../data/local/repositories/drift_account_repository.dart';
+import '../data/local/repositories/drift_calendar_repository.dart';
 import '../data/local/repositories/drift_folder_repository.dart';
 import '../data/local/repositories/drift_message_repository.dart';
 import '../data/local/repositories/drift_pending_op_repository.dart';
@@ -27,8 +29,10 @@ import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
 import '../platform/background/background_runner.dart';
 import '../platform/device_info.dart';
+import '../services/calendar/calendar_service.dart';
 import '../services/compose/message_composer.dart' as mc;
 import '../services/coordination/coordination_service.dart';
+import '../services/notifications/notification_service.dart';
 import '../services/sorter/sorter_pipeline.dart';
 import '../services/sync/sync_engine.dart';
 import 'ai_models.dart';
@@ -54,6 +58,12 @@ class SortieServices {
   late final SorterService classifier;
   late final DeviceIdentity device;
   late final mc.MessageComposer composer;
+  late final DriftCalendarRepository calendarRepo;
+  late final GoogleAccountLinks googleLinks;
+  late final CalendarService calendar;
+
+  /// Owned here so calendar reminders can reach it; the bootstrap inits it.
+  final notifications = NotificationService();
   final clock = SystemClock();
 
   final _coordinators = <String, CoordinationService>{};
@@ -103,6 +113,7 @@ class SortieServices {
       deviceId: s.device.deviceId,
     );
     s.composer = mc.MessageComposer(clock: s.clock);
+    s._buildCalendar();
 
     await s._refreshAiProvider(await s.settings.ai());
     s._subs.add(s.settings.watchAi().listen(s._refreshAiProvider));
@@ -176,8 +187,26 @@ class SortieServices {
     }
   }
 
+  void _buildCalendar() {
+    calendarRepo = DriftCalendarRepository(db);
+    googleLinks = GoogleAccountLinks(credentials: credentials, client: () => calendar.googleClient());
+    calendar = CalendarService(
+      repo: calendarRepo,
+      credentials: credentials,
+      settings: settings,
+      clock: clock,
+      google: googleLinks,
+      onReminder: (o, minutes) async {
+        final n = notifications;
+        final when = minutes == 0 ? 'now' : 'in $minutes min';
+        await n.notifyEventReminder(id: o.key, title: o.event.summary.isEmpty ? 'Event' : o.event.summary, body: 'Starts $when${o.event.location == null ? '' : ' · ${o.event.location}'}');
+      },
+    );
+  }
+
   Future<void> start() async {
     await sync.start();
+    unawaited(calendar.start());
     final startup = _coordinators.values.toList();
     for (final c in startup) {
       unawaited(c.start());
@@ -189,6 +218,7 @@ class SortieServices {
       await c.stop();
     }
     await sync.stop();
+    await calendar.stop();
     for (final s in _subs) {
       await s.cancel();
     }
@@ -292,10 +322,16 @@ class SortieServices {
         messageClassifierProvider.overrideWithValue(classifier),
         deviceIdentityProvider.overrideWithValue(device),
         sortCoordinatorProvider.overrideWith((ref, accountId) => coordinator(accountId)),
+        sortRuleStoreProvider.overrideWithValue(classifier.rules),
         autodiscoveryProvider.overrideWithValue(autodiscover),
         loginProbeProvider.overrideWithValue(loginProbe),
         composeMessageProvider.overrideWithValue(compose),
         listModelsProvider.overrideWithValue(listModels),
         testAiConnectionProvider.overrideWithValue(testAi),
+        calendarRepositoryProvider.overrideWithValue(calendarRepo),
+        calendarServiceProvider.overrideWithValue(calendar),
+        googleOAuthProvider.overrideWithValue(googleLinks),
+        calendarImportSinkProvider.overrideWithValue(calendar),
+        notificationServiceProvider.overrideWithValue(notifications),
       ];
 }

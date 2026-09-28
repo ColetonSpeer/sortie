@@ -1,16 +1,21 @@
 import 'package:flutter_riverpod/misc.dart';
 
+import '../core/clock.dart';
+import '../data/calendar/google_oauth.dart';
 import '../domain/entities/entities.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
+import '../services/calendar/calendar_service.dart';
 import 'ai_models.dart';
 import 'demo/demo_data.dart';
+import 'demo/fake_calendar.dart';
 import 'demo/fake_repositories.dart';
 import 'demo/fake_services.dart';
 import 'onboarding_models.dart';
 import 'providers.dart';
 
 export 'demo/demo_data.dart';
+export 'demo/fake_calendar.dart';
 export 'demo/fake_repositories.dart';
 export 'demo/fake_services.dart';
 
@@ -46,7 +51,18 @@ List<Override> demoOverrides({bool withAccount = true}) {
         ),
       );
 
+  final calendarRepo = FakeCalendarRepository(sources: DemoCalendarData.sources, events: DemoCalendarData.events(DateTime.now()));
+  final googleLinks = GoogleAccountLinks(
+      credentials: creds,
+      client: () => GoogleOAuthClient(clientId: GoogleOAuthClient.defaultClientId, clientSecret: GoogleOAuthClient.defaultClientSecret));
+  final calendar = CalendarService(
+      repo: calendarRepo, credentials: creds, settings: settings, clock: SystemClock(), google: googleLinks, startupDelay: Duration.zero);
+
   return [
+    calendarRepositoryProvider.overrideWithValue(calendarRepo),
+    calendarServiceProvider.overrideWithValue(calendar),
+    googleOAuthProvider.overrideWithValue(googleLinks),
+    calendarImportSinkProvider.overrideWithValue(calendar),
     credentialStoreProvider.overrideWithValue(creds),
     accountRepositoryProvider.overrideWithValue(accounts),
     folderRepositoryProvider.overrideWithValue(folders),
