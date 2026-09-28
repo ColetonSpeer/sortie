@@ -58,8 +58,15 @@ static void my_application_activate(GApplication* application) {
     if (exe != nullptr) {
       g_autofree gchar* dir = g_path_get_dirname(exe);
       g_autofree gchar* icon = g_build_filename(dir, "data", "flutter_assets", "assets", "icon", "sortie.png", nullptr);
-      gtk_window_set_icon_from_file(window, icon, nullptr);
+      GError* err = nullptr;
+      if (!gtk_window_set_icon_from_file(window, icon, &err)) {
+        g_warning("Sortie: could not load window icon %s: %s", icon, err ? err->message : "?");
+        g_clear_error(&err);
+      }
     }
+    // Also advertise the themed icon (installed as hicolor/.../apps/sortie.png).
+    gtk_window_set_icon_name(window, "sortie");
+    gtk_window_set_default_icon_name("sortie");
   }
 
   gtk_window_set_default_size(window, 1280, 720);

@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:logging/logging.dart';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -17,6 +19,8 @@ class ImportPage extends ConsumerStatefulWidget {
   @override
   ConsumerState<ImportPage> createState() => _ImportPageState();
 }
+
+final _log = Logger('import-page');
 
 class _ImportPageState extends ConsumerState<ImportPage> {
   List<TbProfile>? _profiles;
@@ -45,10 +49,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   Future<void> _discover() async {
+    _log.info('discovering Thunderbird profiles');
     try {
       final found = await ref.read(thunderbirdImporterProvider).discoverProfiles().timeout(const Duration(seconds: 20));
+      _log.info('found ${found.length} profile(s)');
       if (mounted) setState(() => _profiles = found);
     } catch (e) {
+      _log.warning('profile discovery failed', e);
       if (mounted) setState(() => _profiles = const []);
     }
   }
@@ -70,8 +77,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       _result = null;
       _preview = null;
     });
+    _log.info('scanning profile $path');
     try {
       final preview = await ref.read(thunderbirdImporterProvider).scan(Directory(path)).timeout(const Duration(seconds: 60));
+      _log.info('scan done: ${preview.accounts.length} account(s), ${preview.calendars.length} calendar(s)');
       for (final c in _passwords.values) {
         c.dispose();
       }
@@ -104,7 +113,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final pw = _passwords[a.key]?.text ?? '';
         if (pw.isNotEmpty) passwords[a.email.isEmpty ? a.key : a.email] = pw;
       }
+      _log.info('applying import');
       final result = await ref.read(thunderbirdImporterProvider).apply(preview, _selection, passwordsByAccountEmail: passwords).timeout(const Duration(minutes: 3));
+      _log.info('import applied');
       setState(() => _result = result);
     } catch (e) {
       setState(() => _error = 'Import failed: $e');
