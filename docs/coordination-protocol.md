@@ -51,7 +51,11 @@ before re-appending.
 | correction | `<j-{dev}-{seq}@...>` | any device | kept in snapshot | `Correction.toJson()` |
 | resolved | `<j-{dev}-{seq}@...>` | leader | until compaction | `{key, why: external-move|deleted|keep|expired}` |
 | config | `<j-{dev}-{seq}@...>` | any device | latest kept | `SortConfig.toJson()`; last by UID wins |
-| snapshot | `<snap-{dev}-{uid}@...>` | leader | until next snapshot | `{version, lastEpoch, config, pending[], corrections[], log[], inboxUidValidity}` |
+| identities | `<j-{dev}-{seq}@...>` | any device | latest kept | `{items:[Identity.toJson()]}` for the account; last by UID wins |
+| rules | `<j-{dev}-{seq}@...>` | any device | latest kept | `{items:[SortRule.toJson()]}` (no `hits`); last by UID wins |
+| calendars | `<j-{dev}-{seq}@...>` | any device | latest kept | `{items:[CalendarSource.toJson()]}` (no tokens/passwords); global, mirrored in every account's journal |
+| prefs | `<j-{dev}-{seq}@...>` | any device | latest kept | `{ai: AiSettings.toJson(), device:{threaded, notify, remoteImages, theme}}`; last by UID wins |
+| snapshot | `<snap-{dev}-{uid}@...>` | leader | until next snapshot | `{version, lastEpoch, config, identities?, rules?, calendars?, prefs?, pending[], corrections[], log[], inboxUidValidity}` |
 
 Message key for user mail: `{mid: messageIdHash, uid, uv, subject?, from?}`. `mid` is
 primary; `uid+uv` is the fast path. Before any move the leader fetches the UID and checks
@@ -116,6 +120,27 @@ and show badges within ~1-2 s. When the read-guard clears: verify identity, STOR
 Materialized view (drift tables `journal_events`, `journal_cursors`, plus
 `sort_decisions`/`corrections` mirrors): pending map (badges), log (Sort Log screen,
 undo), corrections (few-shot), config, cursor `{uidValidity, snapshotUid, lastAppliedUid}`.
+
+## Shared config
+Identities and signatures, sort rules, the calendar list and preferences travel in the
+four sections above; each is an independent last-writer-wins-by-UID section so devices
+editing different sections never clobber each other. Secrets (passwords, API keys,
+OAuth/refresh tokens, CalDAV passwords, sync tokens, ctags) are never written: bodies
+are built from the entities' `toJson()` forms, which exclude them; a calendar received
+without its credential stays "needs sign-in" until the user signs in on that device.
+`accountId` inside items is the writer's local id and is replaced by the reader's.
+
+Echo rule (`SharedConfigSync`, one per account): per section keep the content hash last
+seen from the journal (applied) or published, persisted locally. Local edits are
+debounced 2 s and published only when their canonical hash (keys sorted, items sorted by
+id, `accountId` dropped) differs; applying a record stores its hash *before* the local
+write so the watcher that fires afterwards stays quiet. Ties: later UID wins and the
+loser adopts it via apply. First run: local content with no journal section is published
+on connect; an empty/default local section never is, so a fresh device cannot clobber.
+Calendars are global: the writer's watcher publishes to every account's journal, readers
+apply from any, and the hash check bounds the fan-out. Snapshots carry a section only if
+the journal has carried it (never "shared as empty"). Records or snapshots from an older
+app version that lack a section, or a section without `items`, are ignored.
 
 ## Read-guard
 A pending message moves only when ALL hold:

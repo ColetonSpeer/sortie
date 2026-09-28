@@ -43,6 +43,7 @@ class DriftAccountRepository implements AccountRepository {
         email: r.email,
         replyTo: r.replyTo,
         signature: r.signature,
+        signatureHtml: r.signatureHtml,
         isDefault: r.isDefault,
       );
 
@@ -53,6 +54,7 @@ class DriftAccountRepository implements AccountRepository {
         email: Value(i.email),
         replyTo: Value(i.replyTo),
         signature: Value(i.signature),
+        signatureHtml: Value(i.signatureHtml),
         isDefault: Value(i.isDefault),
       );
 

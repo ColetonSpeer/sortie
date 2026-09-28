@@ -840,6 +840,17 @@ class $IdentitiesTable extends Identities
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _signatureHtmlMeta = const VerificationMeta(
+    'signatureHtml',
+  );
+  @override
+  late final GeneratedColumn<String> signatureHtml = GeneratedColumn<String>(
+    'signature_html',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDefaultMeta = const VerificationMeta(
     'isDefault',
   );
@@ -863,6 +874,7 @@ class $IdentitiesTable extends Identities
     email,
     replyTo,
     signature,
+    signatureHtml,
     isDefault,
   ];
   @override
@@ -918,6 +930,15 @@ class $IdentitiesTable extends Identities
         signature.isAcceptableOrUnknown(data['signature']!, _signatureMeta),
       );
     }
+    if (data.containsKey('signature_html')) {
+      context.handle(
+        _signatureHtmlMeta,
+        signatureHtml.isAcceptableOrUnknown(
+          data['signature_html']!,
+          _signatureHtmlMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_default')) {
       context.handle(
         _isDefaultMeta,
@@ -957,6 +978,10 @@ class $IdentitiesTable extends Identities
         DriftSqlType.string,
         data['${effectivePrefix}signature'],
       )!,
+      signatureHtml: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}signature_html'],
+      ),
       isDefault: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_default'],
@@ -977,6 +1002,9 @@ class Identity extends DataClass implements Insertable<Identity> {
   final String email;
   final String? replyTo;
   final String signature;
+
+  /// Optional HTML signature (schema v3).
+  final String? signatureHtml;
   final bool isDefault;
   const Identity({
     required this.id,
@@ -985,6 +1013,7 @@ class Identity extends DataClass implements Insertable<Identity> {
     required this.email,
     this.replyTo,
     required this.signature,
+    this.signatureHtml,
     required this.isDefault,
   });
   @override
@@ -998,6 +1027,9 @@ class Identity extends DataClass implements Insertable<Identity> {
       map['reply_to'] = Variable<String>(replyTo);
     }
     map['signature'] = Variable<String>(signature);
+    if (!nullToAbsent || signatureHtml != null) {
+      map['signature_html'] = Variable<String>(signatureHtml);
+    }
     map['is_default'] = Variable<bool>(isDefault);
     return map;
   }
@@ -1012,6 +1044,9 @@ class Identity extends DataClass implements Insertable<Identity> {
           ? const Value.absent()
           : Value(replyTo),
       signature: Value(signature),
+      signatureHtml: signatureHtml == null && nullToAbsent
+          ? const Value.absent()
+          : Value(signatureHtml),
       isDefault: Value(isDefault),
     );
   }
@@ -1028,6 +1063,7 @@ class Identity extends DataClass implements Insertable<Identity> {
       email: serializer.fromJson<String>(json['email']),
       replyTo: serializer.fromJson<String?>(json['replyTo']),
       signature: serializer.fromJson<String>(json['signature']),
+      signatureHtml: serializer.fromJson<String?>(json['signatureHtml']),
       isDefault: serializer.fromJson<bool>(json['isDefault']),
     );
   }
@@ -1041,6 +1077,7 @@ class Identity extends DataClass implements Insertable<Identity> {
       'email': serializer.toJson<String>(email),
       'replyTo': serializer.toJson<String?>(replyTo),
       'signature': serializer.toJson<String>(signature),
+      'signatureHtml': serializer.toJson<String?>(signatureHtml),
       'isDefault': serializer.toJson<bool>(isDefault),
     };
   }
@@ -1052,6 +1089,7 @@ class Identity extends DataClass implements Insertable<Identity> {
     String? email,
     Value<String?> replyTo = const Value.absent(),
     String? signature,
+    Value<String?> signatureHtml = const Value.absent(),
     bool? isDefault,
   }) => Identity(
     id: id ?? this.id,
@@ -1060,6 +1098,9 @@ class Identity extends DataClass implements Insertable<Identity> {
     email: email ?? this.email,
     replyTo: replyTo.present ? replyTo.value : this.replyTo,
     signature: signature ?? this.signature,
+    signatureHtml: signatureHtml.present
+        ? signatureHtml.value
+        : this.signatureHtml,
     isDefault: isDefault ?? this.isDefault,
   );
   Identity copyWithCompanion(IdentitiesCompanion data) {
@@ -1070,6 +1111,9 @@ class Identity extends DataClass implements Insertable<Identity> {
       email: data.email.present ? data.email.value : this.email,
       replyTo: data.replyTo.present ? data.replyTo.value : this.replyTo,
       signature: data.signature.present ? data.signature.value : this.signature,
+      signatureHtml: data.signatureHtml.present
+          ? data.signatureHtml.value
+          : this.signatureHtml,
       isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
     );
   }
@@ -1083,14 +1127,23 @@ class Identity extends DataClass implements Insertable<Identity> {
           ..write('email: $email, ')
           ..write('replyTo: $replyTo, ')
           ..write('signature: $signature, ')
+          ..write('signatureHtml: $signatureHtml, ')
           ..write('isDefault: $isDefault')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, accountId, name, email, replyTo, signature, isDefault);
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    name,
+    email,
+    replyTo,
+    signature,
+    signatureHtml,
+    isDefault,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1101,6 +1154,7 @@ class Identity extends DataClass implements Insertable<Identity> {
           other.email == this.email &&
           other.replyTo == this.replyTo &&
           other.signature == this.signature &&
+          other.signatureHtml == this.signatureHtml &&
           other.isDefault == this.isDefault);
 }
 
@@ -1111,6 +1165,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
   final Value<String> email;
   final Value<String?> replyTo;
   final Value<String> signature;
+  final Value<String?> signatureHtml;
   final Value<bool> isDefault;
   final Value<int> rowid;
   const IdentitiesCompanion({
@@ -1120,6 +1175,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
     this.email = const Value.absent(),
     this.replyTo = const Value.absent(),
     this.signature = const Value.absent(),
+    this.signatureHtml = const Value.absent(),
     this.isDefault = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1130,6 +1186,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
     required String email,
     this.replyTo = const Value.absent(),
     this.signature = const Value.absent(),
+    this.signatureHtml = const Value.absent(),
     this.isDefault = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1143,6 +1200,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
     Expression<String>? email,
     Expression<String>? replyTo,
     Expression<String>? signature,
+    Expression<String>? signatureHtml,
     Expression<bool>? isDefault,
     Expression<int>? rowid,
   }) {
@@ -1153,6 +1211,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
       if (email != null) 'email': email,
       if (replyTo != null) 'reply_to': replyTo,
       if (signature != null) 'signature': signature,
+      if (signatureHtml != null) 'signature_html': signatureHtml,
       if (isDefault != null) 'is_default': isDefault,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1165,6 +1224,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
     Value<String>? email,
     Value<String?>? replyTo,
     Value<String>? signature,
+    Value<String?>? signatureHtml,
     Value<bool>? isDefault,
     Value<int>? rowid,
   }) {
@@ -1175,6 +1235,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
       email: email ?? this.email,
       replyTo: replyTo ?? this.replyTo,
       signature: signature ?? this.signature,
+      signatureHtml: signatureHtml ?? this.signatureHtml,
       isDefault: isDefault ?? this.isDefault,
       rowid: rowid ?? this.rowid,
     );
@@ -1201,6 +1262,9 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
     if (signature.present) {
       map['signature'] = Variable<String>(signature.value);
     }
+    if (signatureHtml.present) {
+      map['signature_html'] = Variable<String>(signatureHtml.value);
+    }
     if (isDefault.present) {
       map['is_default'] = Variable<bool>(isDefault.value);
     }
@@ -1219,6 +1283,7 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
           ..write('email: $email, ')
           ..write('replyTo: $replyTo, ')
           ..write('signature: $signature, ')
+          ..write('signatureHtml: $signatureHtml, ')
           ..write('isDefault: $isDefault, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -14897,6 +14962,7 @@ typedef $$IdentitiesTableCreateCompanionBuilder = IdentitiesCompanion Function({
   required String email,
   Value<String?> replyTo,
   Value<String> signature,
+  Value<String?> signatureHtml,
   Value<bool> isDefault,
   Value<int> rowid,
 });
@@ -14907,6 +14973,7 @@ typedef $$IdentitiesTableUpdateCompanionBuilder = IdentitiesCompanion Function({
   Value<String> email,
   Value<String?> replyTo,
   Value<String> signature,
+  Value<String?> signatureHtml,
   Value<bool> isDefault,
   Value<int> rowid,
 });
@@ -14964,6 +15031,11 @@ class $$IdentitiesTableFilterComposer
 
   ColumnFilters<String> get signature => $composableBuilder(
     column: $table.signature,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get signatureHtml => $composableBuilder(
+    column: $table.signatureHtml,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15030,6 +15102,11 @@ class $$IdentitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get signatureHtml => $composableBuilder(
+    column: $table.signatureHtml,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDefault => $composableBuilder(
     column: $table.isDefault,
     builder: (column) => ColumnOrderings(column),
@@ -15082,6 +15159,11 @@ class $$IdentitiesTableAnnotationComposer
 
   GeneratedColumn<String> get signature =>
       $composableBuilder(column: $table.signature, builder: (column) => column);
+
+  GeneratedColumn<String> get signatureHtml => $composableBuilder(
+    column: $table.signatureHtml,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isDefault =>
       $composableBuilder(column: $table.isDefault, builder: (column) => column);
@@ -15144,6 +15226,7 @@ class $$IdentitiesTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String?> replyTo = const Value.absent(),
                 Value<String> signature = const Value.absent(),
+                Value<String?> signatureHtml = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IdentitiesCompanion(
@@ -15153,6 +15236,7 @@ class $$IdentitiesTableTableManager
                 email: email,
                 replyTo: replyTo,
                 signature: signature,
+                signatureHtml: signatureHtml,
                 isDefault: isDefault,
                 rowid: rowid,
               ),
@@ -15164,6 +15248,7 @@ class $$IdentitiesTableTableManager
                 required String email,
                 Value<String?> replyTo = const Value.absent(),
                 Value<String> signature = const Value.absent(),
+                Value<String?> signatureHtml = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IdentitiesCompanion.insert(
@@ -15173,6 +15258,7 @@ class $$IdentitiesTableTableManager
                 email: email,
                 replyTo: replyTo,
                 signature: signature,
+                signatureHtml: signatureHtml,
                 isDefault: isDefault,
                 rowid: rowid,
               ),

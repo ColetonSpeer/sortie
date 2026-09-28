@@ -8,6 +8,7 @@ import '../domain/repositories/calendar_repository.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
 import '../services/calendar/calendar_service.dart';
+import '../services/coordination/coordination_service.dart' show CoordinationService, SharedConfigSyncEvent;
 import '../services/import/calendar_import_sink.dart';
 import '../services/import/thunderbird/thunderbird_importer.dart';
 import '../services/sorter/user_rules.dart';
@@ -113,6 +114,12 @@ final sortLogProvider = StreamProvider.family<List<SortLogEntry>, String>(
     (ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).watchLog());
 final seenDevicesProvider = StreamProvider.family<List<SeenDevice>, String>(
     (ref, accountId) => ref.watch(sortCoordinatorProvider(accountId)).watchDevices());
+
+/// Last shared-config section applied on this device (null = never).
+final lastConfigSyncProvider = StreamProvider.family<SharedConfigSyncEvent?, String>((ref, accountId) {
+  final c = ref.watch(sortCoordinatorProvider(accountId));
+  return c is CoordinationService ? c.configSyncEvents : Stream.value(null);
+});
 
 /// Currently selected account id in the shell (UI state only).
 final selectedAccountIdProvider = StateProvider<String?>((_) => null);

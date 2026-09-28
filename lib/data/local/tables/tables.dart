@@ -25,6 +25,9 @@ class Identities extends Table {
   TextColumn get email => text()();
   TextColumn get replyTo => text().nullable()();
   TextColumn get signature => text().withDefault(const Constant(''))();
+
+  /// Optional HTML signature (schema v3).
+  TextColumn get signatureHtml => text().nullable()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
   @override
   Set<Column> get primaryKey => {id};

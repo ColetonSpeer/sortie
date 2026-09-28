@@ -124,14 +124,22 @@ class MemorySettingsRepository implements SettingsRepository {
   final Map<String, String?> _kv = {};
   final _sortCtrl = StreamController<SortConfig>.broadcast();
   final _deviceCtrl = StreamController<DeviceSettings>.broadcast();
+  final _aiCtrl = StreamController<AiSettings>.broadcast();
   final saved = <SortConfig>[];
 
   @override
-  Stream<AiSettings> watchAi() => Stream.value(_ai);
+  Stream<AiSettings> watchAi() async* {
+    yield _ai;
+    yield* _aiCtrl.stream;
+  }
+
   @override
   Future<AiSettings> ai() async => _ai;
   @override
-  Future<void> saveAi(AiSettings s) async => _ai = s;
+  Future<void> saveAi(AiSettings s) async {
+    _ai = s;
+    _aiCtrl.add(s);
+  }
 
   @override
   Stream<DeviceSettings> watchDevice() async* {

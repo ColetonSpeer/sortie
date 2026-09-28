@@ -17,7 +17,8 @@ class ControlMessage {
   final DateTime internalDate;
 
   /// lease-claim | lease-beat | lease-release | presence | decision | moved |
-  /// undo | correction | resolved | config | snapshot
+  /// undo | correction | resolved | config | identities | rules | calendars |
+  /// prefs | snapshot
   final String type;
   final String deviceId;
   final String messageId;
@@ -29,7 +30,11 @@ class ControlMessage {
   /// Decoded JSON body; null until fetched for header-only reads.
   final Map<String, dynamic>? body;
 
-  static const journalTypes = {'decision', 'moved', 'undo', 'correction', 'resolved', 'config'};
+  static const journalTypes = {'decision', 'moved', 'undo', 'correction', 'resolved', 'config', ...sharedSectionTypes};
+
+  /// Shared-config sections (docs/coordination-protocol.md, "Shared config"):
+  /// each is its own last-writer-wins-by-UID section of the journal.
+  static const sharedSectionTypes = {'identities', 'rules', 'calendars', 'prefs'};
   bool get isJournal => journalTypes.contains(type);
 
   ControlMessage withBody(Map<String, dynamic> b) => ControlMessage(

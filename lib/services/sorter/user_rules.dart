@@ -235,8 +235,15 @@ abstract class SortRuleStore {
   Future<void> upsert(SortRule r, DateTime now);
 }
 
+/// What cross-device config sync needs on top of [SortRuleStore]: observe an
+/// account's rules and replace them wholesale from a journal record.
+abstract class SyncableRuleStore implements SortRuleStore {
+  Stream<List<SortRule>> watch(String accountId);
+  Future<void> replaceAll(String accountId, List<SortRule> rules, {DateTime? now});
+}
+
 /// Layer 1a: explicit user rules, lowest priority number first, first match wins.
-class UserRulesService implements SortRuleStore {
+class UserRulesService implements SyncableRuleStore {
   UserRulesService(this._db);
   final db.SortieDatabase _db;
 
@@ -247,6 +254,7 @@ class UserRulesService implements SortRuleStore {
   @override
   Future<List<SortRule>> load(String accountId) async => (await _query(accountId).get()).map(SortRule.fromRow).toList();
 
+  @override
   Stream<List<SortRule>> watch(String accountId) => _query(accountId).watch().map((rows) => rows.map(SortRule.fromRow).toList());
 
   /// Body text and raw headers are optional: rules that need them do not
@@ -282,13 +290,17 @@ class UserRulesService implements SortRuleStore {
   /// Makes the account's rule set equal to [rules]: ids are kept, rows not in
   /// the list are removed, existing rows keep their hit counts. Safe to call
   /// repeatedly with the same input (journal replay).
+  ///
+  /// New rows get increasing `createdAt` in list order so rules of equal
+  /// priority keep the order the writer had (first match wins).
+  @override
   Future<void> replaceAll(String accountId, List<SortRule> rules, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     await _db.transaction(() async {
       final keep = {for (final r in rules) r.id};
       await (_db.delete(_db.userRules)..where((r) => r.accountId.equals(accountId) & r.id.isNotIn(keep.toList()))).go();
-      for (final r in rules) {
-        await upsert(r, at);
+      for (var i = 0; i < rules.length; i++) {
+        await upsert(rules[i], at.add(Duration(milliseconds: i)));
       }
     });
   }

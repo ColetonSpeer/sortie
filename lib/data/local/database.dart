@@ -34,7 +34,7 @@ class SortieDatabase extends _$SortieDatabase {
   SortieDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +55,9 @@ class SortieDatabase extends _$SortieDatabase {
             await m.createTable(calendarEvents);
             await m.createTable(calendarSyncQueue);
             await _createCalendarIndexes();
+          }
+          if (from < 3) {
+            await m.addColumn(identities, identities.signatureHtml);
           }
         },
         beforeOpen: (details) async {

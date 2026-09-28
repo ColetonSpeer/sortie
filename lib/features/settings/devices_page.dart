@@ -29,6 +29,7 @@ class _DevicesBody extends ConsumerWidget {
     final devices = ref.watch(seenDevicesProvider(accountId));
     final device = ref.watch(deviceSettingsProvider).asData?.value ?? const DeviceSettings();
     final state = ref.watch(coordinationStateProvider(accountId)).asData?.value ?? CoordinationState.stopped;
+    final lastSync = ref.watch(lastConfigSyncProvider(accountId)).asData?.value;
     final theme = Theme.of(context);
     final android = !kIsWeb && Platform.isAndroid;
 
@@ -38,6 +39,12 @@ class _DevicesBody extends ConsumerWidget {
         title: Text('This account is sorted by: ${Fmt.coordinationLabel(state)}'),
         subtitle: const Text('Desktops lead by default; phones sort while open. Leadership hands off automatically.'),
       ),
+      if (lastSync != null)
+        ListTile(
+          leading: const Icon(Icons.sync_outlined),
+          title: Text('Settings synced from ${_deviceName(devices.asData?.value, lastSync.deviceId)} ${Fmt.relativeDate(lastSync.at)} ago'),
+          subtitle: const Text('Identities, rules, calendars and preferences follow you between devices'),
+        ),
       const Divider(),
       ListTile(title: Text('Seen devices', style: theme.textTheme.titleSmall)),
       devices.when(
@@ -79,6 +86,14 @@ class _DevicesBody extends ConsumerWidget {
           onChanged: (v) => saveDeviceSettings(ref, (d) => d.copyWith(androidForegroundService: v)),
         ),
     ]);
+  }
+
+  static String _deviceName(List<SeenDevice>? list, String? deviceId) {
+    if (deviceId == null) return 'a snapshot';
+    for (final d in list ?? const <SeenDevice>[]) {
+      if (d.deviceId == deviceId) return d.displayName;
+    }
+    return 'another device';
   }
 
   static IconData _platformIcon(String p) => switch (p.toLowerCase()) {

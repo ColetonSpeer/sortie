@@ -7,18 +7,23 @@ import '../../data/local/database.dart' as local;
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
 import 'control_messages.dart';
+import 'shared_config_sync.dart';
 
 /// Drift access for the materialized journal view: `journal_events`,
 /// `journal_cursors` and the `sort_decisions` / `corrections` mirrors.
 class JournalStore {
-  JournalStore({required local.SortieDatabase db, required String accountId, required SettingsRepository settings})
+  JournalStore({required local.SortieDatabase db, required String accountId, required SettingsRepository settings, SharedConfigSync? shared})
       : _db = db,
         _accountId = accountId,
-        _settings = settings;
+        _settings = settings,
+        _shared = shared;
 
   final local.SortieDatabase _db;
   final String _accountId;
   final SettingsRepository _settings;
+
+  /// Materialises the shared-config sections; null = sections ignored.
+  final SharedConfigSync? _shared;
 
   local.SortieDatabase get db => _db;
   String get accountId => _accountId;
@@ -236,17 +241,21 @@ class JournalStore {
 
   // -------------------------------------------------------------- snapshot
 
-  /// `{version, lastEpoch, config, pending[], corrections[], log[], inboxUidValidity}`.
+  /// `{version, lastEpoch, config, identities?, rules?, calendars?, prefs?,
+  /// pending[], corrections[], log[], inboxUidValidity}`. Shared sections are
+  /// present only when the journal has carried them.
   Future<Map<String, dynamic>> buildSnapshot({required int lastEpoch, int? inboxUidValidity, int maxBytes = 2 * 1024 * 1024}) async {
     final pending = await openDecisions();
     final corrections = await activeCorrections();
     final cfg = await config();
+    final shared = await _shared?.snapshotSections() ?? const {};
     var logRows = await events();
     var corr = corrections;
     Map<String, dynamic> build() => {
           'version': 1,
           'lastEpoch': lastEpoch,
           'config': cfg.toJson(),
+          ...shared,
           'pending': [
             for (final d in pending)
               d.toJson()
@@ -288,6 +297,13 @@ class JournalStore {
   Future<void> loadSnapshot(Map<String, dynamic> body, {required bool missedEvents}) async {
     final cfg = body['config'];
     if (cfg is Map<String, dynamic>) await saveConfig(SortConfig.fromJson(cfg));
+    final shared = _shared;
+    if (shared != null) {
+      for (final s in SharedConfigSync.sections) {
+        final sec = body[s];
+        if (sec is Map) await shared.applyRecord(s, sec.cast<String, dynamic>());
+      }
+    }
     final keep = <String>{};
     for (final p in (body['pending'] as List?) ?? const []) {
       if (p is! Map<String, dynamic>) continue;
@@ -366,6 +382,8 @@ class JournalStore {
         await resolveOpenForMid(mid, status);
       case ControlTypes.config:
         await saveConfig(SortConfig.fromJson(body));
+      case ControlTypes.identities || ControlTypes.rules || ControlTypes.calendars || ControlTypes.prefs:
+        await _shared?.applyRecord(m.type, body, deviceId: m.deviceId, at: m.internalDate);
     }
   }
 }

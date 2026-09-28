@@ -14,11 +14,13 @@ import 'lease_manager.dart';
 import 'presence_manager.dart';
 import 'read_guard.dart';
 import 'server_clock.dart';
+import 'shared_config_sync.dart';
 import 'sort_journal.dart';
 import 'sort_log.dart';
 import 'user_actions.dart';
 
 export 'lease_manager.dart' show LeaseTimers;
+export 'shared_config_sync.dart' show SharedConfigDeps, SharedConfigSyncEvent;
 
 /// One per account. Implements docs/coordination-protocol.md:
 /// Connecting -> Syncing -> Follower | Candidate -> Leader -> Yielding.
@@ -37,6 +39,7 @@ class CoordinationService implements SortCoordinator {
     required Clock clock,
     this.timers = const LeaseTimers(),
     bool Function()? mayLead,
+    SharedConfigDeps? sharedConfig,
   })  : _me = me,
         _factory = gatewayFactory,
         _password = password,
@@ -48,8 +51,9 @@ class CoordinationService implements SortCoordinator {
         _clock = clock,
         _mayLead = mayLead ?? (() => true),
         _serverClock = ServerClock(clock),
-        _store = JournalStore(db: db, accountId: accountId, settings: settings),
         _guard = ReadGuard(timers: timers) {
+    _shared = sharedConfig == null ? null : SharedConfigSync(accountId: accountId, deps: sharedConfig, clock: clock);
+    _store = JournalStore(db: db, accountId: accountId, settings: settings, shared: _shared);
     _log = SortLogMapper(accountId: accountId, messages: messages, store: _store);
   }
 
@@ -69,9 +73,12 @@ class CoordinationService implements SortCoordinator {
   final Clock _clock;
   final bool Function() _mayLead;
   final ServerClock _serverClock;
-  final JournalStore _store;
   final ReadGuard _guard;
+  late final JournalStore _store;
   late final SortLogMapper _log;
+
+  /// Cross-device config sections; null when built without [SharedConfigDeps].
+  late final SharedConfigSync? _shared;
 
   // Per-connection components (null while disconnected).
   ImapControlFolder? _control;
@@ -107,6 +114,11 @@ class CoordinationService implements SortCoordinator {
   ServerClock get serverClock => _serverClock;
   LeaseEvaluation? get lastEvaluation => _lastEval;
   ReadGuard get readGuard => _guard;
+  SharedConfigSync? get sharedConfig => _shared;
+
+  /// When a shared-config section was last applied here (null = never).
+  Stream<DateTime?> get lastConfigSyncAt => configSyncEvents.map((e) => e?.at);
+  Stream<SharedConfigSyncEvent?> get configSyncEvents => _shared?.events ?? Stream.value(null);
 
   // ------------------------------------------------------------- lifecycle
 
@@ -185,13 +197,22 @@ class CoordinationService implements SortCoordinator {
     final synced = await journal.sync(first, uidValidity: control.lastKnownUidValidity!);
     if (synced.reset && !first.any((m) => m.type == 'snapshot')) _needsReseed = true;
     await presence.publish();
+    await _shared?.attach(_sectionAppender(gen, journal));
     _changesSub = control.changes().listen((_) => _onControlChange(gen), onError: (Object e) => _onConnectionError(gen, e));
     _presenceTimer = Timer.periodic(timers.presenceInterval, (_) => _guarded(gen, () => presence.publish()));
     _compactionTimer = Timer.periodic(timers.compactionCheck, (_) => _guarded(gen, () => _maintenance(gen)));
     await _evaluate(gen);
   }
 
+  /// Appends a shared-config record, then folds it into the local view
+  /// (own records are applied through the normal journal path).
+  SectionAppender _sectionAppender(int gen, SortJournal journal) => (type, body) async {
+        await journal.putSection(type, body);
+        unawaited(_guarded(gen, () => _evaluate(gen)));
+      };
+
   Future<void> _teardown({required bool release}) async {
+    _shared?.detach();
     _changeDebounce?.cancel();
     _heartbeat?.cancel();
     _presenceTimer?.cancel();
@@ -513,6 +534,7 @@ class CoordinationService implements SortCoordinator {
 
   Future<void> dispose() async {
     await stop();
+    await _shared?.dispose();
     await _stateCtrl.close();
     await _devicesCtrl.close();
   }
@@ -539,6 +561,7 @@ class _CycleRunner {
     var headers = await control.fetchHeaders();
     await journal.sync(headers, uidValidity: control.lastKnownUidValidity!);
     await presence.publish();
+    await s._shared?.attach(s._sectionAppender(gen, journal));
     headers = await control.fetchHeaders();
     await presence.refresh(headers);
     final eval = lease.evaluate(headers);
@@ -577,6 +600,7 @@ class _CycleRunner {
     }
     s._epoch = null;
     s._running = false;
+    s._shared?.detach();
     final control = s._control;
     s._control = null;
     s._lease = null;

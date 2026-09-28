@@ -36,6 +36,10 @@ abstract final class ControlTypes {
   static const correction = 'correction';
   static const resolved = 'resolved';
   static const config = 'config';
+  static const identities = 'identities';
+  static const rules = 'rules';
+  static const calendars = 'calendars';
+  static const prefs = 'prefs';
   static const snapshot = 'snapshot';
 }
 

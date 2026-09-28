@@ -258,7 +258,7 @@ class MessageComposer {
     }
 
     final text = _assembleText(r);
-    final html = r.html ?? MimeMapper.textToHtml(text);
+    final html = r.html ?? _assembleHtml(r, text);
     if (r.attachments.isEmpty) {
       b.setContentType(em.MediaSubtype.multipartAlternative.mediaType);
       b.addTextPlain(text, transferEncoding: em.TransferEncoding.quotedPrintable);
@@ -291,6 +291,22 @@ class MessageComposer {
       messageId: b.messageId ?? mime.getHeaderValue('message-id') ?? '',
       subject: r.subject,
     );
+  }
+
+  /// HTML alternative. When the identity carries an HTML signature it is
+  /// spliced in for the signature block; otherwise the text is converted.
+  static String _assembleHtml(ComposeRequest r, String text) {
+    final sigHtml = r.identity.signatureHtml?.trim() ?? '';
+    final sigText = r.identity.signature.trim();
+    if (!r.includeSignature || sigHtml.isEmpty || sigText.isEmpty) return MimeMapper.textToHtml(text);
+    final marker = '\n\n-- \n$sigText';
+    final i = text.indexOf(marker);
+    if (i < 0) return MimeMapper.textToHtml(text);
+    String frag(String t) => const HtmlEscape(HtmlEscapeMode.element).convert(t).replaceAll('\n', '<br>\n');
+    final after = text.substring(i + marker.length).trim();
+    return '<html><body>\n<div style="font-family:sans-serif">\n${frag(text.substring(0, i))}\n'
+        '<br><br><div class="sortie-signature">-- <br>\n$sigHtml</div>\n'
+        '${after.isEmpty ? '' : '<br>${frag(after)}\n'}</div>\n</body></html>';
   }
 
   static String _assembleText(ComposeRequest r) {

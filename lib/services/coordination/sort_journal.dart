@@ -82,6 +82,12 @@ class SortJournal {
 
   Future<AppendedControlMessage> putConfig(SortConfig c) => _append(ControlTypes.config, c.toJson());
 
+  /// Shared-config section (`identities` | `rules` | `calendars` | `prefs`).
+  Future<AppendedControlMessage> putSection(String type, Map<String, dynamic> body) {
+    if (!ControlMessage.sharedSectionTypes.contains(type)) throw ArgumentError.value(type, 'type');
+    return _append(type, body);
+  }
+
   // ------------------------------------------------------------------ sync
 
   /// Applies the control folder state to the local view. [headers] is a

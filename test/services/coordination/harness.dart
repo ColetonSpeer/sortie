@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:fake_async/fake_async.dart';
@@ -8,10 +9,13 @@ import 'package:sortie/core/hashing.dart';
 import 'package:sortie/data/coordination/control_folder.dart';
 import 'package:sortie/data/coordination/imap_control_folder.dart';
 import 'package:sortie/data/local/database.dart' show SortieDatabase;
+import 'package:sortie/data/local/repositories/drift_account_repository.dart';
+import 'package:sortie/data/local/repositories/drift_calendar_repository.dart';
 import 'package:sortie/data/mail/imap_gateway.dart';
 import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/services/services.dart';
 import 'package:sortie/services/coordination/coordination_service.dart';
+import 'package:sortie/services/sorter/user_rules.dart';
 
 import '../../fakes/fake_classifier.dart';
 import '../../fakes/fake_coordination_repos.dart';
@@ -43,11 +47,29 @@ class FakeAsyncClock extends Clock {
 }
 
 class Device {
-  Device({required this.identity, required this.db, required this.repo, required this.settings, required this.classifier, required this.sync, required this.service, required this.clock});
+  Device({
+    required this.identity,
+    required this.db,
+    required this.repo,
+    required this.settings,
+    required this.classifier,
+    required this.sync,
+    required this.service,
+    required this.clock,
+    required this.accounts,
+    required this.rules,
+    required this.calendars,
+  });
   final DeviceIdentity identity;
   final SortieDatabase db;
   final MemoryMessageRepository repo;
   final MemorySettingsRepository settings;
+
+  /// Local stores the shared-config sections sync into (real drift repos
+  /// over this device's in-memory database).
+  final DriftAccountRepository accounts;
+  final UserRulesService rules;
+  final DriftCalendarRepository calendars;
   final ScriptedClassifier classifier;
   final CoordFakeSyncService sync;
   final CoordinationService service;
@@ -101,6 +123,10 @@ class Harness {
     final cls = classifier ?? ScriptedClassifier();
     final sync = CoordFakeSyncService(server: server, repo: repo, name: id);
     final me = identity(id, priority: priority, platform: platform);
+    final accounts = DriftAccountRepository(db);
+    final rules = UserRulesService(db);
+    final calendars = DriftCalendarRepository(db);
+    unawaited(accounts.upsert(account)); // identities reference the account row
     final service = CoordinationService(
       accountId: accountId,
       me: me,
@@ -115,8 +141,21 @@ class Harness {
       clock: clock,
       timers: timers ?? this.timers,
       mayLead: mayLead,
+      sharedConfig: SharedConfigDeps(accounts: accounts, rules: rules, calendars: calendars, settings: settings),
     );
-    final d = Device(identity: me, db: db, repo: repo, settings: settings, classifier: cls, sync: sync, service: service, clock: clock);
+    final d = Device(
+      identity: me,
+      db: db,
+      repo: repo,
+      settings: settings,
+      classifier: cls,
+      sync: sync,
+      service: service,
+      clock: clock,
+      accounts: accounts,
+      rules: rules,
+      calendars: calendars,
+    );
     devices.add(d);
     return d;
   }
@@ -298,6 +337,10 @@ class Harness {
   }
 
   List<ControlMessage> ofType(String type) => controlMessages().where((m) => m.type == type).toList();
+
+  /// Raw JSON text of a control message body as stored on the server.
+  String bodyText(int uid) => controlBox!.messages[uid]!.textBody;
+  Map<String, dynamic> bodyJson(int uid) => (jsonDecode(bodyText(uid)) as Map).cast<String, dynamic>();
 
   Iterable<String> commands(String pattern) => server.commandLog.where((c) => c.contains(pattern));
   int countCommands(String pattern) => commands(pattern).length;

@@ -164,6 +164,7 @@ class SortieServices {
           db: db,
           clock: clock,
           mayLead: () => _deviceSettings.mayLead,
+          sharedConfig: SharedConfigDeps(accounts: accounts, rules: classifier.rules, calendars: calendarRepo, settings: settings),
         ),
       );
 
