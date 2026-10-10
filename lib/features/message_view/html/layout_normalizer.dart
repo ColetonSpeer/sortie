@@ -53,6 +53,13 @@ class LayoutNormalizer {
       }
 
       decls = [...prepend, ...decls];
+      if (name == 'table' || name == 'td' || name == 'th' || name == 'div') {
+        // flutter_widget_from_html_core collapses tables that carry max-width
+        // or min-width (the column shrinks to one glyph per line).
+        // Dropping both (rather than converting max-width to width) is what
+        // renders correctly: a fixed width on a nested table also collapses.
+        decls = decls.where((d) => d.property != 'max-width' && d.property != 'min-width').toList();
+      }
       if (name == 'img') {
         decls = replaceDeclaration(decls, 'max-width', '100%');
         if (el.attributes.containsKey('width') || decls.any((d) => d.property == 'width')) {
