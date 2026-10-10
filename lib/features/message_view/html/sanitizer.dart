@@ -3,14 +3,22 @@ import 'dart:convert';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import 'contrast_guard.dart';
+import 'css_inliner.dart';
+import 'layout_normalizer.dart';
+
 /// Result of sanitizing an HTML mail body.
 class SanitizedHtml {
-  const SanitizedHtml({required this.html, required this.blockedRemoteImages, required this.remoteImageCount});
+  const SanitizedHtml({required this.html, required this.blockedRemoteImages, required this.remoteImageCount, this.contentWidth = 0});
   final String html;
 
   /// True when remote images were present and replaced by placeholders.
   final bool blockedRemoteImages;
   final int remoteImageCount;
+
+  /// Widest explicit pixel width the content asks for (0 = fluid). The view
+  /// scrolls horizontally when this exceeds the viewport.
+  final int contentWidth;
 }
 
 /// Defensive HTML sanitizer for mail bodies. Pure Dart so it runs everywhere.
@@ -21,8 +29,18 @@ class SanitizedHtml {
 ///   (non-image) URL
 /// - inlines `cid:` images from [inlineParts] as data URIs
 /// - replaces remote images with a placeholder unless [allowRemoteImages]
+/// - inlines `<style>` rules ([CssInliner]) before the style attributes are
+///   scrubbed, so the renderer sees class-based layouts
+/// - converts presentational attributes to CSS ([LayoutNormalizer]) and, unless
+///   [contrastGuard] is false, keeps text readable ([ContrastGuard])
 class HtmlSanitizer {
-  const HtmlSanitizer();
+  const HtmlSanitizer({this.viewportWidth = 600, this.contrastGuard = true});
+
+  /// Width used for `@media` evaluation.
+  final int viewportWidth;
+
+  /// Set false for "original formatting": author colours are left untouched.
+  final bool contrastGuard;
 
   static const _dropElements = {
     'script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'form', 'input', 'button',
@@ -38,6 +56,7 @@ class HtmlSanitizer {
   }) {
     final doc = html_parser.parse(input);
     var remote = 0;
+    CssInliner(viewportWidth: viewportWidth).apply(doc);
 
     void walk(dom.Element el) {
       final name = el.localName?.toLowerCase() ?? '';
@@ -116,10 +135,14 @@ class HtmlSanitizer {
         walk(child);
       }
     }
+    final contentWidth = const LayoutNormalizer().normalize(doc);
+    final body = doc.body;
+    if (body != null && contrastGuard) const ContrastGuard().apply(body);
     return SanitizedHtml(
-      html: doc.body?.innerHtml ?? '',
+      html: body?.innerHtml ?? '',
       blockedRemoteImages: remote > 0 && !allowRemoteImages,
       remoteImageCount: remote,
+      contentWidth: contentWidth,
     );
   }
 

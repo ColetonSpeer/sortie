@@ -10,6 +10,7 @@ import '../mailbox/message_actions.dart';
 import '../mailbox/threading.dart';
 import 'html_body.dart';
 import 'message_header_view.dart';
+import 'open_in_browser.dart';
 
 /// Reads one message. Holds the read-guard while open (and while the app is
 /// foregrounded), follows the message if the sorter moves it, and offers Undo.
@@ -41,6 +42,10 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
   bool _holding = false;
   bool _loadRemoteOnce = false;
   int _blockedImages = 0;
+
+  /// Per-screen view choices; null = follow [DeviceSettings.htmlMailMode].
+  bool? _plainText;
+  bool _originalFormatting = false;
   Object? _error;
   List<MessageHeader>? _threadSrc;
   List<MessageThread> _threads = const [];
@@ -148,6 +153,12 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     if (badge != null) _lastBadge = badge;
     final settings = ref.watch(deviceSettingsProvider).asData?.value ?? const DeviceSettings();
     final allowRemote = settings.loadRemoteImages || _loadRemoteOnce;
+    final plainText = _plainText ?? (settings.htmlMailMode == 'plainText');
+    final bodyMode = plainText
+        ? BodyViewMode.plainText
+        : _originalFormatting
+            ? BodyViewMode.original
+            : BodyViewMode.html;
     final h = _header;
     final actions = MessageActions(context, ref);
     final thread = h == null || !settings.threadedView ? null : _threadOf(h);
@@ -183,10 +194,22 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                   onSelected: (v) {
                     if (v == 'unread') actions.markRead([h], read: false);
                     if (v == 'archive') actions.archive([h]);
+                    if (v == 'plain') setState(() => _plainText = !plainText);
+                    if (v == 'original') setState(() => _originalFormatting = !_originalFormatting);
+                    if (v == 'browser') _openInBrowser(h, allowRemote);
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'unread', child: Text('Mark unread')),
-                    PopupMenuItem(value: 'archive', child: Text('Archive')),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'unread', child: Text('Mark unread')),
+                    const PopupMenuItem(value: 'archive', child: Text('Archive')),
+                    const PopupMenuDivider(),
+                    CheckedPopupMenuItem(value: 'plain', checked: plainText, child: const Text('View as plain text')),
+                    CheckedPopupMenuItem(
+                      value: 'original',
+                      checked: _originalFormatting,
+                      enabled: !plainText,
+                      child: const Text('Original formatting'),
+                    ),
+                    const PopupMenuItem(value: 'browser', child: Text('Open in browser')),
                   ],
                 ),
               ],
@@ -225,6 +248,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                             return MessageBodyView(
                               body: snap.data!,
                               allowRemoteImages: allowRemote,
+                              mode: bodyMode,
                               onRemoteImagesBlocked: (n) {
                                 if (mounted && n != _blockedImages) setState(() => _blockedImages = n);
                               },
@@ -252,6 +276,19 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
       _threads = buildThreads(list, ownAddresses: {if (account != null) account.email.toLowerCase()});
     }
     return _threads.where((t) => t.contains(h)).firstOrNull;
+  }
+
+  Future<void> _openInBrowser(MessageHeader h, bool allowRemote) async {
+    final future = _body;
+    if (future == null) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      final body = await future;
+      final error = await openMessageInBrowser(body, allowRemoteImages: allowRemote, title: h.subject);
+      if (error != null) messenger?.showSnackBar(SnackBar(content: Text(error)));
+    } catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('Could not open in browser: $e')));
+    }
   }
 
   void _compose({MessageHeader? reply, MessageHeader? replyAll, MessageHeader? forward}) {

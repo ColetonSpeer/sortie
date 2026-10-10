@@ -190,6 +190,7 @@ class DeviceSettings {
     this.loadRemoteImages = false,
     this.themeMode = 'system',
     this.threadedView = true,
+    this.htmlMailMode = 'auto',
   });
   final bool mayLead;
   final bool preferThisDevice;
@@ -203,6 +204,9 @@ class DeviceSettings {
   /// Group the message list by conversation (References / In-Reply-To).
   final bool threadedView;
 
+  /// How HTML mail opens by default: `auto` (rendered HTML) or `plainText`.
+  final String htmlMailMode;
+
   DeviceSettings copyWith({
     bool? mayLead,
     bool? preferThisDevice,
@@ -213,6 +217,7 @@ class DeviceSettings {
     bool? loadRemoteImages,
     String? themeMode,
     bool? threadedView,
+    String? htmlMailMode,
   }) =>
       DeviceSettings(
         mayLead: mayLead ?? this.mayLead,
@@ -224,6 +229,7 @@ class DeviceSettings {
         loadRemoteImages: loadRemoteImages ?? this.loadRemoteImages,
         themeMode: themeMode ?? this.themeMode,
         threadedView: threadedView ?? this.threadedView,
+        htmlMailMode: htmlMailMode ?? this.htmlMailMode,
       );
 
   Map<String, dynamic> toJson() => {
@@ -236,6 +242,7 @@ class DeviceSettings {
         'remoteImages': loadRemoteImages,
         'theme': themeMode,
         'threaded': threadedView,
+        'htmlMode': htmlMailMode,
       };
 
   static DeviceSettings fromJson(Map<String, dynamic> j) => DeviceSettings(
@@ -248,5 +255,6 @@ class DeviceSettings {
         loadRemoteImages: (j['remoteImages'] as bool?) ?? false,
         themeMode: (j['theme'] as String?) ?? 'system',
         threadedView: (j['threaded'] as bool?) ?? true,
+        htmlMailMode: (j['htmlMode'] as String?) ?? 'auto',
       );
 }
