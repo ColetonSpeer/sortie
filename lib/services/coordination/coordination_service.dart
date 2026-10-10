@@ -198,6 +198,7 @@ class CoordinationService implements SortCoordinator {
     if (synced.reset && !first.any((m) => m.type == 'snapshot')) _needsReseed = true;
     await presence.publish();
     await _shared?.attach(_sectionAppender(gen, journal));
+    unawaited(_publishPendingConfig());
     _changesSub = control.changes().listen((_) => _onControlChange(gen), onError: (Object e) => _onConnectionError(gen, e));
     _presenceTimer = Timer.periodic(timers.presenceInterval, (_) => _guarded(gen, () => presence.publish()));
     _compactionTimer = Timer.periodic(timers.compactionCheck, (_) => _guarded(gen, () => _maintenance(gen)));
@@ -468,12 +469,42 @@ class CoordinationService implements SortCoordinator {
   Stream<SortConfig> watchConfig() => _settings.watchSortConfig(accountId);
 
   @override
+  /// Saves locally right away. Publishing goes through a serial queue with a
+  /// timeout; when the control folder is not connected (or the append fails)
+  /// the latest config is kept pending and published on the next connect.
   Future<void> putConfig(SortConfig c) async {
     await _settings.saveSortConfig(accountId, c);
+    _pendingConfig = c;
+    if (_journal == null) return;
+    final run = _configChain = _configChain.then((_) => _publishConfig(c));
+    try {
+      await run.timeout(const Duration(seconds: 25));
+    } catch (e) {
+      _logger.fine('config publish still pending: $e');
+    }
+  }
+
+  SortConfig? _pendingConfig;
+  Future<void> _configChain = Future.value();
+
+  Future<void> _publishConfig(SortConfig c) async {
     final j = _journal;
     if (j == null) return;
-    await j.putConfig(c);
-    await _evaluate(_generation);
+    try {
+      await j.putConfig(c).timeout(const Duration(seconds: 20));
+      if (identical(_pendingConfig, c)) _pendingConfig = null;
+      await _evaluate(_generation);
+    } catch (e) {
+      _logger.fine('config publish deferred until the control folder reconnects: $e');
+    }
+  }
+
+  /// Called after each successful connect+sync.
+  Future<void> _publishPendingConfig() async {
+    final c = _pendingConfig;
+    if (c == null) return;
+    _configChain = _configChain.then((_) => _publishConfig(c));
+    await _configChain;
   }
 
   // ---------------------------------------------------------- user actions
