@@ -30,6 +30,30 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
   double? _accuracy;
   bool _busy = false;
   bool _asking = false;
+  bool _runningRules = false;
+
+  /// Re-runs every enabled rule over the messages already in the inbox
+  /// (through the leader, so read-guard and leave-until-read still apply).
+  Future<void> _runRulesOnInbox() async {
+    setState(() => _runningRules = true);
+    try {
+      final rules = await ref.read(sortRuleStoreProvider).load(widget.accountId);
+      final coordinator = ref.read(sortCoordinatorProvider(widget.accountId));
+      var queued = 0;
+      for (final r in rules.where((r) => r.enabled)) {
+        queued += await coordinator.applyRuleToInbox(r.id);
+      }
+      if (!mounted) return;
+      final text = queued == 0
+          ? 'No inbox messages match your rules right now (only the device doing the sorting can run this)'
+          : '$queued message${queued == 1 ? '' : 's'} queued; they move after you read them if that setting is on';
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(text)));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Could not run rules: $e')));
+    } finally {
+      if (mounted) setState(() => _runningRules = false);
+    }
+  }
 
   Future<void> _askAdvisor() async {
     setState(() => _asking = true);
@@ -107,6 +131,14 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
             label: '${ai.advisorIntervalHours} h',
             onChanged: (v) => saveAiSettings(ref, (a) => a.copyWith(advisorIntervalHours: v.round())),
           ),
+        ),
+        ListTile(
+          key: const Key('runRulesNow'),
+          leading: const Icon(Icons.rule_outlined),
+          title: const Text('Run rules on the inbox now'),
+          subtitle: const Text('Applies your rules (including imported Thunderbird filters) to messages already in the inbox'),
+          trailing: _runningRules ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+          onTap: _runningRules ? null : _runRulesOnInbox,
         ),
         ListTile(
           key: const Key('askAdvisorNow'),
