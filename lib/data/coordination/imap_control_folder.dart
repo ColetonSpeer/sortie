@@ -23,6 +23,7 @@ class ImapControlFolder implements ControlFolder {
     this.folderName = Folder.controlFolderName,
     this.idleReissue = const Duration(minutes: 25),
     this.pollFallback = const Duration(minutes: 5),
+    this.commandBudget = const Duration(seconds: 90),
   })  : _gw = gateway,
         _account = account,
         _password = password,
@@ -47,6 +48,10 @@ class ImapControlFolder implements ControlFolder {
   final String folderName;
   final Duration idleReissue;
   final Duration pollFallback;
+
+  /// Longest a control command may wait for its answer before the
+  /// connection is treated as lost.
+  final Duration commandBudget;
 
   String? _path;
   int? _uidValidity;
@@ -267,15 +272,26 @@ class ImapControlFolder implements ControlFolder {
   /// while idling would wait forever. Every command therefore ends IDLE
   /// first and re-issues it shortly after; commands are serialized so a
   /// burst shares one pause.
+  ///
+  /// IDLE must never be (re)started while a command is in flight: enough_mail
+  /// would queue the IDLE behind it, and a later DONE could reach the socket
+  /// before the IDLE itself, leaving the server idling with nobody to end it.
+  /// So a pending resume is cancelled here and re-armed afterwards, and the
+  /// periodic re-issue goes through this path too. A command that gets no
+  /// answer within [commandBudget] is reported as a lost connection so the
+  /// owner reconnects instead of hanging forever.
   Future<T> _cmd<T>(Future<T> Function() body) {
     final run = _cmdChain.then((_) async {
       final ctrl = _changes;
-      final paused = ctrl != null && _idleStop != null;
-      if (paused) await _pauseIdle();
+      final resumePending = _resumeTimer?.isActive ?? false;
+      _resumeTimer?.cancel();
+      _resumeTimer = null;
+      final idling = ctrl != null && _idleStop != null;
+      if (idling) await _pauseIdle();
       try {
-        return await body();
+        return await body().timeout(commandBudget, onTimeout: () => throw const ImapGatewayException('control command timed out', isConnectionLost: true));
       } finally {
-        if (paused && !_disposed && !ctrl.isClosed && identical(_changes, ctrl)) _scheduleResume(ctrl);
+        if ((idling || resumePending) && ctrl != null && !_disposed && !ctrl.isClosed && identical(_changes, ctrl)) _scheduleResume(ctrl);
       }
     });
     _cmdChain = run.then((_) {}, onError: (_) {});
@@ -346,10 +362,8 @@ class ImapControlFolder implements ControlFolder {
       return;
     }
     _reissueTimer?.cancel();
-    _reissueTimer = Timer(idleReissue, () {
-      if (!stop.isCompleted) stop.complete();
-      _startIdle(ctrl);
-    });
+    // Re-issue through the command path so it serializes with commands.
+    _reissueTimer = Timer(idleReissue, () => unawaited(_cmd(() async {}).catchError((_) {})));
     events.listen(
       (e) {
         if (e is ConnectionLostEvent) {

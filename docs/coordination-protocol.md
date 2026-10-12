@@ -209,3 +209,17 @@ asleep fails fast and reconnects) and `CoordinationService.onResume`
 (re-evaluate the lease, and when leading run `reconcile` again) instead of
 waiting for keepalives and IDLE timeouts to notice, which previously took up
 to 15 minutes after wake.
+
+### Never start IDLE while a command is in flight (2026-10-12, later)
+
+A second stall surfaced after the pause/resume fix: the 250 ms resume timer
+could fire while the next command was already on the wire (two journal writes
+in a row from one move batch). enough_mail queues the IDLE behind that
+command but flips into idle mode at once, so the following DONE could reach
+the socket before the IDLE did and the server was left idling with nobody to
+end it. `_cmd` now cancels a pending resume and re-arms it afterwards, the
+25-minute re-issue runs through `_cmd` as well, and any control command that
+gets no answer within `commandBudget` (90 s) is reported as a lost connection
+so the service reconnects instead of hanging. Reproduced and covered by
+`test/data/integration/control_folder_dovecot_test.dart` (a burst of appends
+and fetches at the spacings the leader produces).
