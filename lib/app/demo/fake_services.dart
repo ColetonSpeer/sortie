@@ -328,4 +328,58 @@ class FakeSortCoordinator implements SortCoordinator {
   @override
   Future<void> runForegroundCycle({Duration budget = const Duration(seconds: 25)}) async =>
       calls.add('runForegroundCycle');
+
+  /// Messages the fake "applies" a rule to (returned as the count).
+  int applyRuleCount = 0;
+  @override
+  Future<int> applyRuleToInbox(String ruleId) async {
+    calls.add('applyRuleToInbox:$ruleId');
+    return applyRuleCount;
+  }
+}
+
+/// In-memory rule advisor: pending suggestions live in a list; accept /
+/// dismiss just move them out and record the call.
+class FakeRuleAdvisor implements RuleAdvisorApi {
+  FakeRuleAdvisor({List<RuleSuggestion> pending = const [], this.runResult = const AdvisorRun(patternSuggestions: 1, modelSuggestions: 1, costUsd: 0.004, modelRan: true)})
+      : _pending = List.of(pending);
+
+  List<RuleSuggestion> _pending;
+  AdvisorRun runResult;
+  final calls = <String>[];
+  final accepted = <(String, Map<String, dynamic>?, String?)>[];
+  final _ctrl = StreamController<List<RuleSuggestion>>.broadcast();
+
+  List<RuleSuggestion> get pendingList => List.unmodifiable(_pending);
+
+  void setPending(List<RuleSuggestion> list) {
+    _pending = List.of(list);
+    _ctrl.add(List.of(_pending));
+  }
+
+  @override
+  Stream<List<RuleSuggestion>> watchPending(String accountId) async* {
+    yield List.of(_pending);
+    yield* _ctrl.stream;
+  }
+
+  @override
+  Future<AdvisorRun> runNow(String accountId, {bool force = true}) async {
+    calls.add('runNow:$accountId:$force');
+    return runResult;
+  }
+
+  @override
+  Future<String> accept(String suggestionId, {Map<String, dynamic>? match, String? folderPath}) async {
+    calls.add('accept:$suggestionId');
+    accepted.add((suggestionId, match, folderPath));
+    setPending(_pending.where((s) => s.id != suggestionId).toList());
+    return 'rule-$suggestionId';
+  }
+
+  @override
+  Future<void> dismiss(String suggestionId) async {
+    calls.add('dismiss:$suggestionId');
+    setPending(_pending.where((s) => s.id != suggestionId).toList());
+  }
 }

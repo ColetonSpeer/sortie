@@ -142,9 +142,66 @@ continues). Backoff 429/529/5xx exponential 2 s -> 5 min, 6 attempts. sort_queue
 older than 7 days leave the model layer. Message Batches offered when > 200 pending on
 first run; results land as suggestOnly grouped per folder.
 
+## Advisor mode (rules first, model as advisor)
+`AiSettings.usage` (JSON `usage`, default `advisor`): `advisor` | `perMessage` | `off`.
+`advisorIntervalHours` (JSON `advisorHours`, default 24) spaces the advisor's model passes.
+- `perMessage`: the pipeline above, unchanged.
+- `advisor` / `off`: `classify()` runs rules and learned stats only. Anything they cannot
+  place is returned as `keep` with reason `[no rule]` and written to `sort_evidence`
+  (kind `unsorted`). `CorrectionIngester` also writes evidence for user-origin moves
+  (manualFile / lateMove / badgeWrong -> kind `manualMove`, folder = destination; undo ->
+  kind `undo`, folder INBOX). Rows de-duplicate per (kind, list_id ?? from_addr, folder):
+  `seen_count++`, `last_at`, up to 3 distinct normalised subjects in `examples_json`; new
+  evidence clears `consumed_at` / `sent_at`. Cap 2000 rows per account, consumed rows
+  evicted first, then the oldest. `off` additionally skips the bootstrap descriptions.
+- `RuleAdvisor` (`lib/services/sorter/rule_advisor.dart`), `maybeRun(accountId)` is called
+  by the leader loop after every classify batch and by a daily timer; `runNow` is the
+  "Ask now" button. Every run:
+  1. Pattern pre-pass (no model): unconsumed evidence grouped by list_id, then from_addr,
+     then from_domain (free-mail domains excluded; rows covered by a higher-precedence
+     group are skipped). >= 2 manual moves to one folder with no other folder and no undo in
+     the group -> suggestion `{listId|from|fromDomain: key}` -> folder, source `pattern`,
+     confidence 0.9, evidence n, examples <= 3. Mixed folders / an undo -> nothing.
+  2. Model pass, only when: `usage == advisor`, a provider is configured, not paused, cost
+     cap not exceeded, and (`runNow` or >= 10 evidence rows with `sent_at` NULL and the
+     last model pass older than `advisorIntervalHours`). One request:
+     system[0] = `RuleAdvisor.instructions` + `FolderProfileService.renderAll` (cacheable,
+     byte-identical with the sorter's profile block content), user = `e1..eN` evidence
+     lines (max 150: kind x count | from | domain | list | subjects; no bodies ever;
+     headersOnly cuts subjects to 6 words; redactSecrets applies) + existing rules one per
+     line. `output_config.format` JSON schema:
+     `{suggestions:[{kind: from|domain|list|subject, value, folder: enum(allowed), rationale,
+     confidence, exampleIds:[]}]}`. Validation: folder resolved like OutputValidator
+     (unknown / INBOX -> drop), confidence < 0.5 -> drop, free-mail domain -> drop, duplicate
+     of an existing rule / pending / accepted / dismissed-within-30-days (match+folder) ->
+     drop, in-batch duplicates -> drop. Usage recorded as `ai_usage.kind = advisor`;
+     evidence rows get `sent_at`; last run time in settings `advisor.lastModelRun.<acct>`.
+- `rule_suggestions` table: id, account_id, match_json (RuleMatch shape), folder_path,
+  rationale, confidence, source (pattern|model), evidence_count, examples_json, status
+  (pending|accepted|dismissed), created_at, decided_at. Accept -> `SortRule` via
+  `UserRulesService.upsert` (priority = max existing + 10, name "Suggested: ...") and the
+  evidence covered by the match is consumed; dismiss consumes too and is remembered 30 days.
+  Decided rows are pruned after 30 days.
+- Sync: the `rules` journal section body is `{items: [...rules], suggestions: [...pending]}`.
+  Receivers merge by id: unknown -> insert pending; local pending absent from the writer's
+  list and created before the record -> `accepted` if a rule with the same (match, folder)
+  now exists, else `dismissed`; a body without a `suggestions` key (older writer) leaves
+  local suggestions untouched. The section hash covers suggestions (absent == empty).
+- `SortCoordinator.applyRuleToInbox(ruleId)`: the leader re-classifies the INBOX messages
+  the rule matches (earlier kept/suggested decisions resolved first; pending ones left
+  alone) through the normal path, so read-guard and leave-until-read still apply.
+  Followers return 0.
+- UI: sort log shows "Suggested rules" cards (Accept with "Also apply to the N matching
+  messages already in the inbox" default on, Edit, Dismiss); the inbox shows a per-session
+  dismissable banner; the Sorting page carries the usage radio, the interval and
+  "Ask the AI for rule suggestions now" (snackbar with count and cost).
+
 ## Tests
 Golden corpus with FakeAiProvider (gates, precedence, mode table, privacy rendering,
 cache-stable system blocks, budgeter). Property tests for the validator. Provider
 contract tests with a mock HTTP adapter (headers, no temperature, effort only on
 Sonnet/Opus, response_format fallback, retry policy). Learning tests (sorter moves never
 learn; correction crosses threshold; veto; decay; eviction). Replay/accuracy dry run.
+Advisor tests (`rule_advisor_test.dart`): evidence from keep decisions and corrections,
+pattern pass, model pass request shape / validation / dismissed memory / interval gate,
+accept; `suggestion_sync_test.dart` (accept on B -> rule on A); widget test for the cards.

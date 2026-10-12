@@ -8,8 +8,8 @@ import '../../fixtures/corpus.dart';
 import 'test_support.dart';
 
 void main() {
-  const cloud = AiSettings(kind: AiProviderKind.anthropic, model: 'claude-sonnet-5');
-  const local = AiSettings(kind: AiProviderKind.openAiCompat, baseUrl: 'http://192.168.1.10:11434/v1', model: 'llama3');
+  const cloud = AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.anthropic, model: 'claude-sonnet-5');
+  const local = AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.openAiCompat, baseUrl: 'http://192.168.1.10:11434/v1', model: 'llama3');
 
   late Harness h;
   tearDown(() => h.close());

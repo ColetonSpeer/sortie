@@ -53,6 +53,12 @@ class FakeSettingsRepository implements SettingsRepository {
   @override
   Future<void> saveSortConfig(String accountId, SortConfig c) async => config = c;
 
+  final strings = <String, String?>{};
+  @override
+  Future<String?> getString(String key) async => strings[key];
+  @override
+  Future<void> setString(String key, String? value) async => strings[key] = value;
+
   @override
   dynamic noSuchMethod(Invocation i) => throw UnimplementedError('FakeSettingsRepository.${i.memberName}');
 }
@@ -71,7 +77,7 @@ class Harness {
   AiProvider? provider;
 
   static Future<Harness> create({
-    AiSettings ai = const AiSettings(kind: AiProviderKind.openAiCompat, baseUrl: 'http://10.0.0.5:11434/v1', model: 'llama3'),
+    AiSettings ai = const AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.openAiCompat, baseUrl: 'http://10.0.0.5:11434/v1', model: 'llama3'),
     SortConfig config = const SortConfig(mode: SortingMode.auto, leaveUntilRead: LeaveUntilRead.none),
     bool bootstrap = true,
     bool withProvider = true,

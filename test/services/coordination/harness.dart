@@ -15,6 +15,7 @@ import 'package:sortie/data/mail/imap_gateway.dart';
 import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/services/services.dart';
 import 'package:sortie/services/coordination/coordination_service.dart';
+import 'package:sortie/services/sorter/rule_suggestions.dart';
 import 'package:sortie/services/sorter/user_rules.dart';
 
 import '../../fakes/fake_classifier.dart';
@@ -59,6 +60,7 @@ class Device {
     required this.accounts,
     required this.rules,
     required this.calendars,
+    required this.suggestions,
   });
   final DeviceIdentity identity;
   final SortieDatabase db;
@@ -70,6 +72,7 @@ class Device {
   final DriftAccountRepository accounts;
   final UserRulesService rules;
   final DriftCalendarRepository calendars;
+  final RuleSuggestionStore suggestions;
   final ScriptedClassifier classifier;
   final CoordFakeSyncService sync;
   final CoordinationService service;
@@ -126,6 +129,7 @@ class Harness {
     final accounts = DriftAccountRepository(db);
     final rules = UserRulesService(db);
     final calendars = DriftCalendarRepository(db);
+    final suggestions = RuleSuggestionStore(db, rules: rules);
     unawaited(accounts.upsert(account)); // identities reference the account row
     final service = CoordinationService(
       accountId: accountId,
@@ -141,7 +145,7 @@ class Harness {
       clock: clock,
       timers: timers ?? this.timers,
       mayLead: mayLead,
-      sharedConfig: SharedConfigDeps(accounts: accounts, rules: rules, calendars: calendars, settings: settings),
+      sharedConfig: SharedConfigDeps(accounts: accounts, rules: rules, calendars: calendars, settings: settings, suggestions: suggestions),
     );
     final d = Device(
       identity: me,
@@ -155,6 +159,7 @@ class Harness {
       accounts: accounts,
       rules: rules,
       calendars: calendars,
+      suggestions: suggestions,
     );
     devices.add(d);
     return d;

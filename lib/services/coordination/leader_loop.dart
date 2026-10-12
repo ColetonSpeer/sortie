@@ -41,6 +41,8 @@ class LeaderLoop {
     required this.customKeywords,
     required Future<void> Function() resync,
     required void Function(Object error) onFatal,
+    Future<void> Function(String accountId)? afterClassify,
+    this.advisorInterval = const Duration(hours: 24),
   })  : _ops = ops,
         _sync = sync,
         _classifier = classifier,
@@ -52,7 +54,8 @@ class LeaderLoop {
         _clock = serverClock,
         _timers = timers,
         _resync = resync,
-        _onFatal = onFatal;
+        _onFatal = onFatal,
+        _afterClassify = afterClassify;
 
   static final _log = Logger('sortie.coordination.leader');
   static const inbox = 'INBOX';
@@ -74,12 +77,17 @@ class LeaderLoop {
   final Future<void> Function() _resync;
   final void Function(Object) _onFatal;
 
+  /// Rule-advisor hook: runs after every classify batch and on a daily timer.
+  final Future<void> Function(String accountId)? _afterClassify;
+  final Duration advisorInterval;
+
   final _subs = <StreamSubscription<Object?>>[];
   final _newBuffer = <MessageHeader>[];
   Timer? _classifyTimer;
   Timer? _evalTimer;
   Timer? _retryTimer;
   Timer? _pollTimer;
+  Timer? _advisorTimer;
   Future<void> _chain = Future.value();
   bool _stopped = false;
   int moves = 0;
@@ -108,7 +116,19 @@ class LeaderLoop {
     // Externally moved / deleted pending mail produces no flag event, so
     // re-check on the poll interval as well.
     _pollTimer = Timer.periodic(_timers.pollFallback, (_) => scheduleEvaluate(Duration.zero));
+    if (_afterClassify != null) _advisorTimer = Timer.periodic(advisorInterval, (_) => _serial(_runAdvisor).then((_) {}, onError: (_) {}));
     await _serial(reconcile).then((_) {}, onError: _fatal);
+  }
+
+  /// Never fatal: a failing advisor must not cost the lease.
+  Future<void> _runAdvisor() async {
+    final hook = _afterClassify;
+    if (hook == null || _stopped) return;
+    try {
+      await hook(accountId);
+    } catch (e, st) {
+      _log.warning('rule advisor failed', e, st);
+    }
   }
 
   Future<void> stop() async {
@@ -117,6 +137,7 @@ class LeaderLoop {
     _evalTimer?.cancel();
     _retryTimer?.cancel();
     _pollTimer?.cancel();
+    _advisorTimer?.cancel();
     for (final s in _subs) {
       unawaited(s.cancel());
     }
@@ -221,14 +242,34 @@ class LeaderLoop {
     }
   }
 
-  Future<void> _classify(List<MessageHeader> headers) async {
+  /// Re-runs the classifier over the INBOX messages [test] selects (a newly
+  /// accepted rule). Earlier `kept` / `suggested` decisions are resolved
+  /// first so the normal path takes them again; pending ones are left alone.
+  Future<int> classifyMatching(bool Function(MessageHeader) test) => _serial(() async {
+        final recent = await _messages.list(MessageQuery(accountId: accountId, folderPath: inbox, limit: 500));
+        final hits = <MessageHeader>[];
+        for (final h in recent) {
+          if (h.hasSortieDone || !test(h)) continue;
+          final d = await _journal.store.decisionForMid(h.messageIdHash);
+          if (d != null && (d.status == DecisionStatus.pending || d.status == DecisionStatus.applied || d.status == DecisionStatus.accepted)) continue;
+          if (d != null) await _journal.store.setDecisionStatus(d.id, DecisionStatus.resolved);
+          hits.add(h);
+        }
+        if (hits.isEmpty) return 0;
+        await _classify(hits, reclassify: true);
+        await _resync();
+        scheduleEvaluate(Duration.zero);
+        return hits.length;
+      });
+
+  Future<void> _classify(List<MessageHeader> headers, {bool reclassify = false}) async {
     final config = await _journal.store.config();
     if (config.mode == SortingMode.off) return;
     final inputs = <ClassificationInput>[];
     final seen = <String>{};
     for (final h in headers) {
       if (h.hasSortieDone || !seen.add(h.messageIdHash)) continue;
-      if (await _journal.store.hasAnyDecision(h.messageIdHash)) continue;
+      if (!reclassify && await _journal.store.hasAnyDecision(h.messageIdHash)) continue;
       inputs.add(ClassificationInput(header: h, bodyText: await _bodyTextFor(h)));
     }
     if (inputs.isEmpty) return;
@@ -254,6 +295,7 @@ class LeaderLoop {
       if (uids.isNotEmpty) await _ops.store(uids, add: {SortieKeywords.pending});
     }
     _log.info('epoch $epoch: ${decisions.length} decisions journaled');
+    await _runAdvisor();
   }
 
   // -------------------------------------------------------------- evaluate

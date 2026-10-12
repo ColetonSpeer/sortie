@@ -31,6 +31,16 @@ final pendingOpRepositoryProvider = Provider<PendingOpRepository>((_) => _unboun
 final settingsRepositoryProvider = Provider<SettingsRepository>((_) => _unbound('settingsRepository'));
 final mailSyncServiceProvider = Provider<MailSyncService>((_) => _unbound('mailSyncService'));
 final messageClassifierProvider = Provider<MessageClassifier>((_) => _unbound('messageClassifier'));
+
+/// Rule advisor (sorter module): suggestions, accept / dismiss, "Ask now".
+final ruleAdvisorProvider = Provider<RuleAdvisorApi>((_) => _unbound('ruleAdvisor'));
+
+/// Pending rule suggestions of one account.
+final pendingSuggestionsProvider = StreamProvider.family<List<RuleSuggestion>, String>(
+    (ref, accountId) => ref.watch(ruleAdvisorProvider).watchPending(accountId));
+
+/// Inbox "N suggested sorting rules" banner hidden for this session (UI state only).
+final suggestionBannerDismissedProvider = StateProvider<bool>((_) => false);
 final deviceIdentityProvider = Provider<DeviceIdentity>((_) => _unbound('deviceIdentity'));
 
 /// One coordinator per account, created lazily by the override in main.dart.

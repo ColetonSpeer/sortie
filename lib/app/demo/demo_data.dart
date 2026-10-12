@@ -152,6 +152,34 @@ abstract final class DemoData {
     _msg(36, 'Drafts'),
   ];
 
+  /// Pending rule suggestions for the sort log / inbox banner.
+  static List<RuleSuggestion> suggestions() => [
+        RuleSuggestion(
+          id: 'sug-1',
+          accountId: accountId,
+          match: const {'from': 'order.management@calix.com'},
+          folderPath: 'Work/Invoices',
+          rationale: 'You moved 3 messages from order.management@calix.com to Work/Invoices by hand',
+          confidence: 0.9,
+          source: SuggestionSource.pattern,
+          evidenceCount: 3,
+          examples: const ['Order # confirmation', 'Shipment notice for order #'],
+          createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        ),
+        RuleSuggestion(
+          id: 'sug-2',
+          accountId: accountId,
+          match: const {'listId': 'digest.weekly.example'},
+          folderPath: 'Newsletters',
+          rationale: 'Weekly digest list, 5 unsorted issues, matches the Newsletters profile',
+          confidence: 0.82,
+          source: SuggestionSource.model,
+          evidenceCount: 5,
+          examples: const ['Weekly digest #', 'Weekly digest: the best of the week'],
+          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        ),
+      ];
+
   static Map<MessageKey, PendingBadge> pendingBadges() {
     PendingBadge b(int i, String dest, double conf, SortMode mode, String reason, SortLayer layer) {
       final h = messages[i];

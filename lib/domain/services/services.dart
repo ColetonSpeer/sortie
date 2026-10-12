@@ -90,6 +90,21 @@ abstract class MessageClassifier {
   Stream<String> get statusMessages;
 }
 
+/// Owned by the sorter module: proposes sorting rules from what the
+/// deterministic layers could not place and from the owner's manual moves.
+/// Never moves anything; accepting a suggestion only creates a rule.
+abstract class RuleAdvisorApi {
+  Stream<List<RuleSuggestion>> watchPending(String accountId);
+
+  /// Pattern pass now; model pass only if the mode, provider and caps allow.
+  /// [force] = the user pressed "Ask now" (ignores the interval).
+  Future<AdvisorRun> runNow(String accountId, {bool force = true});
+
+  /// Creates the rule (with optional edits) and returns its id.
+  Future<String> accept(String suggestionId, {Map<String, dynamic>? match, String? folderPath});
+  Future<void> dismiss(String suggestionId);
+}
+
 enum CoordinationState { stopped, connecting, syncing, follower, candidate, leader, yielding }
 
 class PendingBadge {
@@ -177,4 +192,9 @@ abstract class SortCoordinator {
 
   /// iOS BGAppRefresh / WorkManager: one bounded cycle.
   Future<void> runForegroundCycle({Duration budget = const Duration(seconds: 25)});
+
+  /// Re-classifies the INBOX messages a (new) rule matches through the normal
+  /// path, so read-guard and leave-until-read still apply. Only the leader can
+  /// do this; other devices return 0.
+  Future<int> applyRuleToInbox(String ruleId);
 }

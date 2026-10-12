@@ -9917,6 +9917,1588 @@ class SortQueueCompanion extends UpdateCompanion<SortQueueData> {
   }
 }
 
+class $SortEvidenceTable extends SortEvidence
+    with TableInfo<$SortEvidenceTable, SortEvidenceData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SortEvidenceTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageIdHashMeta = const VerificationMeta(
+    'messageIdHash',
+  );
+  @override
+  late final GeneratedColumn<String> messageIdHash = GeneratedColumn<String>(
+    'message_id_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fromAddrMeta = const VerificationMeta(
+    'fromAddr',
+  );
+  @override
+  late final GeneratedColumn<String> fromAddr = GeneratedColumn<String>(
+    'from_addr',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fromDomainMeta = const VerificationMeta(
+    'fromDomain',
+  );
+  @override
+  late final GeneratedColumn<String> fromDomain = GeneratedColumn<String>(
+    'from_domain',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
+  @override
+  late final GeneratedColumn<String> listId = GeneratedColumn<String>(
+    'list_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _subjectNormMeta = const VerificationMeta(
+    'subjectNorm',
+  );
+  @override
+  late final GeneratedColumn<String> subjectNorm = GeneratedColumn<String>(
+    'subject_norm',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _examplesJsonMeta = const VerificationMeta(
+    'examplesJson',
+  );
+  @override
+  late final GeneratedColumn<String> examplesJson = GeneratedColumn<String>(
+    'examples_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _folderMeta = const VerificationMeta('folder');
+  @override
+  late final GeneratedColumn<String> folder = GeneratedColumn<String>(
+    'folder',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _seenCountMeta = const VerificationMeta(
+    'seenCount',
+  );
+  @override
+  late final GeneratedColumn<int> seenCount = GeneratedColumn<int>(
+    'seen_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _firstAtMeta = const VerificationMeta(
+    'firstAt',
+  );
+  @override
+  late final GeneratedColumn<int> firstAt = GeneratedColumn<int>(
+    'first_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastAtMeta = const VerificationMeta('lastAt');
+  @override
+  late final GeneratedColumn<int> lastAt = GeneratedColumn<int>(
+    'last_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sentAtMeta = const VerificationMeta('sentAt');
+  @override
+  late final GeneratedColumn<int> sentAt = GeneratedColumn<int>(
+    'sent_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _consumedAtMeta = const VerificationMeta(
+    'consumedAt',
+  );
+  @override
+  late final GeneratedColumn<int> consumedAt = GeneratedColumn<int>(
+    'consumed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    accountId,
+    kind,
+    messageIdHash,
+    fromAddr,
+    fromDomain,
+    listId,
+    subjectNorm,
+    examplesJson,
+    folder,
+    seenCount,
+    firstAt,
+    lastAt,
+    sentAt,
+    consumedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sort_evidence';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SortEvidenceData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('message_id_hash')) {
+      context.handle(
+        _messageIdHashMeta,
+        messageIdHash.isAcceptableOrUnknown(
+          data['message_id_hash']!,
+          _messageIdHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdHashMeta);
+    }
+    if (data.containsKey('from_addr')) {
+      context.handle(
+        _fromAddrMeta,
+        fromAddr.isAcceptableOrUnknown(data['from_addr']!, _fromAddrMeta),
+      );
+    }
+    if (data.containsKey('from_domain')) {
+      context.handle(
+        _fromDomainMeta,
+        fromDomain.isAcceptableOrUnknown(data['from_domain']!, _fromDomainMeta),
+      );
+    }
+    if (data.containsKey('list_id')) {
+      context.handle(
+        _listIdMeta,
+        listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    }
+    if (data.containsKey('subject_norm')) {
+      context.handle(
+        _subjectNormMeta,
+        subjectNorm.isAcceptableOrUnknown(
+          data['subject_norm']!,
+          _subjectNormMeta,
+        ),
+      );
+    }
+    if (data.containsKey('examples_json')) {
+      context.handle(
+        _examplesJsonMeta,
+        examplesJson.isAcceptableOrUnknown(
+          data['examples_json']!,
+          _examplesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('folder')) {
+      context.handle(
+        _folderMeta,
+        folder.isAcceptableOrUnknown(data['folder']!, _folderMeta),
+      );
+    }
+    if (data.containsKey('seen_count')) {
+      context.handle(
+        _seenCountMeta,
+        seenCount.isAcceptableOrUnknown(data['seen_count']!, _seenCountMeta),
+      );
+    }
+    if (data.containsKey('first_at')) {
+      context.handle(
+        _firstAtMeta,
+        firstAt.isAcceptableOrUnknown(data['first_at']!, _firstAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_firstAtMeta);
+    }
+    if (data.containsKey('last_at')) {
+      context.handle(
+        _lastAtMeta,
+        lastAt.isAcceptableOrUnknown(data['last_at']!, _lastAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastAtMeta);
+    }
+    if (data.containsKey('sent_at')) {
+      context.handle(
+        _sentAtMeta,
+        sentAt.isAcceptableOrUnknown(data['sent_at']!, _sentAtMeta),
+      );
+    }
+    if (data.containsKey('consumed_at')) {
+      context.handle(
+        _consumedAtMeta,
+        consumedAt.isAcceptableOrUnknown(data['consumed_at']!, _consumedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SortEvidenceData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SortEvidenceData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      messageIdHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id_hash'],
+      )!,
+      fromAddr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_addr'],
+      ),
+      fromDomain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_domain'],
+      ),
+      listId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}list_id'],
+      ),
+      subjectNorm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_norm'],
+      ),
+      examplesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}examples_json'],
+      )!,
+      folder: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folder'],
+      ),
+      seenCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seen_count'],
+      )!,
+      firstAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}first_at'],
+      )!,
+      lastAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_at'],
+      )!,
+      sentAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sent_at'],
+      ),
+      consumedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}consumed_at'],
+      ),
+    );
+  }
+
+  @override
+  $SortEvidenceTable createAlias(String alias) {
+    return $SortEvidenceTable(attachedDatabase, alias);
+  }
+}
+
+class SortEvidenceData extends DataClass
+    implements Insertable<SortEvidenceData> {
+  final String id;
+  final String accountId;
+
+  /// unsorted | manualMove | undo
+  final String kind;
+  final String messageIdHash;
+  final String? fromAddr;
+  final String? fromDomain;
+  final String? listId;
+  final String? subjectNorm;
+
+  /// Up to three distinct normalised subjects (JSON list).
+  final String examplesJson;
+
+  /// Destination for moves; null for unsorted.
+  final String? folder;
+  final int seenCount;
+  final int firstAt;
+  final int lastAt;
+
+  /// Last time the row was shown to the model (null = new since then).
+  final int? sentAt;
+
+  /// Set when a suggestion built on it was accepted or dismissed.
+  final int? consumedAt;
+  const SortEvidenceData({
+    required this.id,
+    required this.accountId,
+    required this.kind,
+    required this.messageIdHash,
+    this.fromAddr,
+    this.fromDomain,
+    this.listId,
+    this.subjectNorm,
+    required this.examplesJson,
+    this.folder,
+    required this.seenCount,
+    required this.firstAt,
+    required this.lastAt,
+    this.sentAt,
+    this.consumedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['account_id'] = Variable<String>(accountId);
+    map['kind'] = Variable<String>(kind);
+    map['message_id_hash'] = Variable<String>(messageIdHash);
+    if (!nullToAbsent || fromAddr != null) {
+      map['from_addr'] = Variable<String>(fromAddr);
+    }
+    if (!nullToAbsent || fromDomain != null) {
+      map['from_domain'] = Variable<String>(fromDomain);
+    }
+    if (!nullToAbsent || listId != null) {
+      map['list_id'] = Variable<String>(listId);
+    }
+    if (!nullToAbsent || subjectNorm != null) {
+      map['subject_norm'] = Variable<String>(subjectNorm);
+    }
+    map['examples_json'] = Variable<String>(examplesJson);
+    if (!nullToAbsent || folder != null) {
+      map['folder'] = Variable<String>(folder);
+    }
+    map['seen_count'] = Variable<int>(seenCount);
+    map['first_at'] = Variable<int>(firstAt);
+    map['last_at'] = Variable<int>(lastAt);
+    if (!nullToAbsent || sentAt != null) {
+      map['sent_at'] = Variable<int>(sentAt);
+    }
+    if (!nullToAbsent || consumedAt != null) {
+      map['consumed_at'] = Variable<int>(consumedAt);
+    }
+    return map;
+  }
+
+  SortEvidenceCompanion toCompanion(bool nullToAbsent) {
+    return SortEvidenceCompanion(
+      id: Value(id),
+      accountId: Value(accountId),
+      kind: Value(kind),
+      messageIdHash: Value(messageIdHash),
+      fromAddr: fromAddr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromAddr),
+      fromDomain: fromDomain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromDomain),
+      listId: listId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(listId),
+      subjectNorm: subjectNorm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subjectNorm),
+      examplesJson: Value(examplesJson),
+      folder: folder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folder),
+      seenCount: Value(seenCount),
+      firstAt: Value(firstAt),
+      lastAt: Value(lastAt),
+      sentAt: sentAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentAt),
+      consumedAt: consumedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(consumedAt),
+    );
+  }
+
+  factory SortEvidenceData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SortEvidenceData(
+      id: serializer.fromJson<String>(json['id']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      messageIdHash: serializer.fromJson<String>(json['messageIdHash']),
+      fromAddr: serializer.fromJson<String?>(json['fromAddr']),
+      fromDomain: serializer.fromJson<String?>(json['fromDomain']),
+      listId: serializer.fromJson<String?>(json['listId']),
+      subjectNorm: serializer.fromJson<String?>(json['subjectNorm']),
+      examplesJson: serializer.fromJson<String>(json['examplesJson']),
+      folder: serializer.fromJson<String?>(json['folder']),
+      seenCount: serializer.fromJson<int>(json['seenCount']),
+      firstAt: serializer.fromJson<int>(json['firstAt']),
+      lastAt: serializer.fromJson<int>(json['lastAt']),
+      sentAt: serializer.fromJson<int?>(json['sentAt']),
+      consumedAt: serializer.fromJson<int?>(json['consumedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'accountId': serializer.toJson<String>(accountId),
+      'kind': serializer.toJson<String>(kind),
+      'messageIdHash': serializer.toJson<String>(messageIdHash),
+      'fromAddr': serializer.toJson<String?>(fromAddr),
+      'fromDomain': serializer.toJson<String?>(fromDomain),
+      'listId': serializer.toJson<String?>(listId),
+      'subjectNorm': serializer.toJson<String?>(subjectNorm),
+      'examplesJson': serializer.toJson<String>(examplesJson),
+      'folder': serializer.toJson<String?>(folder),
+      'seenCount': serializer.toJson<int>(seenCount),
+      'firstAt': serializer.toJson<int>(firstAt),
+      'lastAt': serializer.toJson<int>(lastAt),
+      'sentAt': serializer.toJson<int?>(sentAt),
+      'consumedAt': serializer.toJson<int?>(consumedAt),
+    };
+  }
+
+  SortEvidenceData copyWith({
+    String? id,
+    String? accountId,
+    String? kind,
+    String? messageIdHash,
+    Value<String?> fromAddr = const Value.absent(),
+    Value<String?> fromDomain = const Value.absent(),
+    Value<String?> listId = const Value.absent(),
+    Value<String?> subjectNorm = const Value.absent(),
+    String? examplesJson,
+    Value<String?> folder = const Value.absent(),
+    int? seenCount,
+    int? firstAt,
+    int? lastAt,
+    Value<int?> sentAt = const Value.absent(),
+    Value<int?> consumedAt = const Value.absent(),
+  }) => SortEvidenceData(
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    kind: kind ?? this.kind,
+    messageIdHash: messageIdHash ?? this.messageIdHash,
+    fromAddr: fromAddr.present ? fromAddr.value : this.fromAddr,
+    fromDomain: fromDomain.present ? fromDomain.value : this.fromDomain,
+    listId: listId.present ? listId.value : this.listId,
+    subjectNorm: subjectNorm.present ? subjectNorm.value : this.subjectNorm,
+    examplesJson: examplesJson ?? this.examplesJson,
+    folder: folder.present ? folder.value : this.folder,
+    seenCount: seenCount ?? this.seenCount,
+    firstAt: firstAt ?? this.firstAt,
+    lastAt: lastAt ?? this.lastAt,
+    sentAt: sentAt.present ? sentAt.value : this.sentAt,
+    consumedAt: consumedAt.present ? consumedAt.value : this.consumedAt,
+  );
+  SortEvidenceData copyWithCompanion(SortEvidenceCompanion data) {
+    return SortEvidenceData(
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      messageIdHash: data.messageIdHash.present
+          ? data.messageIdHash.value
+          : this.messageIdHash,
+      fromAddr: data.fromAddr.present ? data.fromAddr.value : this.fromAddr,
+      fromDomain: data.fromDomain.present
+          ? data.fromDomain.value
+          : this.fromDomain,
+      listId: data.listId.present ? data.listId.value : this.listId,
+      subjectNorm: data.subjectNorm.present
+          ? data.subjectNorm.value
+          : this.subjectNorm,
+      examplesJson: data.examplesJson.present
+          ? data.examplesJson.value
+          : this.examplesJson,
+      folder: data.folder.present ? data.folder.value : this.folder,
+      seenCount: data.seenCount.present ? data.seenCount.value : this.seenCount,
+      firstAt: data.firstAt.present ? data.firstAt.value : this.firstAt,
+      lastAt: data.lastAt.present ? data.lastAt.value : this.lastAt,
+      sentAt: data.sentAt.present ? data.sentAt.value : this.sentAt,
+      consumedAt: data.consumedAt.present
+          ? data.consumedAt.value
+          : this.consumedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SortEvidenceData(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('kind: $kind, ')
+          ..write('messageIdHash: $messageIdHash, ')
+          ..write('fromAddr: $fromAddr, ')
+          ..write('fromDomain: $fromDomain, ')
+          ..write('listId: $listId, ')
+          ..write('subjectNorm: $subjectNorm, ')
+          ..write('examplesJson: $examplesJson, ')
+          ..write('folder: $folder, ')
+          ..write('seenCount: $seenCount, ')
+          ..write('firstAt: $firstAt, ')
+          ..write('lastAt: $lastAt, ')
+          ..write('sentAt: $sentAt, ')
+          ..write('consumedAt: $consumedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    kind,
+    messageIdHash,
+    fromAddr,
+    fromDomain,
+    listId,
+    subjectNorm,
+    examplesJson,
+    folder,
+    seenCount,
+    firstAt,
+    lastAt,
+    sentAt,
+    consumedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SortEvidenceData &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.kind == this.kind &&
+          other.messageIdHash == this.messageIdHash &&
+          other.fromAddr == this.fromAddr &&
+          other.fromDomain == this.fromDomain &&
+          other.listId == this.listId &&
+          other.subjectNorm == this.subjectNorm &&
+          other.examplesJson == this.examplesJson &&
+          other.folder == this.folder &&
+          other.seenCount == this.seenCount &&
+          other.firstAt == this.firstAt &&
+          other.lastAt == this.lastAt &&
+          other.sentAt == this.sentAt &&
+          other.consumedAt == this.consumedAt);
+}
+
+class SortEvidenceCompanion extends UpdateCompanion<SortEvidenceData> {
+  final Value<String> id;
+  final Value<String> accountId;
+  final Value<String> kind;
+  final Value<String> messageIdHash;
+  final Value<String?> fromAddr;
+  final Value<String?> fromDomain;
+  final Value<String?> listId;
+  final Value<String?> subjectNorm;
+  final Value<String> examplesJson;
+  final Value<String?> folder;
+  final Value<int> seenCount;
+  final Value<int> firstAt;
+  final Value<int> lastAt;
+  final Value<int?> sentAt;
+  final Value<int?> consumedAt;
+  final Value<int> rowid;
+  const SortEvidenceCompanion({
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.messageIdHash = const Value.absent(),
+    this.fromAddr = const Value.absent(),
+    this.fromDomain = const Value.absent(),
+    this.listId = const Value.absent(),
+    this.subjectNorm = const Value.absent(),
+    this.examplesJson = const Value.absent(),
+    this.folder = const Value.absent(),
+    this.seenCount = const Value.absent(),
+    this.firstAt = const Value.absent(),
+    this.lastAt = const Value.absent(),
+    this.sentAt = const Value.absent(),
+    this.consumedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SortEvidenceCompanion.insert({
+    required String id,
+    required String accountId,
+    required String kind,
+    required String messageIdHash,
+    this.fromAddr = const Value.absent(),
+    this.fromDomain = const Value.absent(),
+    this.listId = const Value.absent(),
+    this.subjectNorm = const Value.absent(),
+    this.examplesJson = const Value.absent(),
+    this.folder = const Value.absent(),
+    this.seenCount = const Value.absent(),
+    required int firstAt,
+    required int lastAt,
+    this.sentAt = const Value.absent(),
+    this.consumedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       accountId = Value(accountId),
+       kind = Value(kind),
+       messageIdHash = Value(messageIdHash),
+       firstAt = Value(firstAt),
+       lastAt = Value(lastAt);
+  static Insertable<SortEvidenceData> custom({
+    Expression<String>? id,
+    Expression<String>? accountId,
+    Expression<String>? kind,
+    Expression<String>? messageIdHash,
+    Expression<String>? fromAddr,
+    Expression<String>? fromDomain,
+    Expression<String>? listId,
+    Expression<String>? subjectNorm,
+    Expression<String>? examplesJson,
+    Expression<String>? folder,
+    Expression<int>? seenCount,
+    Expression<int>? firstAt,
+    Expression<int>? lastAt,
+    Expression<int>? sentAt,
+    Expression<int>? consumedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (kind != null) 'kind': kind,
+      if (messageIdHash != null) 'message_id_hash': messageIdHash,
+      if (fromAddr != null) 'from_addr': fromAddr,
+      if (fromDomain != null) 'from_domain': fromDomain,
+      if (listId != null) 'list_id': listId,
+      if (subjectNorm != null) 'subject_norm': subjectNorm,
+      if (examplesJson != null) 'examples_json': examplesJson,
+      if (folder != null) 'folder': folder,
+      if (seenCount != null) 'seen_count': seenCount,
+      if (firstAt != null) 'first_at': firstAt,
+      if (lastAt != null) 'last_at': lastAt,
+      if (sentAt != null) 'sent_at': sentAt,
+      if (consumedAt != null) 'consumed_at': consumedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SortEvidenceCompanion copyWith({
+    Value<String>? id,
+    Value<String>? accountId,
+    Value<String>? kind,
+    Value<String>? messageIdHash,
+    Value<String?>? fromAddr,
+    Value<String?>? fromDomain,
+    Value<String?>? listId,
+    Value<String?>? subjectNorm,
+    Value<String>? examplesJson,
+    Value<String?>? folder,
+    Value<int>? seenCount,
+    Value<int>? firstAt,
+    Value<int>? lastAt,
+    Value<int?>? sentAt,
+    Value<int?>? consumedAt,
+    Value<int>? rowid,
+  }) {
+    return SortEvidenceCompanion(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      kind: kind ?? this.kind,
+      messageIdHash: messageIdHash ?? this.messageIdHash,
+      fromAddr: fromAddr ?? this.fromAddr,
+      fromDomain: fromDomain ?? this.fromDomain,
+      listId: listId ?? this.listId,
+      subjectNorm: subjectNorm ?? this.subjectNorm,
+      examplesJson: examplesJson ?? this.examplesJson,
+      folder: folder ?? this.folder,
+      seenCount: seenCount ?? this.seenCount,
+      firstAt: firstAt ?? this.firstAt,
+      lastAt: lastAt ?? this.lastAt,
+      sentAt: sentAt ?? this.sentAt,
+      consumedAt: consumedAt ?? this.consumedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (messageIdHash.present) {
+      map['message_id_hash'] = Variable<String>(messageIdHash.value);
+    }
+    if (fromAddr.present) {
+      map['from_addr'] = Variable<String>(fromAddr.value);
+    }
+    if (fromDomain.present) {
+      map['from_domain'] = Variable<String>(fromDomain.value);
+    }
+    if (listId.present) {
+      map['list_id'] = Variable<String>(listId.value);
+    }
+    if (subjectNorm.present) {
+      map['subject_norm'] = Variable<String>(subjectNorm.value);
+    }
+    if (examplesJson.present) {
+      map['examples_json'] = Variable<String>(examplesJson.value);
+    }
+    if (folder.present) {
+      map['folder'] = Variable<String>(folder.value);
+    }
+    if (seenCount.present) {
+      map['seen_count'] = Variable<int>(seenCount.value);
+    }
+    if (firstAt.present) {
+      map['first_at'] = Variable<int>(firstAt.value);
+    }
+    if (lastAt.present) {
+      map['last_at'] = Variable<int>(lastAt.value);
+    }
+    if (sentAt.present) {
+      map['sent_at'] = Variable<int>(sentAt.value);
+    }
+    if (consumedAt.present) {
+      map['consumed_at'] = Variable<int>(consumedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SortEvidenceCompanion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('kind: $kind, ')
+          ..write('messageIdHash: $messageIdHash, ')
+          ..write('fromAddr: $fromAddr, ')
+          ..write('fromDomain: $fromDomain, ')
+          ..write('listId: $listId, ')
+          ..write('subjectNorm: $subjectNorm, ')
+          ..write('examplesJson: $examplesJson, ')
+          ..write('folder: $folder, ')
+          ..write('seenCount: $seenCount, ')
+          ..write('firstAt: $firstAt, ')
+          ..write('lastAt: $lastAt, ')
+          ..write('sentAt: $sentAt, ')
+          ..write('consumedAt: $consumedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RuleSuggestionsTable extends RuleSuggestions
+    with TableInfo<$RuleSuggestionsTable, RuleSuggestion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RuleSuggestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _matchJsonMeta = const VerificationMeta(
+    'matchJson',
+  );
+  @override
+  late final GeneratedColumn<String> matchJson = GeneratedColumn<String>(
+    'match_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _folderPathMeta = const VerificationMeta(
+    'folderPath',
+  );
+  @override
+  late final GeneratedColumn<String> folderPath = GeneratedColumn<String>(
+    'folder_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rationaleMeta = const VerificationMeta(
+    'rationale',
+  );
+  @override
+  late final GeneratedColumn<String> rationale = GeneratedColumn<String>(
+    'rationale',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _evidenceCountMeta = const VerificationMeta(
+    'evidenceCount',
+  );
+  @override
+  late final GeneratedColumn<int> evidenceCount = GeneratedColumn<int>(
+    'evidence_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _examplesJsonMeta = const VerificationMeta(
+    'examplesJson',
+  );
+  @override
+  late final GeneratedColumn<String> examplesJson = GeneratedColumn<String>(
+    'examples_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _decidedAtMeta = const VerificationMeta(
+    'decidedAt',
+  );
+  @override
+  late final GeneratedColumn<int> decidedAt = GeneratedColumn<int>(
+    'decided_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    accountId,
+    matchJson,
+    folderPath,
+    rationale,
+    confidence,
+    source,
+    evidenceCount,
+    examplesJson,
+    status,
+    createdAt,
+    decidedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'rule_suggestions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RuleSuggestion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('match_json')) {
+      context.handle(
+        _matchJsonMeta,
+        matchJson.isAcceptableOrUnknown(data['match_json']!, _matchJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_matchJsonMeta);
+    }
+    if (data.containsKey('folder_path')) {
+      context.handle(
+        _folderPathMeta,
+        folderPath.isAcceptableOrUnknown(data['folder_path']!, _folderPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_folderPathMeta);
+    }
+    if (data.containsKey('rationale')) {
+      context.handle(
+        _rationaleMeta,
+        rationale.isAcceptableOrUnknown(data['rationale']!, _rationaleMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('evidence_count')) {
+      context.handle(
+        _evidenceCountMeta,
+        evidenceCount.isAcceptableOrUnknown(
+          data['evidence_count']!,
+          _evidenceCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('examples_json')) {
+      context.handle(
+        _examplesJsonMeta,
+        examplesJson.isAcceptableOrUnknown(
+          data['examples_json']!,
+          _examplesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('decided_at')) {
+      context.handle(
+        _decidedAtMeta,
+        decidedAt.isAcceptableOrUnknown(data['decided_at']!, _decidedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RuleSuggestion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RuleSuggestion(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      matchJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}match_json'],
+      )!,
+      folderPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folder_path'],
+      )!,
+      rationale: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rationale'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      evidenceCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}evidence_count'],
+      )!,
+      examplesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}examples_json'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      decidedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}decided_at'],
+      ),
+    );
+  }
+
+  @override
+  $RuleSuggestionsTable createAlias(String alias) {
+    return $RuleSuggestionsTable(attachedDatabase, alias);
+  }
+}
+
+class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
+  final String id;
+  final String accountId;
+  final String matchJson;
+  final String folderPath;
+  final String rationale;
+  final double confidence;
+
+  /// pattern | model
+  final String source;
+  final int evidenceCount;
+  final String examplesJson;
+
+  /// pending | accepted | dismissed
+  final String status;
+  final int createdAt;
+  final int? decidedAt;
+  const RuleSuggestion({
+    required this.id,
+    required this.accountId,
+    required this.matchJson,
+    required this.folderPath,
+    required this.rationale,
+    required this.confidence,
+    required this.source,
+    required this.evidenceCount,
+    required this.examplesJson,
+    required this.status,
+    required this.createdAt,
+    this.decidedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['account_id'] = Variable<String>(accountId);
+    map['match_json'] = Variable<String>(matchJson);
+    map['folder_path'] = Variable<String>(folderPath);
+    map['rationale'] = Variable<String>(rationale);
+    map['confidence'] = Variable<double>(confidence);
+    map['source'] = Variable<String>(source);
+    map['evidence_count'] = Variable<int>(evidenceCount);
+    map['examples_json'] = Variable<String>(examplesJson);
+    map['status'] = Variable<String>(status);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || decidedAt != null) {
+      map['decided_at'] = Variable<int>(decidedAt);
+    }
+    return map;
+  }
+
+  RuleSuggestionsCompanion toCompanion(bool nullToAbsent) {
+    return RuleSuggestionsCompanion(
+      id: Value(id),
+      accountId: Value(accountId),
+      matchJson: Value(matchJson),
+      folderPath: Value(folderPath),
+      rationale: Value(rationale),
+      confidence: Value(confidence),
+      source: Value(source),
+      evidenceCount: Value(evidenceCount),
+      examplesJson: Value(examplesJson),
+      status: Value(status),
+      createdAt: Value(createdAt),
+      decidedAt: decidedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(decidedAt),
+    );
+  }
+
+  factory RuleSuggestion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RuleSuggestion(
+      id: serializer.fromJson<String>(json['id']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      matchJson: serializer.fromJson<String>(json['matchJson']),
+      folderPath: serializer.fromJson<String>(json['folderPath']),
+      rationale: serializer.fromJson<String>(json['rationale']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      source: serializer.fromJson<String>(json['source']),
+      evidenceCount: serializer.fromJson<int>(json['evidenceCount']),
+      examplesJson: serializer.fromJson<String>(json['examplesJson']),
+      status: serializer.fromJson<String>(json['status']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      decidedAt: serializer.fromJson<int?>(json['decidedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'accountId': serializer.toJson<String>(accountId),
+      'matchJson': serializer.toJson<String>(matchJson),
+      'folderPath': serializer.toJson<String>(folderPath),
+      'rationale': serializer.toJson<String>(rationale),
+      'confidence': serializer.toJson<double>(confidence),
+      'source': serializer.toJson<String>(source),
+      'evidenceCount': serializer.toJson<int>(evidenceCount),
+      'examplesJson': serializer.toJson<String>(examplesJson),
+      'status': serializer.toJson<String>(status),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'decidedAt': serializer.toJson<int?>(decidedAt),
+    };
+  }
+
+  RuleSuggestion copyWith({
+    String? id,
+    String? accountId,
+    String? matchJson,
+    String? folderPath,
+    String? rationale,
+    double? confidence,
+    String? source,
+    int? evidenceCount,
+    String? examplesJson,
+    String? status,
+    int? createdAt,
+    Value<int?> decidedAt = const Value.absent(),
+  }) => RuleSuggestion(
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    matchJson: matchJson ?? this.matchJson,
+    folderPath: folderPath ?? this.folderPath,
+    rationale: rationale ?? this.rationale,
+    confidence: confidence ?? this.confidence,
+    source: source ?? this.source,
+    evidenceCount: evidenceCount ?? this.evidenceCount,
+    examplesJson: examplesJson ?? this.examplesJson,
+    status: status ?? this.status,
+    createdAt: createdAt ?? this.createdAt,
+    decidedAt: decidedAt.present ? decidedAt.value : this.decidedAt,
+  );
+  RuleSuggestion copyWithCompanion(RuleSuggestionsCompanion data) {
+    return RuleSuggestion(
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      matchJson: data.matchJson.present ? data.matchJson.value : this.matchJson,
+      folderPath: data.folderPath.present
+          ? data.folderPath.value
+          : this.folderPath,
+      rationale: data.rationale.present ? data.rationale.value : this.rationale,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      source: data.source.present ? data.source.value : this.source,
+      evidenceCount: data.evidenceCount.present
+          ? data.evidenceCount.value
+          : this.evidenceCount,
+      examplesJson: data.examplesJson.present
+          ? data.examplesJson.value
+          : this.examplesJson,
+      status: data.status.present ? data.status.value : this.status,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      decidedAt: data.decidedAt.present ? data.decidedAt.value : this.decidedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RuleSuggestion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('matchJson: $matchJson, ')
+          ..write('folderPath: $folderPath, ')
+          ..write('rationale: $rationale, ')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source, ')
+          ..write('evidenceCount: $evidenceCount, ')
+          ..write('examplesJson: $examplesJson, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('decidedAt: $decidedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    matchJson,
+    folderPath,
+    rationale,
+    confidence,
+    source,
+    evidenceCount,
+    examplesJson,
+    status,
+    createdAt,
+    decidedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RuleSuggestion &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.matchJson == this.matchJson &&
+          other.folderPath == this.folderPath &&
+          other.rationale == this.rationale &&
+          other.confidence == this.confidence &&
+          other.source == this.source &&
+          other.evidenceCount == this.evidenceCount &&
+          other.examplesJson == this.examplesJson &&
+          other.status == this.status &&
+          other.createdAt == this.createdAt &&
+          other.decidedAt == this.decidedAt);
+}
+
+class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
+  final Value<String> id;
+  final Value<String> accountId;
+  final Value<String> matchJson;
+  final Value<String> folderPath;
+  final Value<String> rationale;
+  final Value<double> confidence;
+  final Value<String> source;
+  final Value<int> evidenceCount;
+  final Value<String> examplesJson;
+  final Value<String> status;
+  final Value<int> createdAt;
+  final Value<int?> decidedAt;
+  final Value<int> rowid;
+  const RuleSuggestionsCompanion({
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.matchJson = const Value.absent(),
+    this.folderPath = const Value.absent(),
+    this.rationale = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.source = const Value.absent(),
+    this.evidenceCount = const Value.absent(),
+    this.examplesJson = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.decidedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RuleSuggestionsCompanion.insert({
+    required String id,
+    required String accountId,
+    required String matchJson,
+    required String folderPath,
+    this.rationale = const Value.absent(),
+    required double confidence,
+    required String source,
+    this.evidenceCount = const Value.absent(),
+    this.examplesJson = const Value.absent(),
+    this.status = const Value.absent(),
+    required int createdAt,
+    this.decidedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       accountId = Value(accountId),
+       matchJson = Value(matchJson),
+       folderPath = Value(folderPath),
+       confidence = Value(confidence),
+       source = Value(source),
+       createdAt = Value(createdAt);
+  static Insertable<RuleSuggestion> custom({
+    Expression<String>? id,
+    Expression<String>? accountId,
+    Expression<String>? matchJson,
+    Expression<String>? folderPath,
+    Expression<String>? rationale,
+    Expression<double>? confidence,
+    Expression<String>? source,
+    Expression<int>? evidenceCount,
+    Expression<String>? examplesJson,
+    Expression<String>? status,
+    Expression<int>? createdAt,
+    Expression<int>? decidedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (matchJson != null) 'match_json': matchJson,
+      if (folderPath != null) 'folder_path': folderPath,
+      if (rationale != null) 'rationale': rationale,
+      if (confidence != null) 'confidence': confidence,
+      if (source != null) 'source': source,
+      if (evidenceCount != null) 'evidence_count': evidenceCount,
+      if (examplesJson != null) 'examples_json': examplesJson,
+      if (status != null) 'status': status,
+      if (createdAt != null) 'created_at': createdAt,
+      if (decidedAt != null) 'decided_at': decidedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RuleSuggestionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? accountId,
+    Value<String>? matchJson,
+    Value<String>? folderPath,
+    Value<String>? rationale,
+    Value<double>? confidence,
+    Value<String>? source,
+    Value<int>? evidenceCount,
+    Value<String>? examplesJson,
+    Value<String>? status,
+    Value<int>? createdAt,
+    Value<int?>? decidedAt,
+    Value<int>? rowid,
+  }) {
+    return RuleSuggestionsCompanion(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      matchJson: matchJson ?? this.matchJson,
+      folderPath: folderPath ?? this.folderPath,
+      rationale: rationale ?? this.rationale,
+      confidence: confidence ?? this.confidence,
+      source: source ?? this.source,
+      evidenceCount: evidenceCount ?? this.evidenceCount,
+      examplesJson: examplesJson ?? this.examplesJson,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      decidedAt: decidedAt ?? this.decidedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (matchJson.present) {
+      map['match_json'] = Variable<String>(matchJson.value);
+    }
+    if (folderPath.present) {
+      map['folder_path'] = Variable<String>(folderPath.value);
+    }
+    if (rationale.present) {
+      map['rationale'] = Variable<String>(rationale.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (evidenceCount.present) {
+      map['evidence_count'] = Variable<int>(evidenceCount.value);
+    }
+    if (examplesJson.present) {
+      map['examples_json'] = Variable<String>(examplesJson.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (decidedAt.present) {
+      map['decided_at'] = Variable<int>(decidedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RuleSuggestionsCompanion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('matchJson: $matchJson, ')
+          ..write('folderPath: $folderPath, ')
+          ..write('rationale: $rationale, ')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source, ')
+          ..write('evidenceCount: $evidenceCount, ')
+          ..write('examplesJson: $examplesJson, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('decidedAt: $decidedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AiUsageTable extends AiUsage with TableInfo<$AiUsageTable, AiUsageData> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -14334,6 +15916,10 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
   late final $SenderStatsTable senderStats = $SenderStatsTable(this);
   late final $UserRulesTable userRules = $UserRulesTable(this);
   late final $SortQueueTable sortQueue = $SortQueueTable(this);
+  late final $SortEvidenceTable sortEvidence = $SortEvidenceTable(this);
+  late final $RuleSuggestionsTable ruleSuggestions = $RuleSuggestionsTable(
+    this,
+  );
   late final $AiUsageTable aiUsage = $AiUsageTable(this);
   late final $JournalEventsTable journalEvents = $JournalEventsTable(this);
   late final $JournalCursorsTable journalCursors = $JournalCursorsTable(this);
@@ -14360,6 +15946,8 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
     senderStats,
     userRules,
     sortQueue,
+    sortEvidence,
+    ruleSuggestions,
     aiUsage,
     journalEvents,
     journalCursors,
@@ -19621,6 +21209,775 @@ typedef $$SortQueueTableProcessedTableManager =
       SortQueueData,
       PrefetchHooks Function()
     >;
+typedef $$SortEvidenceTableCreateCompanionBuilder =
+    SortEvidenceCompanion Function({
+      required String id,
+      required String accountId,
+      required String kind,
+      required String messageIdHash,
+      Value<String?> fromAddr,
+      Value<String?> fromDomain,
+      Value<String?> listId,
+      Value<String?> subjectNorm,
+      Value<String> examplesJson,
+      Value<String?> folder,
+      Value<int> seenCount,
+      required int firstAt,
+      required int lastAt,
+      Value<int?> sentAt,
+      Value<int?> consumedAt,
+      Value<int> rowid,
+    });
+typedef $$SortEvidenceTableUpdateCompanionBuilder =
+    SortEvidenceCompanion Function({
+      Value<String> id,
+      Value<String> accountId,
+      Value<String> kind,
+      Value<String> messageIdHash,
+      Value<String?> fromAddr,
+      Value<String?> fromDomain,
+      Value<String?> listId,
+      Value<String?> subjectNorm,
+      Value<String> examplesJson,
+      Value<String?> folder,
+      Value<int> seenCount,
+      Value<int> firstAt,
+      Value<int> lastAt,
+      Value<int?> sentAt,
+      Value<int?> consumedAt,
+      Value<int> rowid,
+    });
+
+class $$SortEvidenceTableFilterComposer
+    extends Composer<_$SortieDatabase, $SortEvidenceTable> {
+  $$SortEvidenceTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromAddr => $composableBuilder(
+    column: $table.fromAddr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromDomain => $composableBuilder(
+    column: $table.fromDomain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subjectNorm => $composableBuilder(
+    column: $table.subjectNorm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get folder => $composableBuilder(
+    column: $table.folder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seenCount => $composableBuilder(
+    column: $table.seenCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get firstAt => $composableBuilder(
+    column: $table.firstAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastAt => $composableBuilder(
+    column: $table.lastAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sentAt => $composableBuilder(
+    column: $table.sentAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SortEvidenceTableOrderingComposer
+    extends Composer<_$SortieDatabase, $SortEvidenceTable> {
+  $$SortEvidenceTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromAddr => $composableBuilder(
+    column: $table.fromAddr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromDomain => $composableBuilder(
+    column: $table.fromDomain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get listId => $composableBuilder(
+    column: $table.listId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subjectNorm => $composableBuilder(
+    column: $table.subjectNorm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get folder => $composableBuilder(
+    column: $table.folder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seenCount => $composableBuilder(
+    column: $table.seenCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get firstAt => $composableBuilder(
+    column: $table.firstAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastAt => $composableBuilder(
+    column: $table.lastAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sentAt => $composableBuilder(
+    column: $table.sentAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SortEvidenceTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $SortEvidenceTable> {
+  $$SortEvidenceTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fromAddr =>
+      $composableBuilder(column: $table.fromAddr, builder: (column) => column);
+
+  GeneratedColumn<String> get fromDomain => $composableBuilder(
+    column: $table.fromDomain,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get listId =>
+      $composableBuilder(column: $table.listId, builder: (column) => column);
+
+  GeneratedColumn<String> get subjectNorm => $composableBuilder(
+    column: $table.subjectNorm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get folder =>
+      $composableBuilder(column: $table.folder, builder: (column) => column);
+
+  GeneratedColumn<int> get seenCount =>
+      $composableBuilder(column: $table.seenCount, builder: (column) => column);
+
+  GeneratedColumn<int> get firstAt =>
+      $composableBuilder(column: $table.firstAt, builder: (column) => column);
+
+  GeneratedColumn<int> get lastAt =>
+      $composableBuilder(column: $table.lastAt, builder: (column) => column);
+
+  GeneratedColumn<int> get sentAt =>
+      $composableBuilder(column: $table.sentAt, builder: (column) => column);
+
+  GeneratedColumn<int> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$SortEvidenceTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $SortEvidenceTable,
+          SortEvidenceData,
+          $$SortEvidenceTableFilterComposer,
+          $$SortEvidenceTableOrderingComposer,
+          $$SortEvidenceTableAnnotationComposer,
+          $$SortEvidenceTableCreateCompanionBuilder,
+          $$SortEvidenceTableUpdateCompanionBuilder,
+          (
+            SortEvidenceData,
+            BaseReferences<
+              _$SortieDatabase,
+              $SortEvidenceTable,
+              SortEvidenceData
+            >,
+          ),
+          SortEvidenceData,
+          PrefetchHooks Function()
+        > {
+  $$SortEvidenceTableTableManager(_$SortieDatabase db, $SortEvidenceTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SortEvidenceTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SortEvidenceTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SortEvidenceTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> messageIdHash = const Value.absent(),
+                Value<String?> fromAddr = const Value.absent(),
+                Value<String?> fromDomain = const Value.absent(),
+                Value<String?> listId = const Value.absent(),
+                Value<String?> subjectNorm = const Value.absent(),
+                Value<String> examplesJson = const Value.absent(),
+                Value<String?> folder = const Value.absent(),
+                Value<int> seenCount = const Value.absent(),
+                Value<int> firstAt = const Value.absent(),
+                Value<int> lastAt = const Value.absent(),
+                Value<int?> sentAt = const Value.absent(),
+                Value<int?> consumedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SortEvidenceCompanion(
+                id: id,
+                accountId: accountId,
+                kind: kind,
+                messageIdHash: messageIdHash,
+                fromAddr: fromAddr,
+                fromDomain: fromDomain,
+                listId: listId,
+                subjectNorm: subjectNorm,
+                examplesJson: examplesJson,
+                folder: folder,
+                seenCount: seenCount,
+                firstAt: firstAt,
+                lastAt: lastAt,
+                sentAt: sentAt,
+                consumedAt: consumedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String accountId,
+                required String kind,
+                required String messageIdHash,
+                Value<String?> fromAddr = const Value.absent(),
+                Value<String?> fromDomain = const Value.absent(),
+                Value<String?> listId = const Value.absent(),
+                Value<String?> subjectNorm = const Value.absent(),
+                Value<String> examplesJson = const Value.absent(),
+                Value<String?> folder = const Value.absent(),
+                Value<int> seenCount = const Value.absent(),
+                required int firstAt,
+                required int lastAt,
+                Value<int?> sentAt = const Value.absent(),
+                Value<int?> consumedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SortEvidenceCompanion.insert(
+                id: id,
+                accountId: accountId,
+                kind: kind,
+                messageIdHash: messageIdHash,
+                fromAddr: fromAddr,
+                fromDomain: fromDomain,
+                listId: listId,
+                subjectNorm: subjectNorm,
+                examplesJson: examplesJson,
+                folder: folder,
+                seenCount: seenCount,
+                firstAt: firstAt,
+                lastAt: lastAt,
+                sentAt: sentAt,
+                consumedAt: consumedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SortEvidenceTable, SortEvidenceData>(table),
+                  BaseReferences<
+                    _$SortieDatabase,
+                    $SortEvidenceTable,
+                    SortEvidenceData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SortEvidenceTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $SortEvidenceTable,
+      SortEvidenceData,
+      $$SortEvidenceTableFilterComposer,
+      $$SortEvidenceTableOrderingComposer,
+      $$SortEvidenceTableAnnotationComposer,
+      $$SortEvidenceTableCreateCompanionBuilder,
+      $$SortEvidenceTableUpdateCompanionBuilder,
+      (
+        SortEvidenceData,
+        BaseReferences<_$SortieDatabase, $SortEvidenceTable, SortEvidenceData>,
+      ),
+      SortEvidenceData,
+      PrefetchHooks Function()
+    >;
+typedef $$RuleSuggestionsTableCreateCompanionBuilder =
+    RuleSuggestionsCompanion Function({
+      required String id,
+      required String accountId,
+      required String matchJson,
+      required String folderPath,
+      Value<String> rationale,
+      required double confidence,
+      required String source,
+      Value<int> evidenceCount,
+      Value<String> examplesJson,
+      Value<String> status,
+      required int createdAt,
+      Value<int?> decidedAt,
+      Value<int> rowid,
+    });
+typedef $$RuleSuggestionsTableUpdateCompanionBuilder =
+    RuleSuggestionsCompanion Function({
+      Value<String> id,
+      Value<String> accountId,
+      Value<String> matchJson,
+      Value<String> folderPath,
+      Value<String> rationale,
+      Value<double> confidence,
+      Value<String> source,
+      Value<int> evidenceCount,
+      Value<String> examplesJson,
+      Value<String> status,
+      Value<int> createdAt,
+      Value<int?> decidedAt,
+      Value<int> rowid,
+    });
+
+class $$RuleSuggestionsTableFilterComposer
+    extends Composer<_$SortieDatabase, $RuleSuggestionsTable> {
+  $$RuleSuggestionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get matchJson => $composableBuilder(
+    column: $table.matchJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rationale => $composableBuilder(
+    column: $table.rationale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get evidenceCount => $composableBuilder(
+    column: $table.evidenceCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get decidedAt => $composableBuilder(
+    column: $table.decidedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RuleSuggestionsTableOrderingComposer
+    extends Composer<_$SortieDatabase, $RuleSuggestionsTable> {
+  $$RuleSuggestionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get matchJson => $composableBuilder(
+    column: $table.matchJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rationale => $composableBuilder(
+    column: $table.rationale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get evidenceCount => $composableBuilder(
+    column: $table.evidenceCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get decidedAt => $composableBuilder(
+    column: $table.decidedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RuleSuggestionsTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $RuleSuggestionsTable> {
+  $$RuleSuggestionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get matchJson =>
+      $composableBuilder(column: $table.matchJson, builder: (column) => column);
+
+  GeneratedColumn<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rationale =>
+      $composableBuilder(column: $table.rationale, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get evidenceCount => $composableBuilder(
+    column: $table.evidenceCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get examplesJson => $composableBuilder(
+    column: $table.examplesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get decidedAt =>
+      $composableBuilder(column: $table.decidedAt, builder: (column) => column);
+}
+
+class $$RuleSuggestionsTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $RuleSuggestionsTable,
+          RuleSuggestion,
+          $$RuleSuggestionsTableFilterComposer,
+          $$RuleSuggestionsTableOrderingComposer,
+          $$RuleSuggestionsTableAnnotationComposer,
+          $$RuleSuggestionsTableCreateCompanionBuilder,
+          $$RuleSuggestionsTableUpdateCompanionBuilder,
+          (
+            RuleSuggestion,
+            BaseReferences<
+              _$SortieDatabase,
+              $RuleSuggestionsTable,
+              RuleSuggestion
+            >,
+          ),
+          RuleSuggestion,
+          PrefetchHooks Function()
+        > {
+  $$RuleSuggestionsTableTableManager(
+    _$SortieDatabase db,
+    $RuleSuggestionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RuleSuggestionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RuleSuggestionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RuleSuggestionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String> matchJson = const Value.absent(),
+                Value<String> folderPath = const Value.absent(),
+                Value<String> rationale = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> evidenceCount = const Value.absent(),
+                Value<String> examplesJson = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> decidedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RuleSuggestionsCompanion(
+                id: id,
+                accountId: accountId,
+                matchJson: matchJson,
+                folderPath: folderPath,
+                rationale: rationale,
+                confidence: confidence,
+                source: source,
+                evidenceCount: evidenceCount,
+                examplesJson: examplesJson,
+                status: status,
+                createdAt: createdAt,
+                decidedAt: decidedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String accountId,
+                required String matchJson,
+                required String folderPath,
+                Value<String> rationale = const Value.absent(),
+                required double confidence,
+                required String source,
+                Value<int> evidenceCount = const Value.absent(),
+                Value<String> examplesJson = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                required int createdAt,
+                Value<int?> decidedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RuleSuggestionsCompanion.insert(
+                id: id,
+                accountId: accountId,
+                matchJson: matchJson,
+                folderPath: folderPath,
+                rationale: rationale,
+                confidence: confidence,
+                source: source,
+                evidenceCount: evidenceCount,
+                examplesJson: examplesJson,
+                status: status,
+                createdAt: createdAt,
+                decidedAt: decidedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RuleSuggestionsTable, RuleSuggestion>(table),
+                  BaseReferences<
+                    _$SortieDatabase,
+                    $RuleSuggestionsTable,
+                    RuleSuggestion
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RuleSuggestionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $RuleSuggestionsTable,
+      RuleSuggestion,
+      $$RuleSuggestionsTableFilterComposer,
+      $$RuleSuggestionsTableOrderingComposer,
+      $$RuleSuggestionsTableAnnotationComposer,
+      $$RuleSuggestionsTableCreateCompanionBuilder,
+      $$RuleSuggestionsTableUpdateCompanionBuilder,
+      (
+        RuleSuggestion,
+        BaseReferences<_$SortieDatabase, $RuleSuggestionsTable, RuleSuggestion>,
+      ),
+      RuleSuggestion,
+      PrefetchHooks Function()
+    >;
 typedef $$AiUsageTableCreateCompanionBuilder = AiUsageCompanion Function({
   Value<int> id,
   required int ts,
@@ -22234,6 +24591,10 @@ class $SortieDatabaseManager {
       $$UserRulesTableTableManager(_db, _db.userRules);
   $$SortQueueTableTableManager get sortQueue =>
       $$SortQueueTableTableManager(_db, _db.sortQueue);
+  $$SortEvidenceTableTableManager get sortEvidence =>
+      $$SortEvidenceTableTableManager(_db, _db.sortEvidence);
+  $$RuleSuggestionsTableTableManager get ruleSuggestions =>
+      $$RuleSuggestionsTableTableManager(_db, _db.ruleSuggestions);
   $$AiUsageTableTableManager get aiUsage =>
       $$AiUsageTableTableManager(_db, _db.aiUsage);
   $$JournalEventsTableTableManager get journalEvents =>

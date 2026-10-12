@@ -105,3 +105,58 @@ class PrivacySection extends ConsumerWidget {
     ]);
   }
 }
+
+/// One-line cost expectation per [AiUsageMode].
+String aiUsageCostLine(AiUsageMode m) => switch (m) {
+      AiUsageMode.advisor => 'Advisor: about one small request per day',
+      AiUsageMode.perMessage => 'Per message: one request per ~10 messages the rules cannot place',
+      AiUsageMode.off => 'Off: no requests, nothing leaves the device',
+    };
+
+/// Radio for how the model may spend credits (shared by the AI backend and
+/// Sorting pages). Saves straight into [AiSettings].
+class AiUsageModeSelector extends ConsumerWidget {
+  const AiUsageModeSelector({super.key, required this.settings});
+  final AiSettings settings;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      RadioGroup<AiUsageMode>(
+        groupValue: settings.usage,
+        onChanged: (v) {
+          if (v != null) saveAiSettings(ref, (a) => a.copyWith(usage: v));
+        },
+        child: const Column(children: [
+          RadioListTile(
+            key: Key('usage:advisor'),
+            value: AiUsageMode.advisor,
+            title: Text('Advisor'),
+            subtitle: Text('Rules and learned senders sort; the AI only suggests new rules from what was left behind'),
+          ),
+          RadioListTile(
+            key: Key('usage:perMessage'),
+            value: AiUsageMode.perMessage,
+            title: Text('Per message'),
+            subtitle: Text('The AI classifies every message the rules cannot place'),
+          ),
+          RadioListTile(
+            key: Key('usage:off'),
+            value: AiUsageMode.off,
+            title: Text('Off'),
+            subtitle: Text('No AI calls at all; rules and learned senders only'),
+          ),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        child: Row(children: [
+          Icon(Icons.payments_outlined, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(aiUsageCostLine(settings.usage), key: const Key('usageCostLine'), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600))),
+        ]),
+      ),
+    ]);
+  }
+}

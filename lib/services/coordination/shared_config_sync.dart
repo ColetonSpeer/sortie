@@ -8,16 +8,21 @@ import '../../core/hashing.dart' show sha256Hex;
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/calendar_repository.dart';
 import '../../domain/repositories/repositories.dart';
+import '../sorter/rule_suggestions.dart';
 import '../sorter/user_rules.dart';
 import 'control_messages.dart';
 
 /// Local stores the shared sections are read from and materialised into.
 class SharedConfigDeps {
-  const SharedConfigDeps({required this.accounts, required this.rules, required this.calendars, required this.settings});
+  const SharedConfigDeps({required this.accounts, required this.rules, required this.calendars, required this.settings, this.suggestions});
   final AccountRepository accounts;
   final SyncableRuleStore rules;
   final CalendarRepository calendars;
   final SettingsRepository settings;
+
+  /// Pending rule suggestions travel inside the `rules` section
+  /// (`suggestions` list, additive). Null = this device ignores them.
+  final SyncableSuggestionStore? suggestions;
 }
 
 /// A section applied from the journal (or a snapshot) on this device.
@@ -97,6 +102,8 @@ class SharedConfigSync {
     _subs.addAll([
       _deps.accounts.watchIdentities(accountId).listen((_) => mark(ControlTypes.identities), onError: (Object e) => _log.fine('identities watch: $e')),
       _deps.rules.watch(accountId).listen((_) => mark(ControlTypes.rules), onError: (Object e) => _log.fine('rules watch: $e')),
+      if (_deps.suggestions != null)
+        _deps.suggestions!.watchPending(accountId).listen((_) => mark(ControlTypes.rules), onError: (Object e) => _log.fine('suggestions watch: $e')),
       _deps.calendars.watchSources().listen((_) => mark(ControlTypes.calendars), onError: (Object e) => _log.fine('calendars watch: $e')),
       _deps.settings.watchAi().listen((_) => mark(ControlTypes.prefs), onError: (Object e) => _log.fine('ai watch: $e')),
       _deps.settings.watchDevice().listen((_) => mark(ControlTypes.prefs), onError: (Object e) => _log.fine('device watch: $e')),
@@ -189,7 +196,7 @@ class SharedConfigSync {
           case ControlTypes.identities:
             await _applyIdentities(_items(body));
           case ControlTypes.rules:
-            await _applyRules(_items(body));
+            await _applyRules(_items(body), body['suggestions'], at: at);
           case ControlTypes.calendars:
             await _applyCalendars(_items(body));
           case ControlTypes.prefs:
@@ -222,7 +229,7 @@ class SharedConfigSync {
     }
   }
 
-  Future<void> _applyRules(List<Map<String, dynamic>> items) async {
+  Future<void> _applyRules(List<Map<String, dynamic>> items, Object? suggestions, {DateTime? at}) async {
     final rules = <SortRule>[];
     for (final j in items) {
       try {
@@ -232,6 +239,19 @@ class SharedConfigSync {
       }
     }
     await _deps.rules.replaceAll(accountId, rules, now: _clock.now());
+    // Older writers send no `suggestions` key at all: leave local ones alone.
+    final store = _deps.suggestions;
+    if (store == null || suggestions is! List) return;
+    final parsed = <RuleSuggestion>[];
+    for (final j in suggestions) {
+      if (j is! Map) continue;
+      try {
+        parsed.add(RuleSuggestion.fromJson(accountId, j.cast<String, dynamic>()));
+      } catch (e) {
+        _log.warning('$accountId: bad suggestion record skipped: $e');
+      }
+    }
+    await store.mergeRemote(accountId, parsed, at: at);
   }
 
   Future<void> _applyCalendars(List<Map<String, dynamic>> items) async {
@@ -276,7 +296,10 @@ class SharedConfigSync {
   /// Wire body of [section] built from the local stores.
   Future<Map<String, dynamic>> localBody(String section) async => switch (section) {
         ControlTypes.identities => {'items': [for (final i in await _deps.accounts.identities(accountId)) i.toJson()]},
-        ControlTypes.rules => {'items': [for (final r in await _deps.rules.load(accountId)) r.toJson()]},
+        ControlTypes.rules => {
+            'items': [for (final r in await _deps.rules.load(accountId)) r.toJson()],
+            if (_deps.suggestions != null) 'suggestions': [for (final s in await _deps.suggestions!.pending(accountId)) s.toJson()],
+          },
         ControlTypes.calendars => {'items': [for (final s in await _deps.calendars.sources()) s.toJson()]},
         ControlTypes.prefs => prefsBody(await _deps.settings.ai(), await _deps.settings.device()),
         _ => throw ArgumentError.value(section, 'section'),
@@ -298,11 +321,12 @@ class SharedConfigSync {
   /// True for an empty list or default prefs: nothing worth seeding.
   static bool isDefaultBody(String section, Map<String, dynamic> body) => section == ControlTypes.prefs
       ? hashOf(section, body) == hashOf(section, prefsBody(const AiSettings(), const DeviceSettings()))
-      : ((body['items'] as List?) ?? const []).isEmpty;
+      : ((body['items'] as List?) ?? const []).isEmpty && ((body['suggestions'] as List?) ?? const []).isEmpty;
 
   /// Content hash over a canonical form: keys sorted recursively, list
   /// sections sorted by `id`, and `accountId` dropped (it differs between
-  /// devices for the same mail account).
+  /// devices for the same mail account). The `rules` section also hashes
+  /// its pending `suggestions` (absent and empty hash alike).
   static String hashOf(String section, Map<String, dynamic> body) {
     Object? norm;
     if (section == ControlTypes.prefs) {
@@ -310,7 +334,9 @@ class SharedConfigSync {
     } else {
       final items = _items(body).map((j) => {...j}..remove('accountId')).toList()
         ..sort((a, b) => '${a['id']}'.compareTo('${b['id']}'));
-      norm = items;
+      final suggestions = [for (final s in (body['suggestions'] as List?) ?? const []) if (s is Map) s.cast<String, dynamic>()]
+        ..sort((a, b) => '${a['id']}'.compareTo('${b['id']}'));
+      norm = section == ControlTypes.rules && suggestions.isNotEmpty ? {'items': items, 'suggestions': suggestions} : items;
     }
     return sha256Hex(jsonEncode(_canonical(norm)));
   }

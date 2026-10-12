@@ -6,6 +6,7 @@ import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
 import '../mailbox/message_actions.dart';
 import '../shell/format.dart';
+import 'suggestion_card.dart';
 
 /// Reverse-chronological sorter activity for the selected account.
 class SortLogScreen extends ConsumerWidget {
@@ -54,9 +55,12 @@ class _LogBody extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Sort log unavailable: $e')),
           data: (entries) {
-            if (entries.isEmpty) return const Center(child: Text('Nothing sorted yet'));
             final sorted = List.of(entries)..sort((a, b) => b.at.compareTo(a.at));
-            final rows = <Widget>[];
+            final rows = <Widget>[SuggestedRulesSection(accountId: accountId)];
+            if (entries.isEmpty) {
+              rows.add(const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Nothing sorted yet'))));
+              return ListView(children: rows);
+            }
             String? day;
             for (final e in sorted) {
               final heading = Fmt.dayHeading(e.at);

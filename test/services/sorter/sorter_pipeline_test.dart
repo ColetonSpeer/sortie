@@ -186,7 +186,7 @@ void main() {
     });
 
     test('paused AI skips the model layer only', () async {
-      h = await Harness.create(ai: const AiSettings(kind: AiProviderKind.openAiCompat, baseUrl: 'http://10.0.0.5/v1', model: 'm', paused: true));
+      h = await Harness.create(ai: const AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.openAiCompat, baseUrl: 'http://10.0.0.5/v1', model: 'm', paused: true));
       final out = await h.sorter.classify(Corpus.account, [inp(arrival('billing@acme.com')), inp(arrival('stranger@random.example'))], h.settings.config);
       expect(out[0].layer, SortLayer.learned);
       expect(out[1].reason, '[AI sorting paused]');
@@ -194,7 +194,7 @@ void main() {
     });
 
     test('spend cap at 100% pauses the model layer and announces it', () async {
-      h = await Harness.create(ai: const AiSettings(kind: AiProviderKind.anthropic, model: 'claude-sonnet-5', dailyCapUsd: 0.01));
+      h = await Harness.create(ai: const AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.anthropic, model: 'claude-sonnet-5', dailyCapUsd: 0.01));
       final msgs = <String>[];
       final sub = h.sorter.statusMessages.listen(msgs.add);
       await h.sorter.costs.record(kind: 'sort', modelId: 'claude-sonnet-5', usage: const TokenUsage(input: 10000000));
@@ -301,7 +301,7 @@ void main() {
     });
 
     test('usage is metered per call', () async {
-      h = await Harness.create(ai: const AiSettings(kind: AiProviderKind.anthropic, model: 'claude-sonnet-5'));
+      h = await Harness.create(ai: const AiSettings(usage: AiUsageMode.perMessage, kind: AiProviderKind.anthropic, model: 'claude-sonnet-5'));
       h.fake.usage = const TokenUsage(input: 1000, output: 100);
       await h.sorter.classify(Corpus.account, [inp(arrival('stranger@random.example'))], h.settings.config);
       final (day, month) = await h.sorter.spend();

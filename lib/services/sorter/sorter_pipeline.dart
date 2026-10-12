@@ -18,7 +18,10 @@ import 'folder_profiles.dart';
 import 'learning/correction_ingester.dart';
 import 'output_validator.dart';
 import 'prompt_builder.dart';
+import 'rule_advisor.dart';
+import 'rule_suggestions.dart';
 import 'sender_stats.dart';
+import 'sort_evidence.dart';
 import 'text_cleaner.dart';
 import 'user_rules.dart';
 
@@ -67,7 +70,20 @@ class SorterService implements MessageClassifier {
     costs = CostMeter(_db, _clock, prices: prices);
     profiles = FolderProfileService(_db, _messages, _clock, stats: stats, costs: costs);
     rules = UserRulesService(_db);
-    learning = CorrectionIngester(_db, _clock, stats: stats, profiles: profiles, rules: rules, messages: _messages, deviceId: deviceId);
+    evidence = SortEvidenceStore(_db, _clock, stats: stats);
+    suggestions = RuleSuggestionStore(_db, rules: rules, evidence: evidence);
+    learning = CorrectionIngester(_db, _clock, stats: stats, profiles: profiles, rules: rules, messages: _messages, deviceId: deviceId, evidence: evidence);
+    advisor = RuleAdvisor(
+      clock: _clock,
+      settings: _settings,
+      provider: _provider,
+      profiles: profiles,
+      rules: rules,
+      stats: stats,
+      costs: costs,
+      evidence: evidence,
+      suggestions: suggestions,
+    );
     _replay = AccuracyReplay(messages: _messages, profiles: profiles);
   }
 
@@ -85,7 +101,10 @@ class SorterService implements MessageClassifier {
   late final CostMeter costs;
   late final FolderProfileService profiles;
   late final UserRulesService rules;
+  late final SortEvidenceStore evidence;
+  late final RuleSuggestionStore suggestions;
   late final CorrectionIngester learning;
+  late final RuleAdvisor advisor;
   late final AccuracyReplay _replay;
 
   final _status = StreamController<String>.broadcast();
@@ -113,7 +132,7 @@ class SorterService implements MessageClassifier {
   Future<void> bootstrap(String accountId, SortConfig config, {void Function(String)? progress}) async {
     final ai = await _settings.ai();
     final provider = _provider();
-    final useModel = provider != null && !ai.paused && await costs.capState(ai) != CapState.exceeded;
+    final useModel = provider != null && !ai.paused && ai.usage != AiUsageMode.off && await costs.capState(ai) != CapState.exceeded;
     await profiles.bootstrap(accountId, config, provider: useModel ? provider : null, progress: progress);
   }
 
@@ -189,6 +208,9 @@ class SorterService implements MessageClassifier {
       if (skip != null) {
         for (final i in pending) {
           decisions[i] = _keep(inputs[i].header, skip, now);
+          // Advisor / off mode: what could not be placed is evidence for the
+          // rule advisor, never a model call.
+          if (skip == noRuleReason && !dryRun) await evidence.recordUnsorted(accountId, inputs[i].header);
         }
       } else {
         await _runModel(accountId, inputs, pending, config, ai, provider!, sortable, allowed, neverSort, userFiled, hints, decisions, dryRun, now);
@@ -197,7 +219,12 @@ class SorterService implements MessageClassifier {
     return [for (var i = 0; i < inputs.length; i++) decisions[i] ?? _keep(inputs[i].header, '[no decision]', now)];
   }
 
+  /// Keep-reason used when rules and learned stats could not place a message
+  /// and the model is not allowed to classify (advisor / off mode).
+  static const noRuleReason = '[no rule]';
+
   Future<String?> _modelSkipReason(AiSettings ai, AiProvider? provider, Set<String> allowed) async {
+    if (!ai.modelClassifies) return noRuleReason;
     if (provider == null) return '[no AI provider configured]';
     if (ai.paused) return '[AI sorting paused]';
     if (allowed.isEmpty) return '[folder profiles not built]';

@@ -7,23 +7,30 @@ import '../../../domain/entities/entities.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../folder_profiles.dart';
 import '../sender_stats.dart';
+import '../sort_evidence.dart';
 import '../user_rules.dart';
 
 /// Turns user actions into `corrections` rows and sender-stat evidence.
 /// This is the ONLY writer of learned statistics after bootstrap; the
 /// sorter's own moves never reach it.
 class CorrectionIngester {
-  CorrectionIngester(this._db, this._clock, {required SenderStatsService stats, required FolderProfileService profiles, required UserRulesService rules, required MessageRepository messages, this.deviceId})
+  CorrectionIngester(this._db, this._clock,
+      {required SenderStatsService stats, required FolderProfileService profiles, required UserRulesService rules, required MessageRepository messages, this.deviceId, SortEvidenceStore? evidence})
       : _stats = stats,
         _profiles = profiles,
         _rules = rules,
-        _messages = messages;
+        _messages = messages,
+        _evidence = evidence;
   final db.SortieDatabase _db;
   final Clock _clock;
   final SenderStatsService _stats;
   final FolderProfileService _profiles;
   final UserRulesService _rules;
   final MessageRepository _messages;
+
+  /// Rule-advisor evidence sink (user-origin moves and undos). Optional so
+  /// older call sites keep working.
+  final SortEvidenceStore? _evidence;
   final String? deviceId;
   static final _log = Logger('sortie.sorter.learning');
 
@@ -50,6 +57,12 @@ class CorrectionIngester {
 
     // Disposal into Trash/Junk/Archive teaches nothing.
     if (!actualIsInbox && actualProfile != null && !allowed.contains(c.actualFolder) && !isVeto) return;
+
+    // Manual filings and undos are evidence for the rule advisor (only into
+    // sortable folders, or back to INBOX).
+    if (actualIsInbox || allowed.contains(c.actualFolder)) {
+      await _evidence?.recordCorrection(c, fromAddress: from, fromDomain: domain, listId: listId, subjectNorm: subjectNorm);
+    }
 
     // A contradicting rule wins: keep the row for the log but do not learn.
     var ruleWins = false;

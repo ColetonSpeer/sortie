@@ -7,6 +7,16 @@ enum LeaveUntilRead { none, personalOnly, all }
 
 enum SortingMode { off, suggestOnly, auto }
 
+/// How the model is allowed to spend credits.
+///
+/// `advisor`: rules and learned sender stats sort on their own; the model only
+/// looks at what could not be placed (and at what the owner files by hand)
+/// and proposes rules, about one small request per day.
+/// `perMessage`: the model classifies every message the deterministic layers
+/// cannot place (the original behaviour).
+/// `off`: no model calls at all.
+enum AiUsageMode { advisor, perMessage, off }
+
 class AiSettings {
   const AiSettings({
     this.kind = AiProviderKind.none,
@@ -18,6 +28,8 @@ class AiSettings {
     this.dailyCapUsd = 0.50,
     this.monthlyCapUsd = 5.00,
     this.paused = false,
+    this.usage = AiUsageMode.advisor,
+    this.advisorIntervalHours = 24,
   });
 
   final AiProviderKind kind;
@@ -33,6 +45,18 @@ class AiSettings {
   final double dailyCapUsd;
   final double monthlyCapUsd;
   final bool paused;
+
+  /// See [AiUsageMode]. Default `advisor`: no per-message model calls.
+  final AiUsageMode usage;
+
+  /// Minimum spacing between two advisor model passes (not for "Ask now").
+  final int advisorIntervalHours;
+
+  /// True when the model may classify individual messages.
+  bool get modelClassifies => usage == AiUsageMode.perMessage;
+
+  /// True when the advisor may make its (rare) model request.
+  bool get advisorEnabled => usage == AiUsageMode.advisor;
 
   bool get isLocal {
     if (kind != AiProviderKind.openAiCompat) return false;
@@ -58,6 +82,8 @@ class AiSettings {
     double? dailyCapUsd,
     double? monthlyCapUsd,
     bool? paused,
+    AiUsageMode? usage,
+    int? advisorIntervalHours,
   }) =>
       AiSettings(
         kind: kind ?? this.kind,
@@ -69,6 +95,8 @@ class AiSettings {
         dailyCapUsd: dailyCapUsd ?? this.dailyCapUsd,
         monthlyCapUsd: monthlyCapUsd ?? this.monthlyCapUsd,
         paused: paused ?? this.paused,
+        usage: usage ?? this.usage,
+        advisorIntervalHours: advisorIntervalHours ?? this.advisorIntervalHours,
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,6 +109,8 @@ class AiSettings {
         'dailyCap': dailyCapUsd,
         'monthlyCap': monthlyCapUsd,
         'paused': paused,
+        'usage': usage.name,
+        'advisorHours': advisorIntervalHours,
       };
 
   static AiSettings fromJson(Map<String, dynamic> j) => AiSettings(
@@ -93,7 +123,18 @@ class AiSettings {
         dailyCapUsd: ((j['dailyCap'] as num?) ?? 0.5).toDouble(),
         monthlyCapUsd: ((j['monthlyCap'] as num?) ?? 5.0).toDouble(),
         paused: (j['paused'] as bool?) ?? false,
+        usage: _usage(j['usage']),
+        advisorIntervalHours: ((j['advisorHours'] as num?) ?? 24).toInt(),
       );
+
+  static AiUsageMode _usage(Object? raw) {
+    if (raw is String) {
+      for (final m in AiUsageMode.values) {
+        if (m.name == raw) return m;
+      }
+    }
+    return AiUsageMode.advisor;
+  }
 }
 
 /// Per-account sorting configuration. Shared between devices through the

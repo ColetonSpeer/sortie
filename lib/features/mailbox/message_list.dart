@@ -88,6 +88,10 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     final touch = MediaQuery.sizeOf(context).width < AdaptiveScaffold.compactBreakpoint;
     final threaded = ref.watch(deviceSettingsProvider).asData?.value.threadedView ?? true;
     final own = threaded ? _ownAddresses() : const <String>{};
+    final isInbox = folder?.isInbox ?? widget.folderPath.toUpperCase() == 'INBOX';
+    final suggestionCount = isInbox && !ref.watch(suggestionBannerDismissedProvider)
+        ? (ref.watch(pendingSuggestionsProvider(widget.accountId)).asData?.value.length ?? 0)
+        : 0;
 
     Widget tile(MessageHeader h) {
       final t = MessageTile(
@@ -152,7 +156,16 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                 ),
               ],
             ),
-      body: messages.when(
+      body: Column(children: [
+        if (suggestionCount > 0) _SuggestionBanner(count: suggestionCount),
+        Expanded(child: _content(context, messages, threaded, own, selection, badges, tile)),
+      ]),
+    );
+  }
+
+  Widget _content(BuildContext context, AsyncValue<List<MessageHeader>> messages, bool threaded, Set<String> own, Set<MessageKey> selection,
+      Map<MessageKey, PendingBadge> badges, Widget Function(MessageHeader) tile) =>
+      messages.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load messages: $e')),
         data: (list) {
@@ -191,6 +204,33 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
             itemBuilder: (context, i) => tile(list[i]),
           );
         },
+      );
+}
+
+/// One-line "N suggested sorting rules — Review" strip above the inbox.
+class _SuggestionBanner extends ConsumerWidget {
+  const _SuggestionBanner({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('suggestionBanner'),
+      color: cs.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+        child: Row(children: [
+          Icon(Icons.tips_and_updates_outlined, size: 18, color: cs.onSecondaryContainer),
+          const SizedBox(width: 8),
+          Expanded(child: Text('$count suggested sorting rule${count == 1 ? '' : 's'}', style: TextStyle(color: cs.onSecondaryContainer))),
+          TextButton(onPressed: () => context.push(Routes.sortLog), child: const Text('Review')),
+          IconButton(
+            tooltip: 'Hide for now',
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: () => ref.read(suggestionBannerDismissedProvider.notifier).state = true,
+          ),
+        ]),
       ),
     );
   }

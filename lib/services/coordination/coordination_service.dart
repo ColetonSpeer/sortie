@@ -40,6 +40,7 @@ class CoordinationService implements SortCoordinator {
     this.timers = const LeaseTimers(),
     bool Function()? mayLead,
     SharedConfigDeps? sharedConfig,
+    Future<void> Function(String accountId)? advisor,
   })  : _me = me,
         _factory = gatewayFactory,
         _password = password,
@@ -50,6 +51,8 @@ class CoordinationService implements SortCoordinator {
         _settings = settings,
         _clock = clock,
         _mayLead = mayLead ?? (() => true),
+        _advisorHook = advisor,
+        _sharedDeps = sharedConfig,
         _serverClock = ServerClock(clock),
         _guard = ReadGuard(timers: timers) {
     _shared = sharedConfig == null ? null : SharedConfigSync(accountId: accountId, deps: sharedConfig, clock: clock);
@@ -72,6 +75,10 @@ class CoordinationService implements SortCoordinator {
   final SettingsRepository _settings;
   final Clock _clock;
   final bool Function() _mayLead;
+
+  /// Rule advisor `maybeRun`, called by the leader loop after each batch.
+  final Future<void> Function(String accountId)? _advisorHook;
+  final SharedConfigDeps? _sharedDeps;
   final ServerClock _serverClock;
   final ReadGuard _guard;
   late final JournalStore _store;
@@ -379,6 +386,7 @@ class CoordinationService implements SortCoordinator {
       serverClock: _serverClock,
       timers: timers,
       customKeywords: _customKeywords,
+      afterClassify: _advisorHook,
       resync: () => _evaluate(gen),
       onFatal: (e) => e is LeaseLostException ? _guarded(gen, () => _evaluate(gen)) : _onConnectionError(gen, e),
     );
@@ -528,6 +536,16 @@ class CoordinationService implements SortCoordinator {
   Future<void> changeDestination(MessageKey key, String folderPath) => _act((a) => a.changeDestination(key, folderPath));
   @override
   Future<void> markRight(MessageKey key) => _act((a) => a.markRight(key));
+
+  @override
+  Future<int> applyRuleToInbox(String ruleId) async {
+    final leader = _leader;
+    final deps = _sharedDeps;
+    if (leader == null || deps == null) return 0;
+    final rule = (await deps.rules.load(accountId)).where((r) => r.id == ruleId).firstOrNull;
+    if (rule == null || !rule.enabled) return 0;
+    return leader.classifyMatching((h) => rule.match.matches(h));
+  }
 
   @override
   void onMessageOpened(MessageKey key) {

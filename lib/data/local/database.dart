@@ -23,6 +23,8 @@ part 'database.g.dart';
   SenderStats,
   UserRules,
   SortQueue,
+  SortEvidence,
+  RuleSuggestions,
   AiUsage,
   JournalEvents,
   JournalCursors,
@@ -34,7 +36,7 @@ class SortieDatabase extends _$SortieDatabase {
   SortieDatabase(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +50,7 @@ class SortieDatabase extends _$SortieDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_sender_stats_key ON sender_stats(account_id, key_kind, key)');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_journal_type ON journal_events(account_id, type, uid)');
           await _createCalendarIndexes();
+          await _createAdvisorIndexes();
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
@@ -59,11 +62,21 @@ class SortieDatabase extends _$SortieDatabase {
           if (from < 3) {
             await m.addColumn(identities, identities.signatureHtml);
           }
+          if (from < 4) {
+            await m.createTable(sortEvidence);
+            await m.createTable(ruleSuggestions);
+            await _createAdvisorIndexes();
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  Future<void> _createAdvisorIndexes() async {
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_sort_evidence_acct ON sort_evidence(account_id, consumed_at, last_at)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_rule_suggestions_acct ON rule_suggestions(account_id, status)');
+  }
 
   Future<void> _createCalendarIndexes() async {
     await customStatement('CREATE INDEX IF NOT EXISTS idx_cal_events_cal ON calendar_events(calendar_id, start_at)');

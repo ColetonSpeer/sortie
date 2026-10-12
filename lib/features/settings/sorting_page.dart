@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
+import '../../router/app_router.dart';
 import 'settings_common.dart';
 
 class SortingPage extends StatelessWidget {
@@ -27,6 +29,24 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
   String? _progress;
   double? _accuracy;
   bool _busy = false;
+  bool _asking = false;
+
+  Future<void> _askAdvisor() async {
+    setState(() => _asking = true);
+    try {
+      final r = await ref.read(ruleAdvisorProvider).runNow(widget.accountId);
+      if (!mounted) return;
+      final cost = r.modelRan ? ', \$${r.costUsd.toStringAsFixed(3)}' : '';
+      final text = r.total == 0
+          ? 'No new suggestions${r.skippedReason != null ? ' (${r.skippedReason})' : ''}$cost'
+          : '${r.total} new suggestion${r.total == 1 ? '' : 's'}$cost';
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(text)));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Advisor failed: $e')));
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
+  }
 
   Future<void> _save(SortConfig c) => saveSortConfig(ref, widget.accountId, c);
 
@@ -62,6 +82,44 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
     }
   }
 
+  List<Widget> _aiUsage(BuildContext context, ThemeData theme) {
+    final ai = ref.watch(aiSettingsProvider).asData?.value;
+    if (ai == null) return const [];
+    return [
+      const Divider(),
+      ListTile(
+        title: Text('AI usage', style: theme.textTheme.titleSmall),
+        trailing: TextButton.icon(
+          onPressed: () => context.push(Routes.settingsPage('ai')),
+          icon: const Icon(Icons.open_in_new, size: 16),
+          label: const Text('AI backend'),
+        ),
+      ),
+      AiUsageModeSelector(settings: ai),
+      if (ai.usage == AiUsageMode.advisor) ...[
+        ListTile(
+          title: Text('Ask the AI at most every ${ai.advisorIntervalHours} h'),
+          subtitle: Slider(
+            value: ai.advisorIntervalHours.toDouble().clamp(1, 72),
+            min: 1,
+            max: 72,
+            divisions: 71,
+            label: '${ai.advisorIntervalHours} h',
+            onChanged: (v) => saveAiSettings(ref, (a) => a.copyWith(advisorIntervalHours: v.round())),
+          ),
+        ),
+        ListTile(
+          key: const Key('askAdvisorNow'),
+          leading: const Icon(Icons.tips_and_updates_outlined),
+          title: const Text('Ask the AI for rule suggestions now'),
+          subtitle: const Text('One request over what the rules could not place; results appear in the sort log'),
+          trailing: _asking ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+          onTap: _asking ? null : _askAdvisor,
+        ),
+      ],
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(sortConfigProvider(widget.accountId));
@@ -93,6 +151,7 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
             leading: Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
             title: Text('Probation: only very confident moves for the first ${c.probationDays} days'),
           ),
+        ..._aiUsage(context, theme),
         const Divider(),
         ListTile(title: Text('Leave in inbox until read', style: theme.textTheme.titleSmall)),
         RadioGroup<LeaveUntilRead>(

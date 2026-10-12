@@ -164,7 +164,8 @@ class SortieServices {
           db: db,
           clock: clock,
           mayLead: () => _deviceSettings.mayLead,
-          sharedConfig: SharedConfigDeps(accounts: accounts, rules: classifier.rules, calendars: calendarRepo, settings: settings),
+          sharedConfig: SharedConfigDeps(accounts: accounts, rules: classifier.rules, calendars: calendarRepo, settings: settings, suggestions: classifier.suggestions),
+          advisor: (id) => classifier.advisor.maybeRun(id),
         ),
       );
 
@@ -321,6 +322,7 @@ class SortieServices {
         settingsRepositoryProvider.overrideWithValue(settings),
         mailSyncServiceProvider.overrideWithValue(sync),
         messageClassifierProvider.overrideWithValue(classifier),
+        ruleAdvisorProvider.overrideWithValue(classifier.advisor),
         deviceIdentityProvider.overrideWithValue(device),
         sortCoordinatorProvider.overrideWith((ref, accountId) => coordinator(accountId)),
         sortRuleStoreProvider.overrideWithValue(classifier.rules),

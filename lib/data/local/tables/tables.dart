@@ -234,6 +234,61 @@ class UserRules extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// What the sorter could not place (`unsorted`) and what the owner moved by
+/// hand (`manualMove` / `undo`), de-duplicated per (kind, sender|list,
+/// folder). Feeds the rule advisor. Schema v4.
+class SortEvidence extends Table {
+  TextColumn get id => text()();
+  TextColumn get accountId => text()();
+
+  /// unsorted | manualMove | undo
+  TextColumn get kind => text()();
+  TextColumn get messageIdHash => text()();
+  TextColumn get fromAddr => text().nullable()();
+  TextColumn get fromDomain => text().nullable()();
+  TextColumn get listId => text().nullable()();
+  TextColumn get subjectNorm => text().nullable()();
+
+  /// Up to three distinct normalised subjects (JSON list).
+  TextColumn get examplesJson => text().withDefault(const Constant('[]'))();
+
+  /// Destination for moves; null for unsorted.
+  TextColumn get folder => text().nullable()();
+  IntColumn get seenCount => integer().withDefault(const Constant(1))();
+  IntColumn get firstAt => integer()();
+  IntColumn get lastAt => integer()();
+
+  /// Last time the row was shown to the model (null = new since then).
+  IntColumn get sentAt => integer().nullable()();
+
+  /// Set when a suggestion built on it was accepted or dismissed.
+  IntColumn get consumedAt => integer().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Proposed rules from the advisor (pattern pre-pass or model). Schema v4.
+class RuleSuggestions extends Table {
+  TextColumn get id => text()();
+  TextColumn get accountId => text()();
+  TextColumn get matchJson => text()();
+  TextColumn get folderPath => text()();
+  TextColumn get rationale => text().withDefault(const Constant(''))();
+  RealColumn get confidence => real()();
+
+  /// pattern | model
+  TextColumn get source => text()();
+  IntColumn get evidenceCount => integer().withDefault(const Constant(0))();
+  TextColumn get examplesJson => text().withDefault(const Constant('[]'))();
+
+  /// pending | accepted | dismissed
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  IntColumn get createdAt => integer()();
+  IntColumn get decidedAt => integer().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class SortQueue extends Table {
   TextColumn get accountId => text()();
   TextColumn get messageIdHash => text()();

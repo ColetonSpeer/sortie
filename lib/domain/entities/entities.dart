@@ -4,6 +4,7 @@ export 'folder.dart';
 export 'identity.dart';
 export 'message.dart';
 export 'pending_op.dart';
+export 'rule_suggestion.dart';
 export 'settings.dart';
 export 'sort_decision.dart';
 export 'calendar.dart';
