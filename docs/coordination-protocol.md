@@ -190,3 +190,22 @@ stream itself only reports connection loss. The 5-minute poll remains the
 backstop. The coordinator bounds teardown (30 s) and connect (3 min), logs
 setup steps slower than 5 s, and resets its evaluation chain per connection
 generation so a stuck evaluation of a dead connection can never block the next.
+
+## Catching up after sleep or a restart (2026-10-12)
+
+Mail that arrives while no leader is running (laptop asleep, app closed, lease
+in limbo) never reaches the leader's new-message stream, so every takeover
+(`LeaderLoop.reconcile`) scans the 200 newest cached INBOX headers and
+classifies the ones without any decision. The lower bound is `enabledAt` when
+set, otherwise the first decision ever journaled for the account; suggest-only
+mode has no `enabledAt`, and before this fix the scan was skipped entirely in
+that mode, which is why messages received during a suspend stayed unsorted.
+The server receipt time (INTERNALDATE) is compared, not the Date header.
+
+`WakeDetector` (core) ticks every 20 s; a wall-clock gap more than two minutes
+beyond the interval means the process was frozen. The composition root then
+calls `SyncEngine.onResume` (sync every INBOX now, so a socket that died while
+asleep fails fast and reconnects) and `CoordinationService.onResume`
+(re-evaluate the lease, and when leading run `reconcile` again) instead of
+waiting for keepalives and IDLE timeouts to notice, which previously took up
+to 15 minutes after wake.

@@ -62,4 +62,41 @@ void main() {
     h.elapse(const Duration(seconds: 10));
     expect(cls.classified.length, before);
   });
+
+  coordinationTest('suggest-only takeover catches up mail that arrived while no leader ran', (h) {
+    final cls = ScriptedClassifier(rules: {'invoice': 'Finance'});
+    final a = h.lead('aaa', classifier: cls);
+    h.deliver('Invoice 1');
+    h.elapse(const Duration(seconds: 3));
+    expect(h.wait(a.pending()).length, 1, reason: 'live arrival classified');
+
+    // Laptop asleep: the leader is gone while a message arrives. The sync
+    // cache learns about it later without a new-message event.
+    h.wait(a.service.stop());
+    // The harness dates every message 2026-01-01 00:00; the server receipt
+    // time is what bounds the catch-up, as in the real cache.
+    final missed = h.deliver('Invoice 2', notify: const []).copyWith(internalDate: a.clock.now());
+    a.repo.upsertHeaders([missed]);
+
+    a.service.start();
+    h.elapse(const Duration(seconds: 40));
+    expect(a.isLeader, isTrue);
+    final badges = h.wait(a.pending());
+    expect(badges.keys.map((k) => k.messageIdHash), contains(missed.messageIdHash), reason: 'reconcile classified the missed message');
+  }, config: const SortConfig(mode: SortingMode.suggestOnly));
+
+  coordinationTest('onResume re-checks the inbox without a restart', (h) {
+    final cls = ScriptedClassifier(rules: {'invoice': 'Finance'});
+    final a = h.lead('aaa', classifier: cls);
+    h.deliver('Invoice 1');
+    h.elapse(const Duration(seconds: 3));
+    final missed = h.deliver('Invoice 2', notify: const []).copyWith(internalDate: a.clock.now());
+    a.repo.upsertHeaders([missed]);
+    h.elapse(const Duration(seconds: 3));
+    expect(h.wait(a.pending()).length, 1, reason: 'no event: not yet classified');
+
+    a.service.onResume(const Duration(minutes: 30));
+    h.elapse(const Duration(seconds: 5));
+    expect(h.wait(a.pending()).keys.map((k) => k.messageIdHash), contains(missed.messageIdHash));
+  }, config: const SortConfig(mode: SortingMode.suggestOnly));
 }

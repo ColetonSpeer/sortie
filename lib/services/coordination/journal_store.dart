@@ -154,6 +154,17 @@ class JournalStore {
   Future<bool> hasAnyDecision(String mid) async =>
       (await (_db.select(_db.sortDecisions)..where((t) => t.accountId.equals(_accountId) & t.messageIdHash.equals(mid))..limit(1)).get()).isNotEmpty;
 
+  /// When sorting first produced a decision on this account; the lower
+  /// bound for catching up mail that arrived while no leader was running.
+  Future<DateTime?> firstDecisionAt() async {
+    final r = await (_db.select(_db.sortDecisions)
+          ..where((t) => t.accountId.equals(_accountId))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)])
+          ..limit(1))
+        .getSingleOrNull();
+    return r == null ? null : DateTime.fromMillisecondsSinceEpoch(r.createdAt, isUtc: true);
+  }
+
   Future<List<SortDecision>> openDecisions() async {
     final rows = await (_db.select(_db.sortDecisions)
           ..where((t) => t.accountId.equals(_accountId) & t.status.isIn([DecisionStatus.pending.name, DecisionStatus.suggested.name]))

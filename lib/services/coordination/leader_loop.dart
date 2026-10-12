@@ -212,20 +212,31 @@ class LeaderLoop {
       if (hs.isNotEmpty && hs.first.messageIdHash == d.key.messageIdHash && hs.first.isSeen) _observeSeen(d.key.messageIdHash, now);
     }
     final config = await _journal.store.config();
-    final enabledAt = config.enabledAt;
-    if (enabledAt != null && config.mode != SortingMode.off) {
+    // Mail that arrived while no leader was running (laptop asleep, app
+    // closed) never reached the new-message stream, so catch up from the
+    // local cache. Suggest-only mode has no enabledAt; the first decision
+    // ever made bounds the backlog instead so old mail is never classified.
+    final since = config.enabledAt ?? await _journal.store.firstDecisionAt();
+    if (since != null && config.mode != SortingMode.off) {
       final recent = await _messages.list(MessageQuery(accountId: accountId, folderPath: inbox, limit: 200));
       final fresh = <MessageHeader>[];
       for (final h in recent) {
-        if (h.date.isBefore(enabledAt) || h.hasSortieDone || h.hasSortiePending) continue;
+        if ((h.internalDate ?? h.date).isBefore(since) || h.hasSortieDone || h.hasSortiePending) continue;
         if (await _journal.store.hasAnyDecision(h.messageIdHash)) continue;
         fresh.add(h);
       }
-      if (fresh.isNotEmpty) await _classify(fresh);
+      if (fresh.isNotEmpty) {
+        _log.info('epoch $epoch: catching up ${fresh.length} unclassified inbox message(s)');
+        await _classify(fresh);
+      }
     }
     await _resync();
     scheduleEvaluate(Duration.zero);
   }
+
+  /// After the machine wakes from sleep: re-check the inbox for mail that
+  /// arrived meanwhile and re-evaluate what is pending.
+  Future<void> resume() => _serial(reconcile).then((_) {}, onError: _fatal);
 
   // -------------------------------------------------------------- classify
 

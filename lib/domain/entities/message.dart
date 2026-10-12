@@ -116,7 +116,7 @@ class MessageHeader {
   MessageKey get key =>
       MessageKey(accountId: accountId, messageIdHash: messageIdHash, uid: uid, uidValidity: uidValidity);
 
-  MessageHeader copyWith({Set<String>? flags, String? folderPath, int? uid, int? uidValidity, String? snippet}) =>
+  MessageHeader copyWith({Set<String>? flags, String? folderPath, int? uid, int? uidValidity, String? snippet, DateTime? internalDate}) =>
       MessageHeader(
         accountId: accountId,
         folderPath: folderPath ?? this.folderPath,
@@ -130,7 +130,7 @@ class MessageHeader {
         cc: cc,
         replyTo: replyTo,
         date: date,
-        internalDate: internalDate,
+        internalDate: internalDate ?? this.internalDate,
         listId: listId,
         inReplyTo: inReplyTo,
         references: references,

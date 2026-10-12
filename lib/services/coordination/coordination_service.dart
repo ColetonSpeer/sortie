@@ -326,6 +326,17 @@ class CoordinationService implements SortCoordinator {
 
   // ------------------------------------------------------------ evaluation
 
+  /// After the machine wakes from sleep: re-evaluate the lease (it may have
+  /// expired) and, when leading, catch up on inbox mail that arrived
+  /// meanwhile. A dead control socket surfaces here and reconnects.
+  void onResume(Duration asleep) {
+    if (!_running) return;
+    final gen = _generation;
+    _logger.info('${_me.shortId}: resumed after ${asleep.inMinutes}m asleep');
+    unawaited(_guarded(gen, () => _evaluate(gen)));
+    unawaited(_leader?.resume());
+  }
+
   void _onControlChange(int gen) {
     _changeDebounce?.cancel();
     _changeDebounce = Timer(const Duration(milliseconds: 200), () => _guarded(gen, () => _evaluate(gen)));

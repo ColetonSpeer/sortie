@@ -188,6 +188,15 @@ class SyncEngine implements MailSyncService {
   @override
   Future<void> syncNow(String accountId, {String? folderPath}) => _session(accountId).syncNow(folderPath: folderPath);
 
+  /// After the machine wakes from sleep: sync every account's INBOX now. A
+  /// socket that died while asleep fails fast here and reconnects instead of
+  /// waiting for the next keepalive to notice.
+  void onResume() {
+    for (final s in _sessions.values) {
+      unawaited(s.syncNow().catchError((Object e) => _log.fine('resume sync: $e')));
+    }
+  }
+
   @override
   Future<void> refreshFolders(String accountId) => _session(accountId).refreshFolders();
 

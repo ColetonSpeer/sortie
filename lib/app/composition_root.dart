@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/clock.dart';
+import '../core/wake_detector.dart';
 import '../data/ai/ai_provider.dart';
 import '../data/ai/ai_provider_factory.dart';
 import '../data/calendar/google_oauth.dart';
@@ -66,6 +67,7 @@ class SortieServices {
   final notifications = NotificationService();
   final clock = SystemClock();
 
+  final wake = WakeDetector();
   final _coordinators = <String, CoordinationService>{};
   final _accountCache = <String, Account>{};
   DeviceSettings _deviceSettings = const DeviceSettings();
@@ -213,9 +215,20 @@ class SortieServices {
     for (final c in startup) {
       unawaited(c.start());
     }
+    _subs.add(wake.wakes.listen(_onWake));
+    wake.start();
+  }
+
+  void _onWake(Duration asleep) {
+    _log.info('woke after ${asleep.inMinutes}m: resyncing');
+    sync.onResume();
+    for (final c in _coordinators.values) {
+      c.onResume(asleep);
+    }
   }
 
   Future<void> stop() async {
+    await wake.dispose();
     for (final c in _coordinators.values) {
       await c.stop();
     }
