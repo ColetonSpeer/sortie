@@ -56,6 +56,10 @@ class ImapControlFolder implements ControlFolder {
   Completer<void>? _idleStop;
   Timer? _pollTimer;
   Timer? _reissueTimer;
+  Timer? _resumeTimer;
+  StreamSubscription<MailboxEvent>? _eventsSub;
+  Completer<void>? _idleFinished;
+  Future<void> _cmdChain = Future.value();
 
   String? get path => _path;
   ImapCapabilities? get capabilities => _caps;
@@ -68,7 +72,9 @@ class ImapControlFolder implements ControlFolder {
   }
 
   @override
-  Future<String> ensureExists() async {
+  Future<String> ensureExists() => _cmd(_ensureExists);
+
+  Future<String> _ensureExists() async {
     await _connect();
     final folders = await _gw.listFolders();
     final existing = folders.where((f) => f.isControlFolder).toList();
@@ -107,12 +113,12 @@ class ImapControlFolder implements ControlFolder {
   }
 
   @override
-  Future<int> uidValidity() async {
-    // A fresh SELECT both detects deletion (NO) and UIDVALIDITY changes.
-    final sel = await _gw.select(_selectedPath);
-    _uidValidity = sel.uidValidity;
-    return sel.uidValidity;
-  }
+  Future<int> uidValidity() => _cmd(() async {
+        // A fresh SELECT both detects deletion (NO) and UIDVALIDITY changes.
+        final sel = await _gw.select(_selectedPath);
+        _uidValidity = sel.uidValidity;
+        return sel.uidValidity;
+      });
 
   int? get lastKnownUidValidity => _uidValidity;
 
@@ -152,7 +158,9 @@ class ImapControlFolder implements ControlFolder {
   }
 
   @override
-  Future<AppendedControlMessage> append(ControlMessageDraft draft) async {
+  Future<AppendedControlMessage> append(ControlMessageDraft draft) => _cmd(() => _append(draft));
+
+  Future<AppendedControlMessage> _append(ControlMessageDraft draft) async {
     final path = _selectedPath;
     AppendResult? result;
     try {
@@ -162,11 +170,11 @@ class ImapControlFolder implements ControlFolder {
       // idempotency key, so look before re-appending (the caller retries).
       _log.fine('APPEND ${draft.messageId} failed ambiguously: $e');
       if (!_gw.isConnected) rethrow;
-      final uid = await findByMessageId(draft.messageId);
+      final uid = await _findByMessageId(draft.messageId);
       if (uid == null) rethrow;
       return _fetchAppended(uid);
     }
-    final uid = result.uid ?? await findByMessageId(draft.messageId);
+    final uid = result.uid ?? await _findByMessageId(draft.messageId);
     if (uid == null) throw ImapGatewayException('appended ${draft.messageId} but cannot find it');
     return _fetchAppended(uid);
   }
@@ -180,7 +188,7 @@ class ImapControlFolder implements ControlFolder {
   // ----------------------------------------------------------------- fetch
 
   @override
-  Future<List<ControlMessage>> fetchHeaders({int sinceUid = 1}) async {
+  Future<List<ControlMessage>> fetchHeaders({int sinceUid = 1}) => _cmd(() async {
     _selectedPath;
     final rows = await _gw.fetchRawHeaders(UidRange.since(sinceUid < 1 ? 1 : sinceUid), headerNames);
     final out = <ControlMessage>[];
@@ -190,7 +198,7 @@ class ImapControlFolder implements ControlFolder {
     }
     out.sort((a, b) => a.uid.compareTo(b.uid));
     return out;
-  }
+  });
 
   /// Parses one raw header fetch; null for foreign mail in the folder.
   static ControlMessage? parse(RawMessage r) {
@@ -215,7 +223,7 @@ class ImapControlFolder implements ControlFolder {
   @override
   Future<Map<String, dynamic>?> fetchBody(int uid) async {
     _selectedPath;
-    final text = await _gw.fetchTextBody(uid);
+    final text = await _cmd(() => _gw.fetchTextBody(uid));
     if (text == null) return null;
     final trimmed = text.trim();
     if (trimmed.isEmpty) return const {};
@@ -229,7 +237,9 @@ class ImapControlFolder implements ControlFolder {
   }
 
   @override
-  Future<int?> findByMessageId(String messageId) async {
+  Future<int?> findByMessageId(String messageId) => _cmd(() => _findByMessageId(messageId));
+
+  Future<int?> _findByMessageId(String messageId) async {
     _selectedPath;
     final uids = await _gw.searchByMessageId(messageId);
     if (uids.isEmpty) return null;
@@ -241,12 +251,60 @@ class ImapControlFolder implements ControlFolder {
     final list = uids.toList()..sort();
     if (list.isEmpty) return;
     _selectedPath;
-    await _gw.store(list, add: {r'\Deleted'});
-    await _gw.expunge(list);
+    await _cmd(() async {
+      await _gw.store(list, add: {r'\Deleted'});
+      await _gw.expunge(list);
+    });
   }
 
   @override
-  Future<void> noop() => _gw.noop();
+  Future<void> noop() => _cmd(_gw.noop);
+
+  // ------------------------------------------------------------ idle pause
+
+  /// One connection serves both IDLE and commands. enough_mail queues any
+  /// command behind an active IDLE until DONE is written, so a command sent
+  /// while idling would wait forever. Every command therefore ends IDLE
+  /// first and re-issues it shortly after; commands are serialized so a
+  /// burst shares one pause.
+  Future<T> _cmd<T>(Future<T> Function() body) {
+    final run = _cmdChain.then((_) async {
+      final ctrl = _changes;
+      final paused = ctrl != null && _idleStop != null;
+      if (paused) await _pauseIdle();
+      try {
+        return await body();
+      } finally {
+        if (paused && !_disposed && !ctrl.isClosed && identical(_changes, ctrl)) _scheduleResume(ctrl);
+      }
+    });
+    _cmdChain = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<void> _pauseIdle() async {
+    _resumeTimer?.cancel();
+    _reissueTimer?.cancel();
+    final stop = _idleStop;
+    _idleStop = null;
+    if (stop != null && !stop.isCompleted) stop.complete();
+    final finished = _idleFinished;
+    if (finished != null) {
+      try {
+        await finished.future.timeout(const Duration(seconds: 15));
+      } catch (e) {
+        _log.fine('idle did not end cleanly: $e');
+      }
+    }
+  }
+
+  void _scheduleResume(StreamController<void> ctrl) {
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(milliseconds: 250), () {
+      if (_disposed || ctrl.isClosed || !identical(_changes, ctrl) || _idleStop != null) return;
+      _startIdle(ctrl);
+    });
+  }
 
   // --------------------------------------------------------------- changes
 
@@ -259,6 +317,13 @@ class ImapControlFolder implements ControlFolder {
     _pollTimer = Timer.periodic(pollFallback, (_) {
       if (!ctrl.isClosed) ctrl.add(null);
     });
+    // Ticks come from the connection-wide event stream so nothing reported
+    // while IDLE is paused for a command is lost; IDLE itself only keeps the
+    // server talking (and reports connection loss).
+    _eventsSub = _gw.mailboxEvents().listen((e) {
+      if (e is ConnectionLostEvent) return;
+      if (!ctrl.isClosed) ctrl.add(null);
+    }, onError: (Object e) => _fail(ctrl, e));
     _startIdle(ctrl);
     return ctrl.stream;
   }
@@ -267,11 +332,16 @@ class ImapControlFolder implements ControlFolder {
     if (_disposed || ctrl.isClosed) return;
     final stop = Completer<void>();
     _idleStop = stop;
+    final finished = _idleFinished = Completer<void>();
+    void done() {
+      if (!finished.isCompleted) finished.complete();
+    }
     Stream<MailboxEvent> events;
     try {
       _selectedPath;
       events = _gw.idle(stop: stop.future);
     } catch (e) {
+      done();
       _fail(ctrl, e);
       return;
     }
@@ -284,11 +354,13 @@ class ImapControlFolder implements ControlFolder {
       (e) {
         if (e is ConnectionLostEvent) {
           _fail(ctrl, e.error ?? const ImapGatewayException('connection lost', isConnectionLost: true));
-          return;
         }
-        if (!ctrl.isClosed) ctrl.add(null);
       },
-      onError: (Object e) => _fail(ctrl, e),
+      onError: (Object e) {
+        done();
+        _fail(ctrl, e);
+      },
+      onDone: done,
       cancelOnError: true,
     );
   }
@@ -301,7 +373,10 @@ class ImapControlFolder implements ControlFolder {
 
   void _stopIdle() {
     _reissueTimer?.cancel();
+    _resumeTimer?.cancel();
     _pollTimer?.cancel();
+    unawaited(_eventsSub?.cancel());
+    _eventsSub = null;
     final s = _idleStop;
     if (s != null && !s.isCompleted) s.complete();
     _idleStop = null;

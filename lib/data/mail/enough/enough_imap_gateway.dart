@@ -324,6 +324,12 @@ class EnoughImapGateway implements ImapGateway {
     return ctrl.stream;
   }
 
+  @override
+  Stream<MailboxEvent> mailboxEvents() {
+    final c = _c;
+    return c.eventBus.on<em.ImapEvent>().map((e) => _mapEvent(e, _selected ?? '')).where((e) => e != null).cast<MailboxEvent>();
+  }
+
   MailboxEvent? _mapEvent(em.ImapEvent e, String path) {
     switch (e) {
       case em.ImapMessagesExistEvent():

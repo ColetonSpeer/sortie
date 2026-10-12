@@ -141,12 +141,13 @@ void main() {
       h.settle();
       expect(h.countCommands('IDLE'), 1);
       h.wait(f.append(draft(seq: 1)));
-      h.settle();
-      expect(n, 1);
+      h.settle(400);
+      expect(n, 1, reason: 'the append was reported although IDLE was paused for it');
+      expect(h.countCommands('IDLE'), 2, reason: 'IDLE paused for the command and re-issued after it');
       h.elapse(const Duration(minutes: 5), step: const Duration(seconds: 30));
       expect(n, 2, reason: 'poll fallback fired');
       h.elapse(const Duration(minutes: 21), step: const Duration(minutes: 1));
-      expect(h.countCommands('IDLE'), 2, reason: 'IDLE re-issued after 25 min');
+      expect(h.countCommands('IDLE'), 3, reason: 'IDLE re-issued 25 min after the resume');
       // Broadcast cancel futures never resolve under fakeAsync; fire and settle.
       unawaited(sub.cancel());
       h.settle();

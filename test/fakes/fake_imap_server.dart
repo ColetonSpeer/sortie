@@ -297,12 +297,17 @@ class FakeImapGateway implements ImapGateway {
     final path = _selected!;
     final ctrl = StreamController<MailboxEvent>();
     final sub = server.events.where((e) => e.path == path).listen(ctrl.add);
-    stop.then((_) async {
-      await sub.cancel();
-      await ctrl.close();
+    // Not awaited: cancelling a broadcast subscription returns a root-zone
+    // future that fakeAsync never drives, which would keep the stream open.
+    stop.then((_) {
+      unawaited(sub.cancel());
+      unawaited(ctrl.close());
     });
     return ctrl.stream;
   }
+
+  @override
+  Stream<MailboxEvent> mailboxEvents() => server.events.where((e) => e.path == _selected);
 
   List<FakeStoredMessage> _inRange(UidRange r) {
     final mb = _mb;

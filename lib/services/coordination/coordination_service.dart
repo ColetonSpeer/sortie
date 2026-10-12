@@ -109,6 +109,7 @@ class CoordinationService implements SortCoordinator {
   int _generation = 0;
   Duration _reconnectDelay = Duration.zero;
   Future<void> _evalChain = Future.value();
+  int _evalChainGen = -1;
   LeaseEvaluation? _lastEval;
 
   /// Set when the control folder came back empty (deleted / UIDVALIDITY
@@ -332,6 +333,11 @@ class CoordinationService implements SortCoordinator {
 
   /// Sync journal, refresh presences, evaluate the lease and act on it.
   Future<void> _evaluate(int gen) {
+    if (gen != _evalChainGen) {
+      // New connection: never queue behind an evaluation of a dead one.
+      _evalChain = Future.value();
+      _evalChainGen = gen;
+    }
     final next = _evalChain.then((_) => _evaluateNow(gen));
     _evalChain = next.then((_) {}, onError: (_) {});
     return next;
@@ -343,17 +349,17 @@ class CoordinationService implements SortCoordinator {
     final journal = _journal;
     final presence = _presence;
     if (control == null || lease == null || journal == null || presence == null || gen != _generation) return;
-    final uv = await control.uidValidity();
-    final headers = await control.fetchHeaders();
-    final result = await journal.sync(headers, uidValidity: uv);
+    final uv = await _step('uidvalidity', control.uidValidity);
+    final headers = await _step('fetch journal', control.fetchHeaders);
+    final result = await _step('sync journal (${headers.length})', () => journal.sync(headers, uidValidity: uv));
     if (result.reset && !headers.any((m) => m.type == 'snapshot')) _needsReseed = true;
-    await presence.refresh(headers);
+    await _step('presence refresh', () => presence.refresh(headers));
     final eval = lease.evaluate(headers);
     _lastEval = eval;
     _publishDevices(eval, presence);
     // Void claims of our own are deleted on the next evaluation (spec).
     final ownVoid = eval.voidClaims.where((c) => c.deviceId == _me.deviceId).map((c) => c.uid).toList();
-    if (ownVoid.isNotEmpty) await control.expunge(ownVoid);
+    if (ownVoid.isNotEmpty) await _step('expunge void claims', () => control.expunge(ownVoid));
     final myEpoch = _epoch;
     if (myEpoch != null) {
       // Leading (possibly still in the handoff wait before the loop starts).

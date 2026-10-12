@@ -147,6 +147,11 @@ abstract class ImapGateway {
   /// IDLE every ~25 minutes.
   Stream<MailboxEvent> idle({required Future<void> stop});
 
+  /// Untagged events for the selected mailbox for the life of the
+  /// connection, whether or not IDLE is running (changes the server reports
+  /// during other commands included). Never closes on its own.
+  Stream<MailboxEvent> mailboxEvents();
+
   Future<List<MessageHeader>> fetchHeaders(UidRange range, {int? changedSince});
   Future<List<MessageHeader>> fetchHeadersByUids(List<int> uids);
   Future<Map<int, Set<String>>> fetchFlags(UidRange range, {int? changedSince});
