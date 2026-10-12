@@ -189,11 +189,24 @@ class CoordinationService implements SortCoordinator {
     }
   }
 
+  /// Runs one setup step, logging slow ones so a stall is attributable.
+  Future<T> _step<T>(String name, Future<T> Function() fn) async {
+    final sw = Stopwatch()..start();
+    _logger.fine('${_me.shortId}: $name…');
+    try {
+      return await fn();
+    } finally {
+      if (sw.elapsed > const Duration(seconds: 5)) _logger.info('${_me.shortId}: $name took ${sw.elapsed.inSeconds}s');
+    }
+  }
+
   Future<void> _connectAndSync(int gen) async {
     _setState(CoordinationState.connecting);
-    final control = ImapControlFolder(gateway: _factory(), account: _account(), password: await _password(), clock: _clock, pollFallback: timers.pollFallback);
+    final sw = Stopwatch()..start();
+    final password = await _step('password', () => _password().timeout(const Duration(seconds: 30)));
+    final control = ImapControlFolder(gateway: _factory(), account: _account(), password: password, clock: _clock, pollFallback: timers.pollFallback);
     _control = control;
-    await control.ensureExists();
+    await _step('connect', control.ensureExists);
     final caps = control.capabilities;
     _customKeywords = (caps?.customKeywords ?? true) && (_sync.capabilities(accountId)?.customKeywords ?? true);
     _lease = LeaseManager(folder: control, serverClock: _serverClock, me: _me, timers: timers);
@@ -212,16 +225,17 @@ class CoordinationService implements SortCoordinator {
       customKeywords: () => _customKeywords,
     );
     _setState(CoordinationState.syncing);
-    final first = await control.fetchHeaders();
-    final synced = await journal.sync(first, uidValidity: control.lastKnownUidValidity!);
+    final first = await _step('fetch journal', control.fetchHeaders);
+    final synced = await _step('sync journal (${first.length})', () => journal.sync(first, uidValidity: control.lastKnownUidValidity!));
     if (synced.reset && !first.any((m) => m.type == 'snapshot')) _needsReseed = true;
-    await presence.publish();
-    await _shared?.attach(_sectionAppender(gen, journal));
+    await _step('presence', presence.publish);
+    await _step('shared config', () async => _shared?.attach(_sectionAppender(gen, journal)));
     unawaited(_publishPendingConfig());
     _changesSub = control.changes().listen((_) => _onControlChange(gen), onError: (Object e) => _onConnectionError(gen, e));
     _presenceTimer = Timer.periodic(timers.presenceInterval, (_) => _guarded(gen, () => presence.publish()));
     _compactionTimer = Timer.periodic(timers.compactionCheck, (_) => _guarded(gen, () => _maintenance(gen)));
-    await _evaluate(gen);
+    await _step('evaluate', () => _evaluate(gen));
+    _logger.info('${_me.shortId}: control setup done in ${sw.elapsed.inSeconds}s');
   }
 
   /// Appends a shared-config record, then folds it into the local view
