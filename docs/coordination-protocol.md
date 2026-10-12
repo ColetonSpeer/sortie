@@ -173,3 +173,20 @@ snapshot if its UID > cursor.snapshotUid; apply journal UIDs > lastApplied in or
   cursor, presence, election; new leader re-seeds a snapshot from its local view;
   `$SortiePending` on messages is the second recovery source.
 - Dovecot `mail_max_userip_connections` default 10: leader uses 3 connections + UI's 2.
+
+## Control connection: IDLE and commands share one socket (2026-10-12)
+
+The control folder uses a single IMAP connection for IDLE and for every
+command (FETCH, APPEND, STORE, EXPUNGE, SELECT). enough_mail processes its
+command queue serially and only completes the IDLE task when the server
+answers the DONE, so a command queued while IDLE is active waits forever.
+`ImapControlFolder` therefore wraps every command in `_cmd`: it ends IDLE
+(completes the stop future, waits for the idle stream to finish, ≤15 s), runs
+the command, and re-issues IDLE 250 ms after the last command of a burst;
+commands are serialized on one chain. Change ticks for `changes()` come from
+`ImapGateway.mailboxEvents()`, a connection-wide untagged-event stream, so an
+EXISTS reported while IDLE is paused still triggers an evaluation; the IDLE
+stream itself only reports connection loss. The 5-minute poll remains the
+backstop. The coordinator bounds teardown (30 s) and connect (3 min), logs
+setup steps slower than 5 s, and resets its evaluation chain per connection
+generation so a stuck evaluation of a dead connection can never block the next.
