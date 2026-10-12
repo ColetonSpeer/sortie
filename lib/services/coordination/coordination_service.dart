@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
 import '../../core/clock.dart';
+import '../../core/hashing.dart' show sha256Hex;
 import '../../data/coordination/imap_control_folder.dart';
+import '../../data/mail/imap_gateway.dart' show ImapGatewayException;
 import '../../data/local/database.dart' show SortieDatabase;
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/services/services.dart';
+import '../sorter/user_rules.dart' show SortRule;
 import 'journal_store.dart';
 import 'leader_loop.dart';
 import 'lease_manager.dart';
@@ -112,6 +116,8 @@ class CoordinationService implements SortCoordinator {
   bool _needsReseed = false;
 
   StreamSubscription<void>? _changesSub;
+  StreamSubscription<List<SortRule>>? _rulesSub;
+  Timer? _rulesDebounce;
   Timer? _changeDebounce;
   Timer? _heartbeat;
   Timer? _presenceTimer;
@@ -159,15 +165,21 @@ class CoordinationService implements SortCoordinator {
     if (gen == _generation) _setState(CoordinationState.stopped);
   }
 
+  /// Upper bound for one connect + journal sync; a hang here used to leave
+  /// the account silently unsorted until restart.
+  static const connectBudget = Duration(minutes: 3);
+  static const teardownBudget = Duration(seconds: 30);
+
   Future<void> _connectLoop(int gen) async {
     while (_running && gen == _generation) {
       try {
-        await _connectAndSync(gen);
+        await _connectAndSync(gen).timeout(connectBudget);
         _reconnectDelay = Duration.zero;
+        _logger.info('${_me.shortId}: control connection up');
         return;
       } catch (e, st) {
         _logger.warning('${_me.shortId}: connect failed: $e', e, st);
-        await _teardown(release: false);
+        await _boundedTeardown(release: false);
         if (!_running || gen != _generation) return;
         _setState(CoordinationState.connecting);
         _reconnectDelay = _reconnectDelay == Duration.zero ? timers.reconnectDelay : _reconnectDelay * 2;
@@ -221,6 +233,9 @@ class CoordinationService implements SortCoordinator {
 
   Future<void> _teardown({required bool release}) async {
     _shared?.detach();
+    unawaited(_rulesSub?.cancel());
+    _rulesSub = null;
+    _rulesDebounce?.cancel();
     _changeDebounce?.cancel();
     _heartbeat?.cancel();
     _presenceTimer?.cancel();
@@ -257,7 +272,32 @@ class CoordinationService implements SortCoordinator {
     if (!_running || gen != _generation) return;
     _logger.warning('${_me.shortId}: control connection error: $e');
     final next = ++_generation;
-    unawaited(_teardown(release: false).then((_) => _connectLoop(next)));
+    unawaited(_boundedTeardown(release: false).then((_) {
+      _logger.info('${_me.shortId}: reconnecting control connection');
+      return _connectLoop(next);
+    }));
+  }
+
+  /// Teardown that cannot wedge the reconnect: a dead socket's logout or a
+  /// stuck leader batch is abandoned after [teardownBudget].
+  Future<void> _boundedTeardown({required bool release}) async {
+    try {
+      await _teardown(release: release).timeout(teardownBudget);
+    } catch (e) {
+      _logger.warning('${_me.shortId}: teardown incomplete: $e');
+    }
+  }
+
+  /// Like [_guarded] but a failure is logged, never treated as a lost
+  /// connection (used for best-effort work such as rule re-runs).
+  Future<void> _guardedSoft(int gen, Future<void> Function() fn) async {
+    if (!_running || gen != _generation) return;
+    try {
+      await fn();
+    } catch (e) {
+      if (e is ImapGatewayException && e.isConnectionLost) return _onConnectionError(gen, e);
+      _logger.warning('${_me.shortId}: $e');
+    }
   }
 
   Future<void> _guarded(int gen, Future<void> Function() fn) async {
@@ -393,6 +433,15 @@ class CoordinationService implements SortCoordinator {
     _leader = loop;
     _heartbeat = Timer.periodic(timers.heartbeat, (_) => _guarded(gen, () => lease.heartbeat(epoch)));
     await loop.start();
+    // Local edits, imports and journal-applied rule sets all surface on the
+    // store's watch (own journal records are echo-suppressed, so events
+    // alone would miss local changes).
+    unawaited(_rulesSub?.cancel());
+    _rulesSub = _sharedDeps?.rules.watch(accountId).listen((_) {
+      _rulesDebounce?.cancel();
+      _rulesDebounce = Timer(const Duration(seconds: 1), () => unawaited(_guardedSoft(gen, () => _applyRulesIfChanged(gen))));
+    }, onError: (Object e) => _logger.fine('rules watch: $e'));
+    unawaited(_guardedSoft(gen, () => _applyRulesIfChanged(gen)));
     if (_needsReseed && gen == _generation) {
       _needsReseed = false;
       final control = _control!;
@@ -544,7 +593,40 @@ class CoordinationService implements SortCoordinator {
     if (leader == null || deps == null) return 0;
     final rule = (await deps.rules.load(accountId)).where((r) => r.id == ruleId).firstOrNull;
     if (rule == null || !rule.enabled) return 0;
-    return leader.classifyMatching((h) => rule.match.matches(h));
+    return leader.classifyMatching([rule]);
+  }
+
+  @override
+  Future<int> applyRulesToInbox() async {
+    final leader = _leader;
+    final deps = _sharedDeps;
+    if (leader == null || deps == null) return 0;
+    final rules = (await deps.rules.load(accountId)).where((r) => r.enabled).toList();
+    if (rules.isEmpty) return 0;
+    final n = await leader.classifyMatching(rules);
+    await _settings.setString(_rulesAppliedKey, _rulesFingerprint(rules));
+    return n;
+  }
+
+  String get _rulesAppliedKey => 'rulesApplied.$accountId';
+
+  /// Enabled rules only, in evaluation order; `hits` is excluded by toJson.
+  static String _rulesFingerprint(List<SortRule> rules) =>
+      sha256Hex(jsonEncode([for (final r in rules) r.toJson()]));
+
+  /// Re-runs the rules over the inbox when the enabled set differs from the
+  /// one last applied on this device (import, edit, or a change that arrived
+  /// through the journal). Rule matching is local, so this costs no AI calls.
+  Future<void> _applyRulesIfChanged(int gen) async {
+    final deps = _sharedDeps;
+    if (deps == null || _leader == null) return;
+    final rules = (await deps.rules.load(accountId)).where((r) => r.enabled).toList();
+    final fp = _rulesFingerprint(rules);
+    if (await _settings.getString(_rulesAppliedKey) == fp) return;
+    if (gen != _generation || _leader == null) return;
+    final n = rules.isEmpty ? 0 : await _leader!.classifyMatching(rules);
+    await _settings.setString(_rulesAppliedKey, fp);
+    _logger.info('${_me.shortId}: rule set changed, $n inbox message(s) re-queued');
   }
 
   @override

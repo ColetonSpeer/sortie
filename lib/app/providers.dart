@@ -145,6 +145,13 @@ final selectedMessagesProvider = StateProvider<Set<MessageKey>>((_) => const {})
 /// Persistence for user sort rules (the sorter's UserRulesService).
 final sortRuleStoreProvider = Provider<SortRuleStore>((_) => _unbound('sortRuleStore'));
 
+/// Live rule list for Settings → Rules. Falls back to a one-shot load when
+/// the bound store cannot watch.
+final sortRulesProvider = StreamProvider.family<List<SortRule>, String>((ref, accountId) {
+  final store = ref.watch(sortRuleStoreProvider);
+  return store is SyncableRuleStore ? store.watch(accountId) : Stream.fromFuture(store.load(accountId));
+});
+
 /// Where imported calendars go. Until the calendar module registers its own
 /// sink the default parks them under settings key `import.calendars.pending`.
 final calendarImportSinkProvider =

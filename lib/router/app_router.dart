@@ -17,6 +17,7 @@ import '../features/settings/folders_page.dart';
 import '../features/settings/import_page.dart';
 import '../features/settings/notifications_page.dart';
 import '../features/settings/privacy_page.dart';
+import '../features/settings/rules_page.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/settings/sorting_page.dart';
 import '../features/shell/adaptive_scaffold.dart';
@@ -120,6 +121,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: 'ai', builder: (_, _) => const AiSettingsPage()),
           GoRoute(path: 'sorting', builder: (_, _) => const SortingPage()),
+          GoRoute(path: 'rules', builder: (_, _) => const RulesPage()),
           GoRoute(path: 'privacy', builder: (_, _) => const PrivacyPage()),
           GoRoute(path: 'folders', builder: (_, _) => const FoldersPage()),
           GoRoute(path: 'devices', builder: (_, _) => const DevicesPage()),

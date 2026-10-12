@@ -38,6 +38,7 @@ List<Override> demoOverrides({bool withAccount = true}) {
   });
   final classifier = FakeMessageClassifier()..bootstrapped = true;
   final advisor = FakeRuleAdvisor(pending: withAccount ? DemoData.suggestions() : const []);
+  final rules = FakeRuleStore();
   final coordinators = <String, FakeSortCoordinator>{};
   FakeSortCoordinator coordinatorFor(String id) => coordinators.putIfAbsent(
         id,
@@ -72,6 +73,7 @@ List<Override> demoOverrides({bool withAccount = true}) {
     mailSyncServiceProvider.overrideWithValue(sync),
     messageClassifierProvider.overrideWithValue(classifier),
     ruleAdvisorProvider.overrideWithValue(advisor),
+    sortRuleStoreProvider.overrideWithValue(rules),
     sortCoordinatorProvider.overrideWith((ref, id) => coordinatorFor(id)),
     deviceIdentityProvider.overrideWithValue(const DeviceIdentity(
         deviceId: DemoData.deviceId, displayName: 'This laptop (demo)', platform: DevicePlatform.linux, priority: 30)),

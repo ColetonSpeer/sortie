@@ -28,6 +28,7 @@ class UiFakes {
         messages = FakeMessageRepository(seed ? DemoData.messages : []),
         settings = FakeSettingsRepository(sortConfigs: {DemoData.accountId: DemoData.sortConfig}),
         classifier = FakeMessageClassifier(),
+        rules = FakeRuleStore(),
         advisor = FakeRuleAdvisor() {
     sync = FakeMailSyncService(messages, status: {
       DemoData.accountId: const AccountSyncStatus(accountId: DemoData.accountId, state: AccountSyncState.idling),
@@ -49,6 +50,7 @@ class UiFakes {
   final FakeMessageRepository messages;
   final FakeSettingsRepository settings;
   final FakeMessageClassifier classifier;
+  final FakeRuleStore rules;
   final FakeRuleAdvisor advisor;
   late final FakeMailSyncService sync;
   late final FakeSortCoordinator coordinator;
@@ -62,6 +64,7 @@ class UiFakes {
         mailSyncServiceProvider.overrideWithValue(sync),
         messageClassifierProvider.overrideWithValue(classifier),
         ruleAdvisorProvider.overrideWithValue(advisor),
+        sortRuleStoreProvider.overrideWithValue(rules),
         sortCoordinatorProvider.overrideWith((ref, id) => coordinator),
         deviceIdentityProvider.overrideWithValue(const DeviceIdentity(
             deviceId: DemoData.deviceId, displayName: 'test', platform: DevicePlatform.linux, priority: 30)),

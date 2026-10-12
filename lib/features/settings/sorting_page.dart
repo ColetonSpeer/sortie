@@ -37,12 +37,7 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
   Future<void> _runRulesOnInbox() async {
     setState(() => _runningRules = true);
     try {
-      final rules = await ref.read(sortRuleStoreProvider).load(widget.accountId);
-      final coordinator = ref.read(sortCoordinatorProvider(widget.accountId));
-      var queued = 0;
-      for (final r in rules.where((r) => r.enabled)) {
-        queued += await coordinator.applyRuleToInbox(r.id);
-      }
+      final queued = await ref.read(sortCoordinatorProvider(widget.accountId)).applyRulesToInbox();
       if (!mounted) return;
       final text = queued == 0
           ? 'No inbox messages match your rules right now (only the device doing the sorting can run this)'
@@ -131,6 +126,14 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
             label: '${ai.advisorIntervalHours} h',
             onChanged: (v) => saveAiSettings(ref, (a) => a.copyWith(advisorIntervalHours: v.round())),
           ),
+        ),
+        ListTile(
+          key: const Key('openRules'),
+          leading: const Icon(Icons.rule),
+          title: const Text('Sorting rules'),
+          subtitle: const Text('View, add and edit the rules, including imported Thunderbird filters'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.settingsPage('rules')),
         ),
         ListTile(
           key: const Key('runRulesNow'),

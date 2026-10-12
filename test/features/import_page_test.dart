@@ -23,7 +23,6 @@ void main() {
 
   List<Override> extra(Directory profile) => [
         thunderbirdProfileLocatorProvider.overrideWithValue(FixedProfileLocator([TbProfile(name: 'default', path: profile.path, isDefault: true)])),
-        sortRuleStoreProvider.overrideWithValue(InMemoryRuleStore()),
         loginProbeProviderOverride((a, pw) async {}),
       ];
 

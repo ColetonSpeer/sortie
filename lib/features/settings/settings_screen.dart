@@ -39,6 +39,7 @@ class SettingsScreen extends ConsumerWidget {
         const Divider(),
         link('ai', Icons.auto_awesome_outlined, 'AI backend', ai.kind == AiProviderKind.none ? 'Off' : '${ai.kind.name} · ${ai.model}'),
         link('sorting', Icons.low_priority_outlined, 'Sorting', 'Mode, grace period, thresholds, bootstrap'),
+        link('rules', Icons.rule, 'Sorting rules', 'View, add and edit rules; imported Thunderbird filters'),
         link('privacy', Icons.shield_outlined, 'Privacy', privacySendingLine(ai)),
         link('folders', Icons.folder_outlined, 'Folders', 'Exclusions and descriptions'),
         link('devices', Icons.devices_outlined, 'Devices', 'Which device sorts'),

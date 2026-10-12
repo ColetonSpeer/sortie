@@ -197,4 +197,7 @@ abstract class SortCoordinator {
   /// path, so read-guard and leave-until-read still apply. Only the leader can
   /// do this; other devices return 0.
   Future<int> applyRuleToInbox(String ruleId);
+
+  /// Same for every enabled rule at once (Settings → Rules → Run now).
+  Future<int> applyRulesToInbox();
 }

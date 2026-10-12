@@ -7,6 +7,7 @@ import '../../data/mail/imap_gateway.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/services/services.dart';
+import '../sorter/user_rules.dart' show SortRule;
 import 'lease_manager.dart';
 import 'presence_manager.dart';
 import 'read_guard.dart';
@@ -242,14 +243,24 @@ class LeaderLoop {
     }
   }
 
-  /// Re-runs the classifier over the INBOX messages [test] selects (a newly
-  /// accepted rule). Earlier `kept` / `suggested` decisions are resolved
-  /// first so the normal path takes them again; pending ones are left alone.
-  Future<int> classifyMatching(bool Function(MessageHeader) test) => _serial(() async {
+  /// Re-runs the classifier over the INBOX messages any of [rules] matches
+  /// (a new or imported rule). Earlier `kept` / `suggested` decisions are
+  /// resolved first so the normal path takes them again; pending ones are
+  /// left alone. Rules on the body fetch the text (cached afterwards).
+  Future<int> classifyMatching(List<SortRule> rules) => _serial(() async {
+        final enabled = rules.where((r) => r.enabled).toList();
+        if (enabled.isEmpty) return 0;
+        final needsBody = enabled.any((r) => r.match.bodyContains != null);
         final recent = await _messages.list(MessageQuery(accountId: accountId, folderPath: inbox, limit: 500));
         final hits = <MessageHeader>[];
         for (final h in recent) {
-          if (h.hasSortieDone || !test(h)) continue;
+          if (h.hasSortieDone) continue;
+          var matched = enabled.any((r) => r.match.bodyContains == null && r.match.matches(h));
+          if (!matched && needsBody) {
+            final body = await _bodyTextFor(h);
+            matched = enabled.any((r) => r.match.bodyContains != null && r.match.matches(h, bodyText: body));
+          }
+          if (!matched) continue;
           final d = await _journal.store.decisionForMid(h.messageIdHash);
           if (d != null && (d.status == DecisionStatus.pending || d.status == DecisionStatus.applied || d.status == DecisionStatus.accepted)) continue;
           if (d != null) await _journal.store.setDecisionStatus(d.id, DecisionStatus.resolved);

@@ -205,3 +205,18 @@ learn; correction crosses threshold; veto; decay; eviction). Replay/accuracy dry
 Advisor tests (`rule_advisor_test.dart`): evidence from keep decisions and corrections,
 pattern pass, model pass request shape / validation / dismissed memory / interval gate,
 accept; `suggestion_sync_test.dart` (accept on B -> rule on A); widget test for the cards.
+
+## Rules page and automatic re-runs (2026-10-12)
+
+Settings → Sorting rules lists every rule in evaluation order (imported
+Thunderbird filters, accepted suggestions, hand-made ones) with its criteria,
+destination, per-device hit count, an enable switch and an editor that supports
+several criteria (all / any) and every `RuleMatch` field. Pending AI suggestions
+sit on top of the list.
+
+Whenever the enabled rule set changes on the leading device (local edit, import,
+or a `rules` section applied from the journal) the leader re-runs the rules over
+the inbox: `kept` / `suggested` decisions for matching messages are resolved and
+the messages are classified again, so they get a pending decision. Rules on the
+body fetch the text (cached afterwards). A fingerprint of the enabled rules is
+stored per device (`rulesApplied.<accountId>`) so an unchanged set never re-runs.

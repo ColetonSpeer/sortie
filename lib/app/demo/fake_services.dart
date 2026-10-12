@@ -336,6 +336,12 @@ class FakeSortCoordinator implements SortCoordinator {
     calls.add('applyRuleToInbox:$ruleId');
     return applyRuleCount;
   }
+
+  @override
+  Future<int> applyRulesToInbox() async {
+    calls.add('applyRulesToInbox');
+    return applyRuleCount;
+  }
 }
 
 /// In-memory rule advisor: pending suggestions live in a list; accept /

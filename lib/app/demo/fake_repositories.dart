@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
+import '../../services/sorter/user_rules.dart';
 
 /// In-memory fakes used by widget tests and by `--dart-define=SORTIE_DEMO=true`.
 /// They are deliberately simple: every mutation re-emits the full list.
@@ -230,4 +231,37 @@ class FakeSettingsRepository implements SettingsRepository {
   Future<String?> getString(String key) async => strings[key];
   @override
   Future<void> setString(String key, String? value) async => strings[key] = value;
+}
+
+/// In-memory [SyncableRuleStore] (Settings → Rules in the demo and tests).
+class FakeRuleStore implements SyncableRuleStore {
+  FakeRuleStore([List<SortRule> rules = const []]) : _rules = _Emitter(List.of(rules));
+  final _Emitter<List<SortRule>> _rules;
+  final calls = <String>[];
+
+  List<SortRule> _sorted(String accountId) => _rules.value.where((r) => r.accountId == accountId).toList()
+    ..sort((a, b) => a.priority != b.priority ? a.priority.compareTo(b.priority) : a.id.compareTo(b.id));
+
+  @override
+  Future<List<SortRule>> load(String accountId) async => _sorted(accountId);
+
+  @override
+  Stream<List<SortRule>> watch(String accountId) => _rules.stream.map((_) => _sorted(accountId));
+
+  @override
+  Future<void> upsert(SortRule r, DateTime now) async {
+    calls.add('upsert:${r.id}');
+    _rules.value = [..._rules.value.where((x) => x.id != r.id), r];
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    calls.add('delete:$id');
+    _rules.value = _rules.value.where((x) => x.id != id).toList();
+  }
+
+  @override
+  Future<void> replaceAll(String accountId, List<SortRule> rules, {DateTime? now}) async {
+    _rules.value = [..._rules.value.where((x) => x.accountId != accountId), ...rules];
+  }
 }

@@ -178,6 +178,18 @@ class SortRule {
   /// Optional label (Thunderbird filter name). Shown in the sort log reason.
   final String? name;
 
+  SortRule copyWith({int? priority, RuleMatch? match, RuleAction? action, String? folderPath, bool clearFolder = false, bool? enabled, String? name, bool clearName = false}) => SortRule(
+        id: id,
+        accountId: accountId,
+        priority: priority ?? this.priority,
+        match: match ?? this.match,
+        action: action ?? this.action,
+        folderPath: clearFolder ? null : (folderPath ?? this.folderPath),
+        hits: hits,
+        enabled: enabled ?? this.enabled,
+        name: clearName ? null : (name ?? this.name),
+      );
+
   /// Stable wire format shared between devices through the journal.
   /// `hits` is device-local and deliberately not included.
   Map<String, dynamic> toJson() => {
@@ -240,6 +252,7 @@ abstract class SortRuleStore {
 abstract class SyncableRuleStore implements SortRuleStore {
   Stream<List<SortRule>> watch(String accountId);
   Future<void> replaceAll(String accountId, List<SortRule> rules, {DateTime? now});
+  Future<void> delete(String id);
 }
 
 /// Layer 1a: explicit user rules, lowest priority number first, first match wins.
@@ -305,6 +318,7 @@ class UserRulesService implements SyncableRuleStore {
     });
   }
 
+  @override
   Future<void> delete(String id) async {
     await (_db.delete(_db.userRules)..where((r) => r.id.equals(id))).go();
   }
