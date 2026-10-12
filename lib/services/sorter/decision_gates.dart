@@ -37,7 +37,9 @@ abstract final class DecisionGates {
     if (cfg.mode == SortingMode.off) return SortMode.keep;
     if (g.confidence < cfg.suggestThreshold) return SortMode.keep;
     if (g.confidence < cfg.moveThreshold) return SortMode.suggestOnly;
-    if (cfg.mode == SortingMode.suggestOnly) return SortMode.suggestOnly;
+    // Suggest-only applies to AI and learned decisions; the user's own rules
+    // always execute (like Thunderbird filters).
+    if (cfg.mode == SortingMode.suggestOnly && g.layer != SortLayer.rule) return SortMode.suggestOnly;
     if (g.backlog) return SortMode.suggestOnly;
     if (g.layer == SortLayer.model) {
       if ((g.userFiledCount ?? 0) < newFolderFilings) return SortMode.suggestOnly;

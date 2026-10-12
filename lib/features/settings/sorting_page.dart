@@ -146,6 +146,10 @@ class _SortingBodyState extends ConsumerState<_SortingBody> {
             ),
           ),
         ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text('Off and Suggest apply to AI and learned sorting. Your own rules (including imported Thunderbird filters) always run, subject to the read settings below.'),
+        ),
         if (c.mode == SortingMode.auto && c.inProbation)
           ListTile(
             leading: Icon(Icons.info_outline, color: theme.colorScheme.tertiary),

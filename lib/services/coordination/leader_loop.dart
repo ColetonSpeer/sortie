@@ -281,7 +281,7 @@ class LeaderLoop {
       if (d.isKeep) {
         status = DecisionStatus.kept;
         mode = SortMode.keep;
-      } else if (config.mode == SortingMode.suggestOnly || d.mode == SortMode.suggestOnly) {
+      } else if ((config.mode == SortingMode.suggestOnly && d.layer != SortLayer.rule) || d.mode == SortMode.suggestOnly) {
         status = DecisionStatus.suggested;
         mode = SortMode.suggestOnly;
       } else {

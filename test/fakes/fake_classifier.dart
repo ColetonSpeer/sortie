@@ -5,13 +5,16 @@ import 'package:uuid/uuid.dart';
 /// Scripted classifier for coordination tests: destination chosen by a
 /// substring match on the subject, `keep` otherwise. Records every call.
 class ScriptedClassifier implements MessageClassifier {
-  ScriptedClassifier({Map<String, String>? rules, this.mode = SortMode.moveAfterRead, this.confidence = 0.92})
+  ScriptedClassifier({Map<String, String>? rules, this.mode = SortMode.moveAfterRead, this.confidence = 0.92, this.layer = SortLayer.model})
       : rules = rules ?? {'invoice': 'Finance', 'newsletter': 'Newsletters'};
 
   /// subject-substring -> destination folder.
   final Map<String, String> rules;
   SortMode mode;
   double confidence;
+
+  /// Layer stamped on decisions; `rule` decisions bypass suggest-only mode.
+  final SortLayer layer;
   final classified = <MessageHeader>[];
   final corrections = <Correction>[];
   final _uuid = const Uuid();
@@ -34,7 +37,7 @@ class ScriptedClassifier implements MessageClassifier {
         confidence: dest == null ? 0.3 : confidence,
         reason: dest == null ? 'no rule' : 'subject matches',
         mode: dest == null ? SortMode.keep : mode,
-        layer: SortLayer.rule,
+        layer: layer,
         decidedAt: DateTime.utc(2026, 1, 1),
       ));
     }

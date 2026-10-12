@@ -95,6 +95,7 @@ class SorterService implements MessageClassifier {
   final SettingsRepository _settings;
   final ProviderGetter _provider;
   final Clock _clock;
+  final _autoBootstrapped = <String>{};
   final String _deviceId;
   final SorterTuning _tuning;
   late final SenderStatsService stats;
@@ -148,7 +149,18 @@ class SorterService implements MessageClassifier {
     if (inputs.isEmpty) return const [];
     final now = _clock.now();
     final ai = await _settings.ai();
-    final allProfiles = await profiles.all(accountId);
+    var allProfiles = await profiles.all(accountId);
+    if (allProfiles.isEmpty && !_autoBootstrapped.contains(accountId)) {
+      // No AI bootstrap has run yet (none is needed for rules): build the
+      // folder list from the mailbox so rules and learned stats have targets.
+      _autoBootstrapped.add(accountId);
+      try {
+        await profiles.bootstrap(accountId, config, provider: null, seedStats: true);
+        allProfiles = await profiles.all(accountId);
+      } catch (e) {
+        _log.warning('automatic folder bootstrap failed', e);
+      }
+    }
     final sortable = allProfiles.where((p) => profiles.isSortable(p, config)).toList();
     final allowed = {for (final p in sortable) p.path};
     final neverSort = {for (final p in allProfiles) if (!allowed.contains(p.path)) p.path};
