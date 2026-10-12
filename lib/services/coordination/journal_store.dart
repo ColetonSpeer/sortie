@@ -174,6 +174,19 @@ class JournalStore {
         appliedAt: appliedAt == null ? const Value.absent() : Value(appliedAt.toUtc().millisecondsSinceEpoch),
       ));
 
+  /// First time the leader saw an open decision's message as read, for the
+  /// read-guard grace period; persisted so a restart does not reset it.
+  Future<void> setSeenObservedAt(String mid, DateTime at) => (_db.update(_db.sortDecisions)
+        ..where((t) => t.accountId.equals(_accountId) & t.messageIdHash.equals(mid) & t.status.equals(DecisionStatus.pending.name) & t.seenObservedAt.isNull()))
+      .write(local.SortDecisionsCompanion(seenObservedAt: Value(at.toUtc().millisecondsSinceEpoch)));
+
+  Future<Map<String, DateTime>> seenObservedAtByMid() async {
+    final rows = await (_db.select(_db.sortDecisions)
+          ..where((t) => t.accountId.equals(_accountId) & t.status.equals(DecisionStatus.pending.name) & t.seenObservedAt.isNotNull()))
+        .get();
+    return {for (final r in rows) r.messageIdHash: DateTime.fromMillisecondsSinceEpoch(r.seenObservedAt!, isUtc: true)};
+  }
+
   Future<void> resolveOpenForMid(String mid, DecisionStatus status) => (_db.update(_db.sortDecisions)
         ..where((t) =>
             t.accountId.equals(_accountId) &

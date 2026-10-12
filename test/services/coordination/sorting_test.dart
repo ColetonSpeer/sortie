@@ -30,7 +30,10 @@ void main() {
     final m = h.deliver('Invoice 2');
     h.elapse(const Duration(seconds: 3));
     h.markSeen(m);
-    h.elapse(const Duration(minutes: 6));
+    h.elapse(const Duration(seconds: 5));
+    final row = h.wait((a.db.select(a.db.sortDecisions)..where((t) => t.messageIdHash.equals(m.messageIdHash))).getSingle());
+    expect(row.seenObservedAt, isNotNull, reason: 'first-seen time is persisted so a restart keeps the grace');
+    h.elapse(const Duration(minutes: 6) - const Duration(seconds: 5));
     expect(h.folderOf(m), 'INBOX', reason: 'grace is 7 min');
     h.elapse(const Duration(minutes: 2));
     expect(h.folderOf(m), 'Finance');

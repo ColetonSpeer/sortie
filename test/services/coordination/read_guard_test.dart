@@ -11,6 +11,19 @@ void main() {
   ReadGuardVerdict eval(ReadGuard g, {SortMode mode = SortMode.moveAfterRead, bool seen = false, bool bulk = false, Set<String> held = const {}, Map<String, DateTime> closed = const {}, DateTime? now, SortConfig config = cfg}) =>
       g.evaluate(mid: 'm1', mode: mode, isSeen: seen, isBulk: bulk, heldMids: held, recentlyClosedAt: closed, serverNow: now ?? t0, config: config);
 
+  test('observeSeen reports the first observation and seed restores persisted times without overriding', () {
+    final g = guard();
+    expect(g.observeSeen('m1', t0), isTrue);
+    expect(g.observeSeen('m1', t0.add(const Duration(minutes: 5))), isFalse, reason: 'first observation sticks');
+    g.seed({'m1': t0.add(const Duration(hours: 1)), 'm2': t0.subtract(const Duration(minutes: 10))});
+    expect(g.seenObservedAt('m1'), t0, reason: 'in-memory entry wins');
+    expect(g.seenObservedAt('m2'), t0.subtract(const Duration(minutes: 10)));
+    // A seeded time from before the restart counts toward the grace.
+    final v = g.evaluate(mid: 'm2', mode: SortMode.moveAfterRead, isSeen: true, isBulk: false, heldMids: const {}, recentlyClosedAt: const {}, serverNow: t0, config: cfg);
+    expect(v.allowed, isTrue);
+    expect(v.reason, 'grace-done');
+  });
+
   test('suggestOnly / keep never auto-move', () {
     final g = guard();
     expect(eval(g, mode: SortMode.suggestOnly, seen: true).allowed, isFalse);

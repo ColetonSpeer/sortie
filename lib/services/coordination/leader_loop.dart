@@ -111,15 +111,23 @@ class LeaderLoop {
       if (f.folderPath != inbox) return;
       if (f.header.isSeen) {
         final now = _clock.nowOrNull();
-        if (now != null) _guard.observeSeen(f.header.messageIdHash, now);
+        if (now != null) _observeSeen(f.header.messageIdHash, now);
       }
       scheduleEvaluate();
     }));
+    _guard.seed(await _journal.store.seenObservedAtByMid());
     // Externally moved / deleted pending mail produces no flag event, so
     // re-check on the poll interval as well.
     _pollTimer = Timer.periodic(_timers.pollFallback, (_) => scheduleEvaluate(Duration.zero));
     if (_afterClassify != null) _advisorTimer = Timer.periodic(advisorInterval, (_) => _serial(_runAdvisor).then((_) {}, onError: (_) {}));
     await _serial(reconcile).then((_) {}, onError: _fatal);
+  }
+
+  /// Records the first time a pending message was seen read and persists it
+  /// so the grace period survives a restart. Never throws.
+  void _observeSeen(String mid, DateTime now) {
+    if (!_guard.observeSeen(mid, now)) return;
+    unawaited(_journal.store.setSeenObservedAt(mid, now).catchError((Object e) => _log.fine('persist seen: $e')));
   }
 
   /// Never fatal: a failing advisor must not cost the lease.
@@ -184,7 +192,7 @@ class LeaderLoop {
       final headers = pendingUids.isEmpty ? <MessageHeader>[] : await _ops.fetchHeadersByUids(pendingUids);
       final unknown = <MessageHeader>[];
       for (final h in headers) {
-        if (h.isSeen) _guard.observeSeen(h.messageIdHash, now);
+        if (h.isSeen) _observeSeen(h.messageIdHash, now);
         if (!await _journal.store.hasAnyDecision(h.messageIdHash)) unknown.add(h);
       }
       if (unknown.isNotEmpty) await _classify(unknown);
@@ -201,7 +209,7 @@ class LeaderLoop {
       final uid = d.key.uid;
       if (uid == null) continue;
       final hs = await _ops.fetchHeadersByUids([uid]);
-      if (hs.isNotEmpty && hs.first.messageIdHash == d.key.messageIdHash && hs.first.isSeen) _guard.observeSeen(d.key.messageIdHash, now);
+      if (hs.isNotEmpty && hs.first.messageIdHash == d.key.messageIdHash && hs.first.isSeen) _observeSeen(d.key.messageIdHash, now);
     }
     final config = await _journal.store.config();
     final enabledAt = config.enabledAt;
@@ -342,7 +350,7 @@ class LeaderLoop {
         await _journal.recordResolved(key: d.key, why: 'external-move', epoch: epoch);
         continue;
       }
-      if (h.isSeen) _guard.observeSeen(d.key.messageIdHash, now);
+      if (h.isSeen) _observeSeen(d.key.messageIdHash, now);
       final v = _guard.evaluate(
         mid: d.key.messageIdHash,
         mode: d.mode,

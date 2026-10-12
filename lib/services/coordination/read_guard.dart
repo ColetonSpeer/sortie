@@ -43,7 +43,21 @@ class ReadGuard {
   }
 
   /// First time the leader saw `\Seen` on [mid]; later calls are no-ops.
-  void observeSeen(String mid, DateTime serverNow) => _seenObservedAt.putIfAbsent(mid, () => serverNow);
+  /// Records when [mid] was first seen read; true when this is the first
+  /// observation (callers persist it so the grace survives a restart).
+  bool observeSeen(String mid, DateTime serverNow) {
+    if (_seenObservedAt.containsKey(mid)) return false;
+    _seenObservedAt[mid] = serverNow;
+    return true;
+  }
+
+  /// Restores first-seen times persisted by an earlier run; existing
+  /// in-memory entries win.
+  void seed(Map<String, DateTime> seenAt) {
+    for (final e in seenAt.entries) {
+      _seenObservedAt.putIfAbsent(e.key, () => e.value);
+    }
+  }
   void forget(String mid) {
     _seenObservedAt.remove(mid);
     _localClosedAt.remove(mid);
