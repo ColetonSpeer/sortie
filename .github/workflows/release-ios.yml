@@ -3,8 +3,6 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * 1'
 
 # Signed build needs these repository secrets (from ~/sortie-keys):
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64 (base64 of AuthKey_<id>.p8), APPLE_TEAM_ID,
