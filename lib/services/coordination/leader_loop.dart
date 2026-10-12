@@ -90,6 +90,7 @@ class LeaderLoop {
   Timer? _pollTimer;
   Timer? _advisorTimer;
   Future<void> _chain = Future.value();
+  String? _lastSummary;
   bool _stopped = false;
   int moves = 0;
 
@@ -326,6 +327,7 @@ class LeaderLoop {
     final held = _presence.heldKeys(now);
     final closed = _presence.recentlyClosedAt(now);
     final movers = <(SortDecision, MessageHeader)>[];
+    final blocked = <String, int>{};
     Duration? retry;
     for (final d in open) {
       var h = byUid[d.key.uid];
@@ -353,9 +355,15 @@ class LeaderLoop {
       );
       if (v.allowed) {
         movers.add((d, h));
-      } else if (v.retryAfter != null && (retry == null || v.retryAfter! < retry)) {
-        retry = v.retryAfter;
+      } else {
+        blocked[v.reason] = (blocked[v.reason] ?? 0) + 1;
+        if (v.retryAfter != null && (retry == null || v.retryAfter! < retry)) retry = v.retryAfter;
       }
+    }
+    final summary = 'evaluate: ${open.length} pending, ${movers.length} ready, blocked $blocked, retry ${retry?.inSeconds}s';
+    if (summary != _lastSummary) {
+      _lastSummary = summary;
+      _log.info('epoch $epoch: $summary');
     }
     var moved = 0;
     for (var i = 0; i < movers.length; i += _timers.batchSize) {
@@ -388,6 +396,7 @@ class LeaderLoop {
       await _messages.moveLocally(accountId, inbox, [h.uid], d.destination, newUids: r.uidMapping);
       _guard.forget(d.key.messageIdHash);
       moves++;
+      _log.info('epoch $epoch: moved uid ${h.uid} to ${d.destination}');
       return true;
     } on ImapGatewayException catch (e) {
       if (e.isConnectionLost) rethrow;
