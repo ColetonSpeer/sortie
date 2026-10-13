@@ -164,6 +164,14 @@ void main() {
     expect(result.createdIdentities.single.email, 'alias@example.test');
     expect(result.createdIdentities.single.isDefault, isFalse);
     expect((await rules.load('existing')).length, 11);
+
+    // The onboarding-created identity had no signature: Thunderbird's is filled in.
+    final jane = (await accounts.identities('existing')).singleWhere((i) => i.id == 'i0');
+    expect(jane.signature, 'Jane Doe\nExample Co & Sons');
+    expect(jane.signatureHtml, contains('<b>Jane Doe</b>'));
+    expect(jane.isDefault, isTrue);
+    expect(jane.name, 'Jane');
+    expect(result.skipped.single, contains('signature filled in'));
   });
 
   test('failed login skips the account and reports it', () async {

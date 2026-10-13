@@ -83,15 +83,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       } else {
         _body.text = _sig();
       }
+      // Cursor at the top: the user types above the signature and any quote.
+      _body.selection = const TextSelection.collapsed(offset: 0);
     } catch (e) {
       _error = e.toString();
     }
     if (mounted) setState(() => _ready = true);
   }
 
+  /// Signature block for the body, with the standard `-- ` separator unless
+  /// the stored signature already carries one.
   String _sig() {
     final s = _identity?.signature ?? '';
-    return s.isEmpty ? '' : '\n\n$s';
+    if (s.trim().isEmpty) return '';
+    return s.startsWith('-- ') ? '\n\n$s' : '\n\n-- \n$s';
   }
 
   void _switchIdentity(Identity? next) {

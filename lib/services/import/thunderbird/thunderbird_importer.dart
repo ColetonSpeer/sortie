@@ -132,8 +132,25 @@ class ThunderbirdImporter {
     var hasDefault = existing.any((i) => i.isDefault);
     for (final tbId in tb.identities) {
       if (!selection.identityKeys.contains(tbId.key)) continue;
-      if (known.contains(tbId.email.toLowerCase())) {
-        skipped.add('Identity ${tbId.email} already exists on ${account.displayName}');
+      final prior = existing.where((i) => i.email.toLowerCase() == tbId.email.toLowerCase()).firstOrNull;
+      if (prior != null || known.contains(tbId.email.toLowerCase())) {
+        // An identity created by onboarding has no signature yet: fill it in
+        // from Thunderbird instead of leaving the user to retype it.
+        if (prior != null && prior.signature.trim().isEmpty && tbId.signature.trim().isNotEmpty) {
+          await accounts.upsertIdentity(Identity(
+            id: prior.id,
+            accountId: prior.accountId,
+            name: prior.name,
+            email: prior.email,
+            replyTo: prior.replyTo,
+            signature: tbId.signature,
+            signatureHtml: tbId.signatureHtml,
+            isDefault: prior.isDefault,
+          ));
+          skipped.add('Identity ${tbId.email} already exists on ${account.displayName}; signature filled in from Thunderbird');
+        } else {
+          skipped.add('Identity ${tbId.email} already exists on ${account.displayName}');
+        }
         continue;
       }
       final id = Identity(

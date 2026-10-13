@@ -38,6 +38,30 @@ void main() {
     expect(f.sync.sent.single.$3, ['pat@example.invalid']);
   });
 
+  testWidgets('new message pre-fills the signature with the cursor at the top', (tester) async {
+    final f = UiFakes();
+    await tester.pumpWidget(f.app(const ComposeScreen(accountId: DemoData.accountId)));
+    await tester.pumpAndSettle();
+
+    final body = tester.widget<TextField>(find.byWidgetPredicate((w) => w is TextField && w.expands));
+    expect(body.controller!.text, '\n\n-- \nDemo User (this is fake data)');
+    expect(body.controller!.selection, const TextSelection.collapsed(offset: 0));
+  });
+
+  testWidgets('reply puts the cursor above the signature, and the signature above the quote', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    await tester.pumpWidget(f.app(ComposeScreen(accountId: h.accountId, replyUid: h.uid, sourceFolder: h.folderPath)));
+    await tester.pumpAndSettle();
+
+    final body = tester.widget<TextField>(find.byWidgetPredicate((w) => w is TextField && w.expands));
+    final text = body.controller!.text;
+    expect(text, startsWith('\n\n-- \nDemo User (this is fake data)\n\nOn '));
+    expect(text, contains('wrote:'));
+    expect(body.controller!.selection, const TextSelection.collapsed(offset: 0));
+    expect(tester.widget<EditableText>(find.byType(EditableText).last).focusNode.hasFocus, isTrue);
+  });
+
   test('Quote.pickIdentity falls back to the default identity', () {
     final h = DemoData.messages[0];
     expect(Quote.pickIdentity(DemoData.identities, h)!.id, 'id-main');
