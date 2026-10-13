@@ -99,6 +99,40 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
     return s.startsWith('-- ') ? '\n\n$s' : '\n\n-- \n$s';
   }
 
+  List<MailAddress> _list(RecipientKind k) => switch (k) { RecipientKind.to => _to, RecipientKind.cc => _cc, RecipientKind.bcc => _bcc };
+
+  void _setList(RecipientKind k, List<MailAddress> v) {
+    switch (k) {
+      case RecipientKind.to:
+        _to = v;
+      case RecipientKind.cc:
+        _cc = v;
+      case RecipientKind.bcc:
+        _bcc = v;
+    }
+  }
+
+  Widget _recipients(RecipientKind k, List<MailAddress> suggestions, {bool autofocus = false}) => RecipientField(
+        key: ValueKey('recipients-${k.label}'),
+        kind: k,
+        value: _list(k),
+        onChanged: (v) => setState(() => _setList(k, v)),
+        onMove: (a, to) => _move(a, k, to),
+        suggestions: suggestions,
+        autofocus: autofocus,
+      );
+
+  /// Moves [a] from the [from] line to the [to] line (chip context menu).
+  void _move(MailAddress a, RecipientKind from, RecipientKind to) {
+    if (from == to) return;
+    setState(() {
+      _setList(from, _list(from).where((v) => v != a).toList());
+      final target = _list(to);
+      if (!target.any((v) => v.email.toLowerCase() == a.email.toLowerCase())) _setList(to, [...target, a]);
+      if (to != RecipientKind.to) _showCcBcc = true;
+    });
+  }
+
   void _switchIdentity(Identity? next) {
     if (next == null || next == _identity) return;
     final oldSig = _identity?.signature ?? '';
@@ -248,10 +282,10 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                         ),
                         if (!_showCcBcc) TextButton(onPressed: () => setState(() => _showCcBcc = true), child: const Text('Cc/Bcc')),
                       ]),
-                      RecipientField(label: 'To', value: _to, onChanged: (v) => setState(() => _to = v), suggestions: suggestions, autofocus: _source == null),
+                      _recipients(RecipientKind.to, suggestions, autofocus: _source == null),
                       if (_showCcBcc) ...[
-                        RecipientField(label: 'Cc', value: _cc, onChanged: (v) => setState(() => _cc = v), suggestions: suggestions),
-                        RecipientField(label: 'Bcc', value: _bcc, onChanged: (v) => setState(() => _bcc = v), suggestions: suggestions),
+                        _recipients(RecipientKind.cc, suggestions),
+                        _recipients(RecipientKind.bcc, suggestions),
                       ],
                       TextField(
                         controller: _subject,

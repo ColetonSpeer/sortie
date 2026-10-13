@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sortie/features/compose/compose_screen.dart';
@@ -60,6 +61,40 @@ void main() {
     expect(text, contains('wrote:'));
     expect(body.controller!.selection, const TextSelection.collapsed(offset: 0));
     expect(tester.widget<EditableText>(find.byType(EditableText).last).focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('right-clicking a recipient chip can move it to Cc/Bcc or remove it', (tester) async {
+    final f = UiFakes();
+    await tester.pumpWidget(f.app(const ComposeScreen(accountId: DemoData.accountId)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'name@example.com').first, 'pat@example.invalid');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    Finder chipIn(String line) => find.descendant(of: find.byKey(ValueKey('recipients-$line')), matching: find.byType(InputChip));
+    expect(chipIn('To'), findsOneWidget);
+    expect(find.byKey(const ValueKey('recipients-Cc')), findsNothing);
+
+    await tester.tapAt(tester.getCenter(chipIn('To')), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Move to To'), findsNothing);
+    await tester.tap(find.text('Move to Cc'));
+    await tester.pumpAndSettle();
+    expect(chipIn('To'), findsNothing);
+    expect(chipIn('Cc'), findsOneWidget);
+
+    await tester.tapAt(tester.getCenter(chipIn('Cc')), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move to Bcc'));
+    await tester.pumpAndSettle();
+    expect(chipIn('Cc'), findsNothing);
+    expect(chipIn('Bcc'), findsOneWidget);
+
+    await tester.longPress(chipIn('Bcc'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.byType(InputChip), findsNothing);
   });
 
   test('Quote.pickIdentity falls back to the default identity', () {

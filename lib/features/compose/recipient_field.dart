@@ -4,20 +4,34 @@ import 'package:flutter/services.dart';
 import '../../domain/entities/entities.dart';
 import 'quote.dart';
 
+/// Which recipient line a [RecipientField] edits.
+enum RecipientKind {
+  to('To'),
+  cc('Cc'),
+  bcc('Bcc');
+
+  const RecipientKind(this.label);
+  final String label;
+}
+
 /// To/Cc/Bcc input: address chips plus a text field with autocomplete.
+/// Right-click (or long-press) a chip for a menu to move it to another
+/// line or remove it; [onMove] receives the target line.
 class RecipientField extends StatefulWidget {
   const RecipientField({
     super.key,
-    required this.label,
+    required this.kind,
     required this.value,
     required this.onChanged,
     required this.suggestions,
+    this.onMove,
     this.autofocus = false,
   });
-  final String label;
+  final RecipientKind kind;
   final List<MailAddress> value;
   final ValueChanged<List<MailAddress>> onChanged;
   final List<MailAddress> suggestions;
+  final void Function(MailAddress address, RecipientKind to)? onMove;
   final bool autofocus;
 
   @override
@@ -62,6 +76,28 @@ class _RecipientFieldState extends State<RecipientField> {
     _controller.clear();
   }
 
+  void _remove(MailAddress a) => widget.onChanged(widget.value.where((v) => v != a).toList());
+
+  Future<void> _chipMenu(BuildContext context, MailAddress a, Offset at) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final choice = await showMenu<Object>(
+      context: context,
+      position: RelativeRect.fromRect(at & const Size(1, 1), Offset.zero & overlay.size),
+      items: [
+        if (widget.onMove != null)
+          for (final k in RecipientKind.values)
+            if (k != widget.kind) PopupMenuItem<Object>(value: k, child: Text('Move to ${k.label}')),
+        const PopupMenuItem<Object>(value: 'remove', child: Text('Remove')),
+      ],
+    );
+    if (!mounted || choice == null) return;
+    if (choice is RecipientKind) {
+      widget.onMove!(a, choice);
+    } else {
+      _remove(a);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -72,16 +108,20 @@ class _RecipientFieldState extends State<RecipientField> {
           width: 44,
           child: Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: Text(widget.label, style: TextStyle(color: cs.onSurfaceVariant)),
+            child: Text(widget.kind.label, style: TextStyle(color: cs.onSurfaceVariant)),
           ),
         ),
         Expanded(
           child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6, runSpacing: 4, children: [
             for (final a in widget.value)
-              InputChip(
-                label: Text(a.name?.isNotEmpty == true ? '${a.name} <${a.email}>' : a.email),
-                tooltip: a.email,
-                onDeleted: () => widget.onChanged(widget.value.where((v) => v != a).toList()),
+              GestureDetector(
+                onSecondaryTapUp: (d) => _chipMenu(context, a, d.globalPosition),
+                onLongPressStart: (d) => _chipMenu(context, a, d.globalPosition),
+                child: InputChip(
+                  label: Text(a.name?.isNotEmpty == true ? '${a.name} <${a.email}>' : a.email),
+                  tooltip: a.email,
+                  onDeleted: () => _remove(a),
+                ),
               ),
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 180),
