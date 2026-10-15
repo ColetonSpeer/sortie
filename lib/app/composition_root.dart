@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding, AppLifecycleState;
 import 'package:flutter_riverpod/misc.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
@@ -124,7 +125,7 @@ class SortieServices {
       accounts: s.accounts.watchAll(),
       arrivals: s.sync.inboxArrivals,
       sink: s.notifications,
-      mode: () => s._deviceSettings.effectiveNotifyMode(mobile: !isDesktop),
+      mode: s._notifyMode,
       judge: importance.judge,
       clock: s.clock,
     );
@@ -145,6 +146,14 @@ class SortieServices {
     _aiProviderKey = sig;
     _aiProvider = buildProvider(ai, key);
     _log.info('AI provider: ${_aiProvider?.modelId ?? 'none'}');
+  }
+
+  /// Phones stay quiet while the app is on screen (the inbox is in view);
+  /// desktops notify even with the window open, as asked.
+  NotifyMode _notifyMode() {
+    final mobile = !isDesktop;
+    if (mobile && WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) return NotifyMode.off;
+    return _deviceSettings.effectiveNotifyMode(mobile: mobile);
   }
 
   void _onAccounts(List<Account> list) {
