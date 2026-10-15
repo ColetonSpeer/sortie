@@ -35,17 +35,20 @@ abstract final class PendingOpCodec {
             'hashes': o.messageIdHashes,
             'uids': o.uids,
             'permanent': o.permanent,
+            if (o.messageIds.isNotEmpty) 'mids': o.messageIds,
           },
         final AppendOp o => {
             'folder': o.folderPath,
             'raw': o.rawMessagePath,
             'flags': o.flags.toList()..sort(),
+            if (o.supersedesMessageId != null) 'supersedes': o.supersedesMessageId,
           },
         final SendOp o => {
             'identity': o.identityId,
             'raw': o.rawMessagePath,
             'recipients': o.recipients,
             'smtpAccepted': o.smtpAccepted,
+            if (o.draftMessageId != null) 'draft': o.draftMessageId,
           },
       };
 
@@ -90,6 +93,7 @@ abstract final class PendingOpCodec {
           messageIdHashes: strs('hashes'),
           uids: ints('uids'),
           permanent: (j['permanent'] as bool?) ?? false,
+          messageIds: strs('mids'),
         );
       case 'append':
         return AppendOp(
@@ -99,6 +103,7 @@ abstract final class PendingOpCodec {
           folderPath: j['folder'] as String,
           rawMessagePath: j['raw'] as String,
           flags: strs('flags').toSet(),
+          supersedesMessageId: j['supersedes'] as String?,
         );
       case 'send':
         return SendOp(
@@ -109,6 +114,7 @@ abstract final class PendingOpCodec {
           rawMessagePath: j['raw'] as String,
           recipients: strs('recipients'),
           smtpAccepted: (j['smtpAccepted'] as bool?) ?? false,
+          draftMessageId: j['draft'] as String?,
         );
       default:
         throw FormatException('unknown pending op type $type');

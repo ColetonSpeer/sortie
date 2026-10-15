@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../compose/open_compose.dart';
 import '../../router/app_router.dart';
 import '../mailbox/folder_list.dart';
 import '../mailbox/message_list.dart';
@@ -80,10 +81,12 @@ class AdaptiveScaffold extends ConsumerWidget {
     return Scaffold(
       drawer: Drawer(child: _rail()),
       body: _list(showMenuButton: true),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Compose',
-        onPressed: () => context.push(Routes.composeWith(accountId: accountId)),
-        child: const Icon(Icons.edit_outlined),
+      floatingActionButton: Consumer(
+        builder: (context, ref, _) => FloatingActionButton(
+          tooltip: 'Compose',
+          onPressed: () => openCompose(context, ref, accountId: accountId),
+          child: const Icon(Icons.edit_outlined),
+        ),
       ),
     );
   }
@@ -107,7 +110,7 @@ class FolderRail extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
               child: FilledButton.tonalIcon(
-                onPressed: () => context.push(Routes.composeWith(accountId: accountId)),
+                onPressed: () => openCompose(context, ref, accountId: accountId),
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Compose'),
               ),

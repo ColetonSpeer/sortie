@@ -172,16 +172,26 @@ class PendingOpExecutor {
 
   Future<void> _delete(DeleteOp o, ImapGateway gw) async {
     final sel = await _select(gw, o.folderPath);
-    final uids = await _resolveUids(gw, o.accountId, sel, o.uidValidity, o.uids, o.messageIdHashes);
+    final uids = {...await _resolveUids(gw, o.accountId, sel, o.uidValidity, o.uids, o.messageIdHashes)};
+    for (final mid in o.messageIds) {
+      uids.addAll(await gw.searchByMessageId(mid));
+    }
     if (uids.isEmpty) return;
     if (!o.permanent) {
       final trash = await _special(o.accountId, SpecialUse.trash);
       if (trash != null && trash.path != o.folderPath) {
-        await gw.move(uids, trash.path);
+        await gw.move(uids.toList(), trash.path);
         return;
       }
     }
-    await gw.expunge(uids);
+    await gw.expunge(uids.toList());
+  }
+
+  /// Expunges every copy of [messageId] in [path]; a no-op when absent.
+  Future<void> _expungeByMessageId(ImapGateway gw, String path, String messageId) async {
+    await _select(gw, path);
+    final uids = await gw.searchByMessageId(messageId);
+    if (uids.isNotEmpty) await gw.expunge(uids);
   }
 
   Future<String?> _messageIdOf(List<int> raw) async {
@@ -209,6 +219,7 @@ class PendingOpExecutor {
         }
       }
     }
+    if (o.supersedesMessageId != null) await _expungeByMessageId(gw, o.folderPath, o.supersedesMessageId!);
     await _deleteFile(o.rawMessagePath);
   }
 
@@ -240,6 +251,10 @@ class PendingOpExecutor {
       } on ImapGatewayException catch (e) {
         if (!(e.isConnectionLost && await _alreadyAppended(gw, sent.path, raw))) rethrow;
       }
+    }
+    if (o.draftMessageId != null) {
+      final drafts = await _special(o.accountId, SpecialUse.drafts);
+      if (drafts != null) await _expungeByMessageId(gw, drafts.path, o.draftMessageId!);
     }
     await _deleteFile(o.rawMessagePath);
   }

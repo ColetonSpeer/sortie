@@ -108,6 +108,13 @@ class ComposedMessage {
 
 /// Builds RFC 5322 messages with enough_mail's [em.MessageBuilder].
 class MessageComposer {
+  /// The `Message-ID` header of [raw], or null when it has none.
+  static String? messageIdOf(List<int> raw) {
+    final head = String.fromCharCodes(raw.length > 65536 ? raw.sublist(0, 65536) : raw);
+    final m = RegExp(r'^message-id:[ \t]*(<[^>]+>)', caseSensitive: false, multiLine: true).firstMatch(head);
+    return m?.group(1);
+  }
+
   MessageComposer({Clock? clock}) : clock = clock ?? SystemClock();
   final Clock clock;
 

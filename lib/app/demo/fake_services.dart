@@ -17,7 +17,9 @@ class FakeMailSyncService implements MailSyncService {
   final Map<String, MessageBody> bodiesByHash = {};
   final Map<String, List<int>> attachmentBytes = {};
   final List<(String, String, List<String>, List<int>)> sent = [];
-  final List<(String, List<int>)> drafts = [];
+  final List<(String, List<int>, String?)> drafts = [];
+  final List<String> discarded = [];
+  final List<String?> sentDraftIds = [];
 
   void setStatus(AccountSyncStatus s) {
     _status[s.accountId] = s;
@@ -102,10 +104,16 @@ class FakeMailSyncService implements MailSyncService {
   @override
   Future<List<int>> rawMessage(String accountId, String folderPath, int uid) async => [];
   @override
-  Future<void> saveDraft(String accountId, List<int> raw) async => drafts.add((accountId, raw));
+  Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId}) async =>
+      drafts.add((accountId, raw, supersedesMessageId));
+
   @override
-  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw) async =>
-      sent.add((accountId, identityId, recipients, raw));
+  Future<void> discardDraft(String accountId, String messageId) async => discarded.add(messageId);
+  @override
+  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId}) async {
+    sent.add((accountId, identityId, recipients, raw));
+    sentDraftIds.add(draftMessageId);
+  }
   @override
   ImapGatewayFactory gatewayFactory(String accountId) => throw UnsupportedError('fake');
   @override

@@ -135,6 +135,42 @@ void main() {
     expect(server.mailboxes['Drafts']!.messages.length, 1, reason: 'no duplicate');
   });
 
+  test('AppendOp with supersedesMessageId replaces the previous draft copy', () async {
+    server.createMailbox('Drafts', specialUse: SpecialUse.drafts);
+    files['/spool/d1.eml'] = utf8.encode('From: test@example.com\r\nSubject: draft\r\nMessage-ID: <d1@example.com>\r\n\r\nv1');
+    await exec.execute(AppendOp(id: 'd1', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d1.eml', flags: {r'\Draft'}), gw);
+    files['/spool/d2.eml'] = utf8.encode('From: test@example.com\r\nSubject: draft\r\nMessage-ID: <d2@example.com>\r\n\r\nv2');
+    await exec.execute(AppendOp(id: 'd2', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d2.eml', flags: {r'\Draft'}, supersedesMessageId: '<d1@example.com>'), gw);
+    final drafts = server.mailboxes['Drafts']!.messages.values.toList();
+    expect(drafts.length, 1);
+    expect(drafts.single.headers['message-id'], '<d2@example.com>');
+    // Superseding a copy that is already gone is harmless.
+    files['/spool/d3.eml'] = utf8.encode('From: test@example.com\r\nSubject: draft\r\nMessage-ID: <d3@example.com>\r\n\r\nv3');
+    await exec.execute(AppendOp(id: 'd3', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d3.eml', supersedesMessageId: '<gone@example.com>'), gw);
+    expect(server.mailboxes['Drafts']!.messages.length, 2);
+  });
+
+  test('SendOp removes the autosaved draft after the Sent copy; DeleteOp resolves raw Message-IDs', () async {
+    server.createMailbox('Drafts', specialUse: SpecialUse.drafts);
+    await t.folders.replaceAll(testAccountId, [
+      for (final f in await gw.listFolders()) Folder(accountId: testAccountId, path: f.path, name: f.name, delimiter: f.delimiter, specialUse: f.specialUse),
+    ]);
+    files['/spool/d.eml'] = utf8.encode('From: test@example.com\r\nSubject: hi\r\nMessage-ID: <auto@example.com>\r\n\r\ndraft');
+    await exec.execute(AppendOp(id: 'a', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d.eml'), gw);
+    files['/spool/d2.eml'] = utf8.encode('From: test@example.com\r\nSubject: other\r\nMessage-ID: <other@example.com>\r\n\r\ndraft');
+    await exec.execute(AppendOp(id: 'a2', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d2.eml'), gw);
+    expect(server.mailboxes['Drafts']!.messages.length, 2);
+
+    files['/spool/s.eml'] = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: hi\r\nMessage-ID: <final@example.com>\r\nDate: Thu, 1 Jan 2026 10:00:00 +0000\r\n\r\nbody');
+    await exec.execute(SendOp(id: 's', accountId: testAccountId, createdAt: t.clock.now(), identityId: 'id1', rawMessagePath: '/spool/s.eml', recipients: const ['bob@example.com'], draftMessageId: '<auto@example.com>'), gw);
+    expect(smtp.sent.length, 1);
+    expect(server.mailboxes['Sent']!.messages.length, 1);
+    expect(server.mailboxes['Drafts']!.messages.values.map((m) => m.headers['message-id']), ['<other@example.com>']);
+
+    await exec.execute(DeleteOp(id: 'x', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', uidValidity: 0, messageIdHashes: const [], uids: const [], permanent: true, messageIds: const ['<other@example.com>']), gw);
+    expect(server.mailboxes['Drafts']!.messages, isEmpty);
+  });
+
   test('SendOp: SMTP once, Sent-APPEND retried, never re-sent after acceptance', () async {
     final raw = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: hi\r\nMessage-ID: <send1@example.com>\r\nDate: Thu, 1 Jan 2026 10:00:00 +0000\r\n\r\nbody');
     files['/spool/s.eml'] = raw;

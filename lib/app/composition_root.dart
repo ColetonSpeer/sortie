@@ -31,6 +31,7 @@ import '../domain/services/services.dart';
 import '../platform/background/background_runner.dart';
 import '../platform/device_info.dart';
 import '../services/calendar/calendar_service.dart';
+import '../services/compose/draft_request.dart';
 import '../services/compose/message_composer.dart' as mc;
 import '../services/coordination/coordination_service.dart';
 import '../services/notifications/notification_service.dart';
@@ -284,22 +285,7 @@ class SortieServices {
     await EnoughSmtpGateway().testLogin(account, password);
   }
 
-  Future<List<int>> compose(ComposeDraft d) async {
-    final r = mc.ComposeRequest(
-      identity: d.identity,
-      mode: d.inReplyTo != null ? mc.ComposeMode.reply : mc.ComposeMode.newMessage,
-      to: d.to.map((a) => a.toString()).toList(),
-      cc: d.cc.map((a) => a.toString()).toList(),
-      bcc: d.bcc.map((a) => a.toString()).toList(),
-      subject: d.subject,
-      text: d.bodyText,
-      attachments: [for (final a in d.attachments) mc.ComposeAttachment(name: a.fileName, mimeType: a.mimeType, bytes: a.bytes)],
-      inReplyTo: d.inReplyTo,
-      references: d.references,
-      includeSignature: false,
-    );
-    return composer.compose(r).raw;
-  }
+  Future<List<int>> compose(ComposeDraft d) async => composer.compose(requestForDraft(d)).raw;
 
   Future<List<String>> listModels(AiSettings ai, String? apiKey) async {
     final provider = buildProvider(ai, apiKey);

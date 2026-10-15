@@ -80,7 +80,10 @@ class CoordFakeSyncService implements MailSyncService {
   @override
   Future<List<int>> rawMessage(String accountId, String folderPath, int uid) async => const [];
   @override
-  Future<void> saveDraft(String accountId, List<int> raw) async {}
+  Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId}) async {}
+
   @override
-  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw) async {}
+  Future<void> discardDraft(String accountId, String messageId) async {}
+  @override
+  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId}) async {}
 }

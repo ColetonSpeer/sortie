@@ -80,6 +80,19 @@ docker compose -f tool/docker-compose.dovecot.yml up -d
 flutter test test/data/integration --dart-define=IMAP_TEST_HOST=localhost --dart-define=IMAP_TEST_PORT=3143
 ```
 
+### Desktop windows
+
+On Linux/Windows/macOS the app runs one Flutter engine with several native
+windows (`multiview_desktop`): the main window plus one window per open
+composer. All windows share the same riverpod container (`globalScope` in
+`main.dart`), so the composer reads and writes the same services as the main
+window with no IPC. `sortie --compose` opens a new message at startup.
+
+Drafts autosave 20 s after the first unsaved change; each save replaces the
+previous copy in Drafts and sending removes it. The Linux runner needs the
+three `multiview_desktop_linux_runner_*` calls in `my_application.cc`, and
+`linux/CMakeLists.txt` links X11 into the plugin.
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android

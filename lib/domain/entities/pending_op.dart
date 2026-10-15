@@ -58,12 +58,17 @@ class DeleteOp extends PendingOp {
     required this.messageIdHashes,
     required this.uids,
     this.permanent = false,
+    this.messageIds = const [],
   });
   final String folderPath;
   final int uidValidity;
   final List<String> messageIdHashes;
   final List<int> uids;
   final bool permanent;
+
+  /// Raw Message-IDs resolved on the server at execution time, for messages
+  /// that may not be in the local cache (e.g. a just-autosaved draft).
+  final List<String> messageIds;
 }
 
 class AppendOp extends PendingOp {
@@ -74,12 +79,17 @@ class AppendOp extends PendingOp {
     required this.folderPath,
     required this.rawMessagePath,
     this.flags = const {},
+    this.supersedesMessageId,
   });
   final String folderPath;
 
   /// File in app support dir holding the RFC 5322 bytes.
   final String rawMessagePath;
   final Set<String> flags;
+
+  /// Message-ID of the previous copy of the same draft, expunged from
+  /// [folderPath] once this one is stored (draft autosave).
+  final String? supersedesMessageId;
 }
 
 class SendOp extends PendingOp {
@@ -91,10 +101,14 @@ class SendOp extends PendingOp {
     required this.rawMessagePath,
     required this.recipients,
     this.smtpAccepted = false,
+    this.draftMessageId,
   });
   final String identityId;
   final String rawMessagePath;
   final List<String> recipients;
+
+  /// Autosaved draft of this message, expunged from Drafts after the send.
+  final String? draftMessageId;
 
   /// Once SMTP returned 2xx this is never retried; only the Sent APPEND is.
   final bool smtpAccepted;

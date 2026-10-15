@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
+import '../compose/open_compose.dart';
 import '../../router/app_router.dart';
 import '../mailbox/message_actions.dart';
 import '../mailbox/threading.dart';
@@ -173,6 +174,8 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
         actions: h == null
             ? const []
             : [
+                if (h.flags.contains(r'\Draft'))
+                  IconButton(tooltip: 'Edit draft', icon: const Icon(Icons.edit_outlined), onPressed: () => _compose(draft: h)),
                 IconButton(tooltip: 'Reply', icon: const Icon(Icons.reply), onPressed: () => _compose(reply: h)),
                 IconButton(tooltip: 'Reply all', icon: const Icon(Icons.reply_all), onPressed: () => _compose(replyAll: h)),
                 IconButton(tooltip: 'Forward', icon: const Icon(Icons.forward), onPressed: () => _compose(forward: h)),
@@ -291,15 +294,18 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     }
   }
 
-  void _compose({MessageHeader? reply, MessageHeader? replyAll, MessageHeader? forward}) {
-    final src = reply ?? replyAll ?? forward!;
-    context.push(Routes.composeWith(
+  void _compose({MessageHeader? reply, MessageHeader? replyAll, MessageHeader? forward, MessageHeader? draft}) {
+    final src = reply ?? replyAll ?? forward ?? draft!;
+    openCompose(
+      context,
+      ref,
       accountId: widget.accountId,
       folder: src.folderPath,
-      reply: reply?.uid.toString(),
-      replyAll: replyAll?.uid.toString(),
-      forward: forward?.uid.toString(),
-    ));
+      reply: reply?.uid,
+      replyAll: replyAll?.uid,
+      forward: forward?.uid,
+      draft: draft?.uid,
+    );
   }
 }
 

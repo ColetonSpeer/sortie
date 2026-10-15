@@ -53,8 +53,16 @@ abstract class MailSyncService {
   Future<MessageBody> body(String accountId, String folderPath, int uid);
   Future<List<int>> attachment(String accountId, String folderPath, int uid, String partId);
   Future<List<int>> rawMessage(String accountId, String folderPath, int uid);
-  Future<void> saveDraft(String accountId, List<int> raw);
-  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw);
+  /// Stores [raw] in Drafts. [supersedesMessageId] names the previous copy
+  /// of the same draft, removed once the new one is stored.
+  Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId});
+
+  /// Permanently removes a draft by Message-ID (compose discarded).
+  Future<void> discardDraft(String accountId, String messageId);
+
+  /// [draftMessageId] is the autosaved draft of this message, removed after
+  /// the send succeeds.
+  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId});
 
   /// A dedicated connection for the coordinator's control folder.
   ImapGatewayFactory gatewayFactory(String accountId);

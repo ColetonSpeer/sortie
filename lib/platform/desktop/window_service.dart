@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:window_manager/window_manager.dart';
 
-/// Desktop window + tray: min size, title, minimize-to-tray on close,
-/// tray menu (Show / Sync now / Quit), single-instance lock file.
-class WindowService with WindowListener, TrayListener {
+/// Desktop main window + tray: minimize-to-tray on close, tray menu
+/// (Show / Sync now / Quit), single-instance lock file. The window itself
+/// is managed by multiview_desktop (the same engine also hosts the compose
+/// windows); [init] must run after `runMultiApp`.
+class WindowService with TrayListener implements WindowListenerCallbacks {
   WindowService._();
   static final instance = WindowService._();
   static final _log = Logger('window');
@@ -18,6 +20,8 @@ class WindowService with WindowListener, TrayListener {
   Future<void> Function()? onQuit;
   RandomAccessFile? _lock;
   bool _trayReady = false;
+  MultiViewDesktop? _main;
+  bool _quitting = false;
 
   /// Returns false when another instance already holds the lock.
   Future<bool> acquireSingleInstance() async {
@@ -39,15 +43,16 @@ class WindowService with WindowListener, TrayListener {
     }
   }
 
+  /// Hooks the main window's close button and sets up the tray.
   Future<void> init() async {
-    await windowManager.ensureInitialized();
-    const options = WindowOptions(minimumSize: Size(900, 600), size: Size(1280, 800), center: true, title: 'Sortie');
-    await windowManager.waitUntilReadyToShow(options, () async {
-      await windowManager.setPreventClose(true);
-      await windowManager.show();
-      await windowManager.focus();
-    });
-    windowManager.addListener(this);
+    try {
+      final main = MultiViewDesktop.main;
+      _main = main;
+      main.setPreventClose(true);
+      MultiViewDesktop.addListenerForView(main.id, this);
+    } catch (e) {
+      _log.warning('main window hooks unavailable', e);
+    }
     await _initTray();
   }
 
@@ -69,11 +74,15 @@ class WindowService with WindowListener, TrayListener {
   }
 
   Future<void> show() async {
-    await windowManager.show();
-    await windowManager.focus();
+    final m = _main;
+    if (m == null) return;
+    m.show();
+    m.focus();
   }
 
   Future<void> quit() async {
+    if (_quitting) return;
+    _quitting = true;
     try {
       await onQuit?.call();
     } catch (e) {
@@ -81,18 +90,55 @@ class WindowService with WindowListener, TrayListener {
     }
     if (_trayReady) await trayManager.destroy();
     await _lock?.close();
-    await windowManager.setPreventClose(false);
-    await windowManager.destroy();
+    try {
+      _main?.setPreventClose(false);
+      await MultiViewDesktop.closeApp(closeMode: CloseMode.destroy);
+    } catch (e) {
+      _log.warning('closeApp failed: $e');
+    }
+    exit(0);
+  }
+
+  // ------------------------------------------------------------ main window
+
+  @override
+  FutureOr<bool> onWindowClose() {
+    if (minimizeToTray() && _trayReady) {
+      _main?.hide();
+      return false;
+    }
+    unawaited(quit());
+    return false;
   }
 
   @override
-  void onWindowClose() async {
-    if (minimizeToTray() && _trayReady) {
-      await windowManager.hide();
-    } else {
-      await quit();
-    }
-  }
+  void onWindowFocus() {}
+  @override
+  void onWindowBlur() {}
+  @override
+  void onWindowMaximize() {}
+  @override
+  void onWindowUnmaximize() {}
+  @override
+  void onWindowMinimize() {}
+  @override
+  void onWindowRestore() {}
+  @override
+  void onWindowResize() {}
+  @override
+  void onWindowResized() {}
+  @override
+  void onWindowMove() {}
+  @override
+  void onWindowMoved() {}
+  @override
+  void onWindowEnterFullScreen() {}
+  @override
+  void onWindowLeaveFullScreen() {}
+  @override
+  void onWindowEvent(String eventName) {}
+
+  // ------------------------------------------------------------ tray
 
   @override
   void onTrayIconMouseDown() => show();

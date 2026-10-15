@@ -338,22 +338,41 @@ class SyncEngine implements MailSyncService {
   }
 
   @override
-  Future<void> saveDraft(String accountId, List<int> raw) async {
-    final drafts = (await folders.all(accountId)).where((f) => f.specialUse == SpecialUse.drafts).firstOrNull;
+  Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId}) async {
     final path = await _spool(accountId, raw);
     await pendingOps.enqueue(AppendOp(
       id: _uuid.v4(),
       accountId: accountId,
       createdAt: clock.now().toUtc(),
-      folderPath: drafts?.path ?? 'Drafts',
+      folderPath: await _draftsPath(accountId),
       rawMessagePath: path,
       flags: {r'\Draft', r'\Seen'},
+      supersedesMessageId: supersedesMessageId,
     ));
     _kick(accountId);
   }
 
   @override
-  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw) async {
+  Future<void> discardDraft(String accountId, String messageId) async {
+    await pendingOps.enqueue(DeleteOp(
+      id: _uuid.v4(),
+      accountId: accountId,
+      createdAt: clock.now().toUtc(),
+      folderPath: await _draftsPath(accountId),
+      uidValidity: 0,
+      messageIdHashes: const [],
+      uids: const [],
+      permanent: true,
+      messageIds: [messageId],
+    ));
+    _kick(accountId);
+  }
+
+  Future<String> _draftsPath(String accountId) async =>
+      (await folders.all(accountId)).where((f) => f.specialUse == SpecialUse.drafts).firstOrNull?.path ?? 'Drafts';
+
+  @override
+  Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId}) async {
     if (recipients.isEmpty) throw ArgumentError('no recipients');
     final path = await _spool(accountId, raw);
     await pendingOps.enqueue(SendOp(
@@ -363,6 +382,7 @@ class SyncEngine implements MailSyncService {
       identityId: identityId,
       rawMessagePath: path,
       recipients: recipients,
+      draftMessageId: draftMessageId,
     ));
     _kick(accountId);
   }
@@ -370,12 +390,13 @@ class SyncEngine implements MailSyncService {
   // ---------------------------------------------------------------- coordinator hooks
 
   @override
-  ImapGatewayFactory gatewayFactory(String accountId) {
-    final a = _accounts[accountId];
-    if (a == null) throw StateError('account $accountId not loaded; call startAccount first');
-    final f = _gatewayFactory(a);
-    return () => f();
-  }
+  ImapGatewayFactory gatewayFactory(String accountId) => () {
+        // Resolved per call: the coordinator is built from the accounts watch,
+        // which can fire before start() has loaded the account.
+        final a = _accounts[accountId];
+        if (a == null) throw StateError('account $accountId not loaded; call startAccount first');
+        return _gatewayFactory(a)();
+      };
 
   @override
   Future<String> password(String accountId) async {

@@ -74,6 +74,14 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# multiview_desktop calls Xlib directly but its own CMake file links only
+# GTK, which leaves XSetErrorHandler/XQueryExtension unresolved at link time.
+cmake_policy(SET CMP0079 NEW)
+find_package(X11)
+if(TARGET multiview_desktop_plugin AND X11_FOUND)
+  target_link_libraries(multiview_desktop_plugin PRIVATE ${X11_LIBRARIES})
+endif()
+
 
 # === Installation ===
 # By default, "installing" just makes a relocatable bundle in the build
