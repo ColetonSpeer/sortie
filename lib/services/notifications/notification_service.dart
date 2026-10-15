@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 
 import '../../domain/entities/entities.dart';
 import '../../router/app_router.dart';
+import 'new_mail_notifier.dart';
 
 /// Local notifications on all platforms. Payload = in-app route to open.
 final notificationServiceProvider = Provider<NotificationService>((ref) {
@@ -16,7 +17,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return s;
 });
 
-class NotificationService {
+class NotificationService implements NewMailSink {
   NotificationService([FlutterLocalNotificationsPlugin? plugin]) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   static final _log = Logger('notifications');
@@ -31,6 +32,7 @@ class NotificationService {
   /// Routes from tapped notifications (also the launch notification, once).
   Stream<String> get taps => _taps.stream;
 
+  @override
   Future<void> init() async {
     if (_ready || kIsWeb) return;
     try {
@@ -101,6 +103,7 @@ class NotificationService {
       );
 
   /// One notification per message, grouped per account; tap opens it.
+  @override
   Future<void> notifyNewMail(MessageHeader h) async {
     if (!_ready) return;
     final from = h.from?.name?.isNotEmpty == true ? h.from!.name! : (h.from?.email ?? 'New mail');
@@ -114,6 +117,30 @@ class NotificationService {
       );
     } catch (e) {
       _log.warning('notifyNewMail failed', e);
+    }
+  }
+
+  /// One notification for a burst of new mail; tap opens the inbox.
+  @override
+  Future<void> notifyNewMailSummary(String accountId, List<MessageHeader> headers) async {
+    if (!_ready || headers.isEmpty) return;
+    final senders = <String>{};
+    for (final h in headers) {
+      final from = h.from?.name?.isNotEmpty == true ? h.from!.name! : (h.from?.email ?? '');
+      if (from.isNotEmpty) senders.add(from);
+      if (senders.length == 3) break;
+    }
+    final more = headers.length > senders.length ? ' and more' : '';
+    try {
+      await _plugin.show(
+        id: _id('summary:$accountId'),
+        title: '${headers.length} new messages',
+        body: senders.isEmpty ? 'New mail' : '${senders.join(', ')}$more',
+        notificationDetails: _details(channelId: _newMailChannel, channelName: 'New mail', group: 'account:$accountId'),
+        payload: Routes.mailbox(accountId, 'INBOX'),
+      );
+    } catch (e) {
+      _log.warning('notifyNewMailSummary failed', e);
     }
   }
 

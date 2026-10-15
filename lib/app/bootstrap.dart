@@ -68,9 +68,8 @@ class _SortieBootstrapState extends ConsumerState<SortieBootstrap> {
       if (s != null) _applySettings(s);
     }, fireImmediately: true);
 
-    if (ref.read(deviceSettingsProvider).asData?.value.notifyNewMail ?? true) {
-      await notifications.requestPermission();
-    }
+    final mode = (ref.read(deviceSettingsProvider).asData?.value ?? const DeviceSettings()).effectiveNotifyMode(mobile: !isDesktop);
+    if (mode != NotifyMode.off) await notifications.requestPermission();
   }
 
   Future<void> _applySettings(DeviceSettings s) async {

@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
+import '../../platform/device_info.dart';
 import '../../router/app_router.dart';
+import 'notifications_page.dart';
 import 'settings_common.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -43,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
         link('privacy', Icons.shield_outlined, 'Privacy', privacySendingLine(ai)),
         link('folders', Icons.folder_outlined, 'Folders', 'Exclusions and descriptions'),
         link('devices', Icons.devices_outlined, 'Devices', 'Which device sorts'),
-        link('notifications', Icons.notifications_outlined, 'Notifications', device.notifyNewMail ? 'On' : 'Off'),
+        link('notifications', Icons.notifications_outlined, 'Notifications', notifyModeLabel(device.effectiveNotifyMode(mobile: !isDesktop))),
         link('calendar', Icons.calendar_month_outlined, 'Calendar', 'Reminders, week start, sync, Google'),
         link('diagnostics', Icons.bug_report_outlined, 'Diagnostics', 'Logs, version, export'),
         const Divider(),

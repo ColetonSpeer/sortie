@@ -59,12 +59,14 @@ class SyncEngine implements MailSyncService {
   final _statuses = <String, AccountSyncStatus>{};
   final _statusCtrl = StreamController<Map<String, AccountSyncStatus>>.broadcast();
   final _newInbox = <String, StreamController<List<MessageHeader>>>{};
+  final _arrivals = <String, StreamController<List<MessageHeader>>>{};
   final _flags = <String, StreamController<FlagsObservation>>{};
   final _forwards = <String, List<StreamSubscription<dynamic>>>{};
   StreamSubscription<List<Account>>? _accountsSub;
   bool _started = false;
 
   StreamController<List<MessageHeader>> _inboxCtrl(String id) => _newInbox.putIfAbsent(id, StreamController<List<MessageHeader>>.broadcast);
+  StreamController<List<MessageHeader>> _arrivalCtrl(String id) => _arrivals.putIfAbsent(id, StreamController<List<MessageHeader>>.broadcast);
   StreamController<FlagsObservation> _flagCtrl(String id) => _flags.putIfAbsent(id, StreamController<FlagsObservation>.broadcast);
 
   // ---------------------------------------------------------------- lifecycle
@@ -142,6 +144,7 @@ class SyncEngine implements MailSyncService {
     _forwards[accountId] = [
       session.status.listen(_publish),
       session.newInbox.listen(_inboxCtrl(accountId).add),
+      session.arrivals.listen(_arrivalCtrl(accountId).add),
       session.flagChanges.listen(_flagCtrl(accountId).add),
     ];
     _publish(session.currentStatus);
@@ -202,6 +205,10 @@ class SyncEngine implements MailSyncService {
 
   @override
   Stream<List<MessageHeader>> newInboxMessages(String accountId) => _inboxCtrl(accountId).stream;
+
+  /// INBOX mail that arrived after the account was caught up (no initial
+  /// window, no UIDVALIDITY resync). See [AccountSyncSession.arrivals].
+  Stream<List<MessageHeader>> inboxArrivals(String accountId) => _arrivalCtrl(accountId).stream;
 
   @override
   Stream<FlagsObservation> flagChanges(String accountId) => _flagCtrl(accountId).stream;

@@ -77,6 +77,7 @@ class AccountSyncSession {
 
   final _status = StreamController<AccountSyncStatus>.broadcast();
   final _newInbox = StreamController<List<MessageHeader>>.broadcast();
+  final _arrivals = StreamController<List<MessageHeader>>.broadcast();
   final _flags = StreamController<FlagsObservation>.broadcast();
   final _requests = <_Request>[];
   Completer<void> _wake = Completer<void>();
@@ -93,6 +94,11 @@ class AccountSyncSession {
   Stream<AccountSyncStatus> get status => _status.stream;
   AccountSyncStatus get currentStatus => _current;
   Stream<List<MessageHeader>> get newInbox => _newInbox.stream;
+
+  /// Like [newInbox] but only for mail that arrived while this session was
+  /// already caught up: the initial window and UIDVALIDITY resyncs are not
+  /// arrivals. Feeds notifications.
+  Stream<List<MessageHeader>> get arrivals => _arrivals.stream;
   Stream<FlagsObservation> get flagChanges => _flags.stream;
   ImapCapabilities? get capabilities => _caps;
   bool get isDegraded => _degraded;
@@ -122,6 +128,7 @@ class AccountSyncSession {
     await stop();
     await _status.close();
     await _newInbox.close();
+    await _arrivals.close();
     await _flags.close();
   }
 
@@ -374,6 +381,7 @@ class AccountSyncSession {
   Future<FolderSyncResult> _syncFolder(String path) async {
     final r = await withCommand((gw) => folderSync.sync(gw, path));
     if (path == 'INBOX' && r.newMessages.isNotEmpty && !_newInbox.isClosed) _newInbox.add(r.newMessages);
+    if (path == 'INBOX' && r.newMessages.isNotEmpty && !r.initial && !r.uidValidityChanged && !_arrivals.isClosed) _arrivals.add(r.newMessages);
     if (r.flagChanges.isNotEmpty && !_flags.isClosed) {
       final at = clock.now();
       for (final h in r.flagChanges) {

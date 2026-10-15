@@ -34,6 +34,7 @@ import '../services/calendar/calendar_service.dart';
 import '../services/compose/draft_request.dart';
 import '../services/compose/message_composer.dart' as mc;
 import '../services/coordination/coordination_service.dart';
+import '../services/notifications/new_mail_notifier.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/sorter/sorter_pipeline.dart';
 import '../services/sync/sync_engine.dart';
@@ -66,6 +67,7 @@ class SortieServices {
 
   /// Owned here so calendar reminders can reach it; the bootstrap inits it.
   final notifications = NotificationService();
+  late final NewMailNotifier newMail;
   final clock = SystemClock();
 
   final wake = WakeDetector();
@@ -117,6 +119,15 @@ class SortieServices {
     );
     s.composer = mc.MessageComposer(clock: s.clock);
     s._buildCalendar();
+    final importance = ImportanceContext(accounts: s.accounts, folders: s.folders, messages: s.messages, clock: s.clock);
+    s.newMail = NewMailNotifier(
+      accounts: s.accounts.watchAll(),
+      arrivals: s.sync.inboxArrivals,
+      sink: s.notifications,
+      mode: () => s._deviceSettings.effectiveNotifyMode(mobile: !isDesktop),
+      judge: importance.judge,
+      clock: s.clock,
+    );
 
     await s._refreshAiProvider(await s.settings.ai());
     s._subs.add(s.settings.watchAi().listen(s._refreshAiProvider));
@@ -210,6 +221,7 @@ class SortieServices {
   }
 
   Future<void> start() async {
+    newMail.start();
     await sync.start();
     unawaited(calendar.start());
     final startup = _coordinators.values.toList();
@@ -230,6 +242,7 @@ class SortieServices {
 
   Future<void> stop() async {
     await wake.dispose();
+    await newMail.stop();
     for (final c in _coordinators.values) {
       await c.stop();
     }

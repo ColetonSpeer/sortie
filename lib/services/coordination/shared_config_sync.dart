@@ -284,7 +284,6 @@ class SharedConfigSync {
       final d = await _deps.settings.device();
       await _deps.settings.saveDevice(d.copyWith(
         threadedView: dev['threaded'] as bool?,
-        notifyNewMail: dev['notify'] as bool?,
         loadRemoteImages: dev['remoteImages'] as bool?,
         themeMode: dev['theme'] as String?,
       ));
@@ -308,7 +307,7 @@ class SharedConfigSync {
   /// `{ai, device}`; only the device fields that are not per-device.
   static Map<String, dynamic> prefsBody(AiSettings ai, DeviceSettings d) => {
         'ai': ai.toJson(),
-        'device': {'threaded': d.threadedView, 'notify': d.notifyNewMail, 'remoteImages': d.loadRemoteImages, 'theme': d.themeMode},
+        'device': {'threaded': d.threadedView, 'remoteImages': d.loadRemoteImages, 'theme': d.themeMode},
       };
 
   /// Sections for a snapshot: only those the journal has carried, so a

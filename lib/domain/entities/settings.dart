@@ -219,6 +219,9 @@ class SortConfig {
       );
 }
 
+/// Which new INBOX messages raise a notification on this device.
+enum NotifyMode { off, all, important }
+
 /// Device-local preferences that are not shared.
 class DeviceSettings {
   const DeviceSettings({
@@ -227,7 +230,7 @@ class DeviceSettings {
     this.androidForegroundService = false,
     this.minimizeToTray = true,
     this.launchAtStartup = false,
-    this.notifyNewMail = true,
+    this.notifyMode,
     this.loadRemoteImages = false,
     this.themeMode = 'system',
     this.threadedView = true,
@@ -238,7 +241,10 @@ class DeviceSettings {
   final bool androidForegroundService;
   final bool minimizeToTray;
   final bool launchAtStartup;
-  final bool notifyNewMail;
+
+  /// Null = platform default: every message on desktop, important mail only
+  /// on phones (see [effectiveNotifyMode]). Never shared between devices.
+  final NotifyMode? notifyMode;
   final bool loadRemoteImages;
   final String themeMode;
 
@@ -248,13 +254,15 @@ class DeviceSettings {
   /// How HTML mail opens by default: `auto` (rendered HTML) or `plainText`.
   final String htmlMailMode;
 
+  NotifyMode effectiveNotifyMode({required bool mobile}) => notifyMode ?? (mobile ? NotifyMode.important : NotifyMode.all);
+
   DeviceSettings copyWith({
     bool? mayLead,
     bool? preferThisDevice,
     bool? androidForegroundService,
     bool? minimizeToTray,
     bool? launchAtStartup,
-    bool? notifyNewMail,
+    NotifyMode? notifyMode,
     bool? loadRemoteImages,
     String? themeMode,
     bool? threadedView,
@@ -266,7 +274,7 @@ class DeviceSettings {
         androidForegroundService: androidForegroundService ?? this.androidForegroundService,
         minimizeToTray: minimizeToTray ?? this.minimizeToTray,
         launchAtStartup: launchAtStartup ?? this.launchAtStartup,
-        notifyNewMail: notifyNewMail ?? this.notifyNewMail,
+        notifyMode: notifyMode ?? this.notifyMode,
         loadRemoteImages: loadRemoteImages ?? this.loadRemoteImages,
         themeMode: themeMode ?? this.themeMode,
         threadedView: threadedView ?? this.threadedView,
@@ -279,7 +287,7 @@ class DeviceSettings {
         'fgService': androidForegroundService,
         'tray': minimizeToTray,
         'autostart': launchAtStartup,
-        'notify': notifyNewMail,
+        'notifyMode': notifyMode?.name,
         'remoteImages': loadRemoteImages,
         'theme': themeMode,
         'threaded': threadedView,
@@ -292,10 +300,23 @@ class DeviceSettings {
         androidForegroundService: (j['fgService'] as bool?) ?? false,
         minimizeToTray: (j['tray'] as bool?) ?? true,
         launchAtStartup: (j['autostart'] as bool?) ?? false,
-        notifyNewMail: (j['notify'] as bool?) ?? true,
+        notifyMode: _notifyMode(j),
         loadRemoteImages: (j['remoteImages'] as bool?) ?? false,
         themeMode: (j['theme'] as String?) ?? 'system',
         threadedView: (j['threaded'] as bool?) ?? true,
         htmlMailMode: (j['htmlMode'] as String?) ?? 'auto',
       );
+
+  /// `notifyMode` wins; the pre-mode boolean `notify: false` maps to off and
+  /// `notify: true` to the platform default.
+  static NotifyMode? _notifyMode(Map<String, dynamic> j) {
+    final raw = j['notifyMode'];
+    if (raw is String) {
+      for (final m in NotifyMode.values) {
+        if (m.name == raw) return m;
+      }
+    }
+    if (j['notify'] == false) return NotifyMode.off;
+    return null;
+  }
 }

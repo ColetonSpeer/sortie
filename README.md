@@ -93,6 +93,19 @@ previous copy in Drafts and sending removes it. The Linux runner needs the
 three `multiview_desktop_linux_runner_*` calls in `my_application.cc`, and
 `linux/CMakeLists.txt` links X11 into the plugin.
 
+### Notifications
+
+New-mail notifications are a per-device choice (Settings → Notifications) and
+are never shared through the mail account: *Every message* (default on
+computers), *Important only* (default on phones) or *Off*. "Important" is
+decided from headers alone, no model calls: flagged mail, people you have
+written to (Sent folder, answered mail), replies in your conversations, and
+mail addressed directly to you by a person. Mailing lists, bulk and
+auto-submitted mail, automated senders (`no-reply@`, `notifications@`, ...)
+and mail where you are only copied stay quiet. Mail already read on another
+device, your own copies and anything older than a day are never announced;
+bursts of more than eight messages collapse into one summary.
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android
