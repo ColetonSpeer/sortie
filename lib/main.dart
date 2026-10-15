@@ -57,6 +57,9 @@ Future<void> main(List<String> args) async {
       home: (_, _) => const SortieBootstrap(),
       globalScope: (child) => UncontrolledProviderScope(container: container, child: child),
       config: MultiAppConfig(
+        // CloseMode.none is flagged experimental; closing the main window is
+        // intercepted by WindowService (hide to tray) either way.
+        // ignore: experimental_member_use
         generalParams: const MultiPlatformParams(closeMode: CloseMode.none, closeAppAfterLastWindowClosed: false),
         mainWindowOptions: const WindowOptions(
           title: 'Sortie',
