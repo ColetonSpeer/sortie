@@ -10,6 +10,8 @@ import 'css_declarations.dart';
 /// - `bgcolor`, `<font color>`, `<center>` and `align` become CSS
 /// - images are clamped to the viewport while keeping their aspect ratio
 /// - `<body>` styling (`bgcolor`, `text`, `style`) survives on a wrapper div
+/// - a coloured cell whose only content is one link becomes tappable as a
+///   whole ("bulletproof button" mail markup)
 class LayoutNormalizer {
   const LayoutNormalizer();
 
@@ -96,8 +98,58 @@ class LayoutNormalizer {
     for (final child in body.children.toList()) {
       visit(child);
     }
+    _fillCellsWithLoneLinks(body);
     _wrapBodyStyle(doc, body);
     return contentWidth;
+  }
+
+  static const _inlineWrappers = {'p', 'span', 'div', 'font', 'b', 'strong', 'em', 'i', 'u', 'center'};
+  static const _tableWrappers = {'td', 'th', 'tr', 'tbody', 'thead', 'tfoot', 'table'};
+
+  /// Mail "buttons" are a coloured cell holding a single link. The renderer
+  /// draws the cell at full width but only the link text (plus its padding)
+  /// reacts to taps, so most of the visible button is dead. Making the link
+  /// and its inline wrappers block-level lets the tap target cover the cell.
+  static void _fillCellsWithLoneLinks(dom.Element body) {
+    for (final a in body.querySelectorAll('a[href]')) {
+      if (a.querySelector('a') != null || a.text.trim().isEmpty && a.querySelector('img') == null) continue;
+      final chain = <dom.Element>[];
+      dom.Element cur = a;
+      var found = false;
+      while (true) {
+        final parent = cur.parent;
+        if (parent == null || !_isLoneChild(cur, parent)) break;
+        if (_hasBackground(parent)) {
+          found = true;
+          break;
+        }
+        final pname = parent.localName ?? '';
+        if (_inlineWrappers.contains(pname)) {
+          chain.add(parent);
+        } else if (!_tableWrappers.contains(pname)) {
+          break;
+        }
+        cur = parent;
+      }
+      if (!found) continue;
+      for (final el in [a, ...chain]) {
+        final decls = replaceDeclaration(parseDeclarations(el.attributes['style'] ?? ''), 'display', 'block');
+        el.attributes['style'] = serializeDeclarations(decls);
+      }
+    }
+  }
+
+  static bool _isLoneChild(dom.Element child, dom.Element parent) =>
+      parent.nodes.every((n) => identical(n, child) || n is dom.Comment || (n is dom.Text && n.text.trim().isEmpty));
+
+  static bool _hasBackground(dom.Element el) {
+    if ((el.attributes['background'] ?? '').trim().isNotEmpty) return true;
+    for (final d in parseDeclarations(el.attributes['style'] ?? '')) {
+      if (d.property != 'background' && d.property != 'background-color') continue;
+      final v = d.value.trim().toLowerCase();
+      if (v.isNotEmpty && v != 'transparent' && v != 'none' && v != 'inherit') return true;
+    }
+    return false;
   }
 
   /// Keeps `<body bgcolor text style>` effective after the body tag itself is
