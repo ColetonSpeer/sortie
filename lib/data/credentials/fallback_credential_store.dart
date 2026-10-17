@@ -2,58 +2,101 @@ import 'package:logging/logging.dart';
 
 import '../../domain/repositories/repositories.dart';
 
-/// Uses the platform secure store and falls back to [fallback] when it fails
-/// (no Secret Service on Linux, keystore errors on odd Android builds).
-/// Once the primary fails the store sticks to the fallback for the process
-/// lifetime so reads and writes stay consistent.
+/// The platform secure store failed and the fallback has no value for the
+/// key. Callers must treat this as "try again later", never as "no credential".
+class CredentialStoreUnavailable implements Exception {
+  const CredentialStoreUnavailable(this.cause);
+  final Object cause;
+  @override
+  String toString() => 'CredentialStoreUnavailable: $cause';
+}
+
+/// Uses the platform secure store and falls back to [fallback] when it fails.
+///
+/// Two kinds of failure exist. On Linux without a Secret Service (or odd
+/// Android builds) the primary never works: the store sticks to the fallback
+/// so reads and writes stay consistent, and a missing value means "absent".
+/// On iOS/macOS the keychain is unavailable only while the device is locked
+/// (background refresh): with [transientPrimaryFailures] the primary is
+/// retried after [retryPrimaryAfter], and a read that finds nothing in the
+/// fallback throws [CredentialStoreUnavailable] instead of answering null.
 class FallbackCredentialStore implements CredentialStore {
-  FallbackCredentialStore({required CredentialStore primary, required CredentialStore fallback})
-      : _primary = primary,
-        _fallback = fallback;
+  FallbackCredentialStore({
+    required CredentialStore primary,
+    required CredentialStore fallback,
+    this.transientPrimaryFailures = false,
+    this.retryPrimaryAfter = const Duration(minutes: 1),
+    DateTime Function()? now,
+  })  : _primary = primary,
+        _fallback = fallback,
+        _now = now ?? DateTime.now;
 
   final CredentialStore _primary;
   final CredentialStore _fallback;
+  final bool transientPrimaryFailures;
+  final Duration retryPrimaryAfter;
+  final DateTime Function() _now;
   final _log = Logger('sortie.credentials');
-  bool _usingFallback = false;
+  DateTime? _primaryFailedAt;
+  Object? _lastFailure;
 
-  bool get usingFallback => _usingFallback;
+  bool get usingFallback {
+    final at = _primaryFailedAt;
+    if (at == null) return false;
+    return !transientPrimaryFailures || _now().difference(at) < retryPrimaryAfter;
+  }
 
-  Future<T> _run<T>(Future<T> Function(CredentialStore) op) async {
-    if (!_usingFallback) {
-      try {
-        return await op(_primary);
-      } catch (e) {
-        _log.warning('secure storage unavailable, using encrypted file store: ${e.runtimeType}');
-        _usingFallback = true;
-      }
-    }
-    return op(_fallback);
+  void _degrade(Object e) {
+    _log.warning('secure storage unavailable, using encrypted file store: ${e.runtimeType}');
+    _primaryFailedAt = _now();
+    _lastFailure = e;
   }
 
   @override
-  Future<String?> read(String key) => _run((s) async {
-        final v = await s.read(key);
-        if (v == null && identical(s, _primary)) {
-          // Value may have been written while degraded earlier.
-          try {
-            return await _fallback.read(key);
-          } catch (_) {
-            return null;
-          }
+  Future<String?> read(String key) async {
+    if (!usingFallback) {
+      try {
+        final v = await _primary.read(key);
+        if (v != null) return v;
+        // Value may have been written while degraded earlier.
+        try {
+          return await _fallback.read(key);
+        } catch (_) {
+          return null;
         }
-        return v;
-      });
+      } catch (e) {
+        _degrade(e);
+      }
+    }
+    final v = await _fallback.read(key);
+    if (v == null && transientPrimaryFailures) throw CredentialStoreUnavailable(_lastFailure ?? 'secure storage unavailable');
+    return v;
+  }
 
   @override
-  Future<void> write(String key, String value) => _run((s) => s.write(key, value));
+  Future<void> write(String key, String value) async {
+    if (!usingFallback) {
+      try {
+        await _primary.write(key, value);
+        return;
+      } catch (e) {
+        _degrade(e);
+      }
+    }
+    await _fallback.write(key, value);
+  }
 
   @override
-  Future<void> delete(String key) => _run((s) async {
-        await s.delete(key);
-        if (identical(s, _primary)) {
-          try {
-            await _fallback.delete(key);
-          } catch (_) {}
-        }
-      });
+  Future<void> delete(String key) async {
+    if (!usingFallback) {
+      try {
+        await _primary.delete(key);
+      } catch (e) {
+        _degrade(e);
+      }
+    }
+    try {
+      await _fallback.delete(key);
+    } catch (_) {}
+  }
 }

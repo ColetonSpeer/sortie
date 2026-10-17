@@ -395,8 +395,9 @@ class CoordinationService implements SortCoordinator {
     if (wantLead) {
       // Runs outside the evaluation chain: claiming and leading re-enter
       // _evaluate themselves and must not wait on this evaluation.
+      final fast = active == null && _nobodyHome(eval);
       _setState(CoordinationState.candidate);
-      unawaited(_becomeCandidate(gen));
+      unawaited(_becomeCandidate(gen, skipBackoff: fast, handoff: !fast));
       return;
     }
     _setState(CoordinationState.follower);
@@ -407,7 +408,22 @@ class CoordinationService implements SortCoordinator {
     }
   }
 
-  Future<void> _becomeCandidate(int gen, {bool skipBackoff = false}) async {
+  /// The previous leader is gone for good: its lease was released, or it
+  /// stopped beating more than two TTLs ago, and no higher-priority device
+  /// is present. Then the claim backoff and the handoff wait only delay the
+  /// takeover; a phone opened for half a minute never got to sort at all.
+  /// A cold start with no lease history keeps the backoff (simultaneous
+  /// starts still need it to spread their claims).
+  bool _nobodyHome(LeaseEvaluation eval) {
+    final newest = eval.holders[eval.epochMax];
+    if (newest == null) return false;
+    final presence = _presence;
+    if (presence != null && presence.fresh(eval.serverNow).any((p) => p.info.priority > _me.priority)) return false;
+    if (newest.released) return true;
+    return newest.lastBeatAt.isBefore(eval.serverNow.subtract(timers.leaseTTL * 2));
+  }
+
+  Future<void> _becomeCandidate(int gen, {bool skipBackoff = false, bool handoff = true}) async {
     final lease = _lease;
     if (lease == null) return;
     _setState(CoordinationState.candidate);
@@ -421,7 +437,7 @@ class CoordinationService implements SortCoordinator {
     if (gen != _generation || !_running) return;
     if (r.won) {
       try {
-        await _becomeLeader(gen, r.epoch!);
+        await _becomeLeader(gen, r.epoch!, handoff: handoff);
       } catch (e) {
         _onConnectionError(gen, e);
       }

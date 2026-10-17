@@ -407,7 +407,13 @@ class SyncEngine implements MailSyncService {
 
   @override
   Future<String> password(String accountId) async {
-    final pw = await credentials.read(CredentialStore.accountPassword(accountId));
+    final String? pw;
+    try {
+      pw = await credentials.read(CredentialStore.accountPassword(accountId));
+    } catch (e) {
+      // Keychain locked or store busy: retry with backoff, not an auth failure.
+      throw ImapGatewayException('credential store unavailable: $e', cause: e);
+    }
     if (pw == null) throw ImapGatewayException('no password stored for account $accountId', isAuthFailure: true);
     return pw;
   }

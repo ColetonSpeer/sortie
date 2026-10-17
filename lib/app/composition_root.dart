@@ -87,6 +87,9 @@ class SortieServices {
     s.credentials = FallbackCredentialStore(
       primary: SecureStorageCredentialStore(),
       fallback: await EncryptedFileCredentialStore.inAppSupportDir(),
+      // The keychain is unreadable while an iPhone is locked (background
+      // refresh); that must not turn into "no password stored".
+      transientPrimaryFailures: Platform.isIOS || Platform.isMacOS,
     );
     s.accounts = DriftAccountRepository(s.db);
     s.folders = DriftFolderRepository(s.db);

@@ -139,6 +139,28 @@ void main() {
     expect(phone.state, CoordinationState.follower);
   });
 
+  coordinationTest('a phone arriving long after the leader vanished takes over at once and sorts the backlog', (h) {
+    final desk = h.addDevice('ddd', priority: LeaderPriority.desktop);
+    desk.service.start();
+    h.elapse(const Duration(seconds: 40));
+    expect(desk.isLeader, isTrue);
+    h.deliver('while the desk led');
+    h.elapse(const Duration(seconds: 10));
+    expect(h.ofType('decision'), isNotEmpty);
+    h.wait(desk.service.stop(graceful: false));
+    h.elapse(const Duration(minutes: 30));
+    final phone = h.addDevice('ppp', priority: LeaderPriority.ios);
+    phone.service.start();
+    // Claim + confirm window only: no backoff.
+    h.elapse(const Duration(seconds: 14));
+    expect(phone.isLeader, isTrue);
+    expect(phone.service.epoch, 2);
+    // No handoff wait either: the leader loop is already running.
+    h.deliver('arrived after the takeover', notify: [phone]);
+    h.elapse(const Duration(seconds: 4));
+    expect(h.ofType('decision').where((d) => d.deviceId == phone.id), isNotEmpty, reason: 'classified right after the takeover');
+  });
+
   coordinationTest('graceful release -> fast takeover well before TTL', (h) {
     final a = h.addDevice('aaa');
     final b = h.addDevice('bbb');
