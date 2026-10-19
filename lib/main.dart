@@ -31,8 +31,8 @@ Future<void> main(List<String> args) async {
   final log = Logger('main');
 
   if (isDesktop) {
-    if (!await WindowService.instance.acquireSingleInstance()) {
-      log.info('another Sortie instance is running; exiting');
+    if (!await WindowService.instance.acquireSingleInstance(args)) {
+      log.info('another Sortie instance is running; handed it the launch and exiting');
       exit(0);
     }
   }
@@ -79,6 +79,14 @@ Future<void> main(List<String> args) async {
   // (desktop launcher action).
   if (args.contains('--compose') && services != null && isDesktop) {
     unawaited(_composeFromCli(services));
+  }
+  // A later launch (shortcut, launcher) while this instance is in the tray
+  // raises the window and honours its `--compose`.
+  final running = services;
+  if (running != null && isDesktop) {
+    WindowService.instance.serveInstanceRequests((a) {
+      if (a.contains('--compose')) unawaited(_composeFromCli(running));
+    });
   }
 }
 

@@ -6,6 +6,8 @@ import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tray_manager/tray_manager.dart';
 
+import 'instance_requests.dart';
+
 /// Desktop main window + tray: minimize-to-tray on close, tray menu
 /// (Show / Sync now / Quit), single-instance lock file. The window itself
 /// is managed by multiview_desktop (the same engine also hosts the compose
@@ -19,12 +21,15 @@ class WindowService with TrayListener implements WindowListenerCallbacks {
   Future<void> Function()? onSyncNow;
   Future<void> Function()? onQuit;
   RandomAccessFile? _lock;
+  InstanceRequests? _requests;
   bool _trayReady = false;
   MultiViewDesktop? _main;
   bool _quitting = false;
 
-  /// Returns false when another instance already holds the lock.
-  Future<bool> acquireSingleInstance() async {
+  /// Returns false when another instance already holds the lock; [args] are
+  /// then handed to that instance, which raises its window (and opens a
+  /// composer for `--compose`).
+  Future<bool> acquireSingleInstance(List<String> args) async {
     try {
       final dir = await getApplicationSupportDirectory();
       final f = File('${dir.path}${Platform.pathSeparator}sortie.lock');
@@ -33,14 +38,25 @@ class WindowService with TrayListener implements WindowListenerCallbacks {
         await raf.lock(FileLock.exclusive);
       } on FileSystemException {
         await raf.close();
+        await InstanceRequests(dir).send(args);
         return false;
       }
       _lock = raf;
+      _requests = InstanceRequests(dir);
       return true;
     } catch (e) {
       _log.warning('single-instance guard unavailable', e);
       return true;
     }
+  }
+
+  /// Starts serving launches of further instances: each one raises the
+  /// window; [onArgs] gets its arguments (e.g. `--compose`).
+  void serveInstanceRequests(void Function(List<String> args) onArgs) {
+    _requests?.watch((args) {
+      unawaited(show());
+      onArgs(args);
+    });
   }
 
   /// Hooks the main window's close button and sets up the tray.
