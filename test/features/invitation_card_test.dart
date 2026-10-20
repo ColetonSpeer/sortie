@@ -57,4 +57,26 @@ void main() {
     expect(find.text('Accept'), findsNothing, reason: 'already accepted; the other answers stay available');
     expect(find.text('Decline'), findsOneWidget);
   });
+
+  testWidgets('an invitation that only comes as an .ics attachment is picked up', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[1];
+    f.sync.bodiesByHash[h.messageIdHash] = const MessageBody(
+      text: 'See attached',
+      attachments: [AttachmentInfo(partId: '2', fileName: 'invite.ics', mimeType: 'application/ics', size: 10)],
+    );
+    f.sync.attachmentBytes['2'] = request.codeUnits;
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) => f.sync.send(a, i, r, raw),
+      identities: f.accounts.identities,
+      settings: f.settings,
+    );
+    await tester.pumpWidget(f.app(
+      MessageScreen(accountId: h.accountId, folderPath: h.folderPath, uid: h.uid, standalone: false),
+      extra: [invitationServiceProvider.overrideWithValue(svc)],
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('invitationCard')), findsOneWidget);
+  });
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,7 +76,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
         _header = h;
         _key = h.key;
         _lastFolder = h.folderPath;
-        _body = ref.read(mailSyncServiceProvider).body(h.accountId, h.folderPath, h.uid);
+        _body = loadBodyWithCalendar(ref.read(mailSyncServiceProvider), h);
       });
       _hold();
       if (!h.isSeen) {
@@ -384,4 +385,27 @@ class _ConversationBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Loads the body and, for mail cached before invitation support (or
+/// invitations that only come as an attachment), pulls the `.ics` part so
+/// the invitation card can show.
+Future<MessageBody> loadBodyWithCalendar(MailSyncService sync, MessageHeader h) async {
+  final body = await sync.body(h.accountId, h.folderPath, h.uid);
+  if (body.calendar != null) return body;
+  final candidates = [...body.attachments, ...h.attachments];
+  for (final a in candidates) {
+    final mt = a.mimeType.toLowerCase();
+    final isCal = mt.startsWith('text/calendar') || mt == 'application/ics' || a.fileName.toLowerCase().endsWith('.ics');
+    if (!isCal) continue;
+    try {
+      final text = utf8.decode(await sync.attachment(h.accountId, h.folderPath, h.uid, a.partId), allowMalformed: true);
+      if (text.contains('BEGIN:VCALENDAR')) {
+        return MessageBody(text: body.text, html: body.html, inlineParts: body.inlineParts, attachments: body.attachments, calendar: text);
+      }
+    } catch (_) {
+      // Leave the body as it is; the mail still reads fine without the card.
+    }
+  }
+  return body;
 }
