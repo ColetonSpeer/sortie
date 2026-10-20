@@ -122,6 +122,18 @@ default):
   only while on screen, for about 30 s after you leave, and in the short
   background-refresh windows iOS grants.
 
+### Meeting invitations
+
+A mail that carries a `text/calendar` part (inline alternative as Exchange
+and Google send it, or an `.ics` attachment) shows an invitation card above
+the body: title, time, place, organizer, and Accept / Tentative / Decline.
+Answering mails the organizer an iTIP `METHOD:REPLY` (as a
+`text/calendar; method=REPLY` alternative plus `reply.ics`), which Exchange,
+Google and most calendar servers apply automatically, and puts the event in
+a local "Invitations" calendar unless a synced calendar already has it.
+Cancellations show a card with "Remove from calendar"; replies to your own
+invitations show who answered what. The answer is remembered per device.
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android

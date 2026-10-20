@@ -36,7 +36,7 @@ class SortieDatabase extends _$SortieDatabase {
   SortieDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +66,9 @@ class SortieDatabase extends _$SortieDatabase {
             await m.createTable(sortEvidence);
             await m.createTable(ruleSuggestions);
             await _createAdvisorIndexes();
+          }
+          if (from < 5) {
+            await m.addColumn(messageBodies, messageBodies.calendarText);
           }
         },
         beforeOpen: (details) async {

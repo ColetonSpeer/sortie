@@ -145,11 +145,15 @@ class MessageHeader {
 }
 
 class MessageBody {
-  const MessageBody({required this.text, this.html, this.inlineParts = const {}, this.attachments = const []});
+  const MessageBody({required this.text, this.html, this.inlineParts = const {}, this.attachments = const [], this.calendar});
 
   /// Plain text (decoded, or derived from HTML when the mail has none).
   final String text;
   final String? html;
+
+  /// The `text/calendar` part (meeting invitation, update, cancellation or
+  /// reply) when the mail carries one.
+  final String? calendar;
 
   /// cid: -> bytes for inline images.
   final Map<String, List<int>> inlineParts;

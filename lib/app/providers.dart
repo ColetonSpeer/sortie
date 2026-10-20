@@ -8,6 +8,7 @@ import '../domain/repositories/calendar_repository.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
 import '../services/calendar/calendar_service.dart';
+import '../services/calendar/invitations.dart';
 import '../services/coordination/coordination_service.dart' show CoordinationService, SharedConfigSyncEvent;
 import '../services/import/calendar_import_sink.dart';
 import '../services/import/thunderbird/thunderbird_importer.dart';
@@ -68,6 +69,9 @@ final autodiscoveryProvider =
 /// Test IMAP + SMTP login for an account with the given password; throws on failure.
 final loginProbeProvider =
     Provider<Future<void> Function(Account account, String password)>((_) => _unbound('loginProbe'));
+
+/// Answers meeting invitations (iTIP reply mail + local calendar).
+final invitationServiceProvider = Provider<InvitationService>((_) => _unbound('invitationService'));
 
 /// Builds RFC 5322 bytes from a draft (the compose module's MessageComposer).
 final composeMessageProvider =

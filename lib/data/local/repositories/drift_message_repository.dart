@@ -359,7 +359,13 @@ class DriftMessageRepository implements MessageRepository {
       inline = (jsonDecode(r.inlineJson) as Map<String, dynamic>).map((k, v) => MapEntry(k, base64Decode(v as String)));
     } catch (_) {}
     final header = await _byHash(accountId, messageIdHash).getSingleOrNull();
-    return MessageBody(text: r.bodyText, html: r.html, inlineParts: inline, attachments: header == null ? const [] : _attachments(header.attachmentsJson));
+    return MessageBody(
+      text: r.bodyText,
+      html: r.html,
+      inlineParts: inline,
+      attachments: header == null ? const [] : _attachments(header.attachmentsJson),
+      calendar: r.calendarText,
+    );
   }
 
   @override
@@ -374,6 +380,7 @@ class DriftMessageRepository implements MessageRepository {
         bodyText: Value(body.text),
         html: Value(body.html),
         inlineJson: Value(inlineJson),
+        calendarText: Value(body.calendar),
         sizeBytes: Value(size),
         cachedAt: Value(now),
         lastAccessAt: Value(now),

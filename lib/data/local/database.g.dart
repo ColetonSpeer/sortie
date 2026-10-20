@@ -3516,6 +3516,17 @@ class $MessageBodiesTable extends MessageBodies
     requiredDuringInsert: false,
     defaultValue: const Constant('{}'),
   );
+  static const VerificationMeta _calendarTextMeta = const VerificationMeta(
+    'calendarText',
+  );
+  @override
+  late final GeneratedColumn<String> calendarText = GeneratedColumn<String>(
+    'calendar_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
     'sizeBytes',
   );
@@ -3557,6 +3568,7 @@ class $MessageBodiesTable extends MessageBodies
     bodyText,
     html,
     inlineJson,
+    calendarText,
     sizeBytes,
     cachedAt,
     lastAccessAt,
@@ -3610,6 +3622,15 @@ class $MessageBodiesTable extends MessageBodies
       context.handle(
         _inlineJsonMeta,
         inlineJson.isAcceptableOrUnknown(data['inline_json']!, _inlineJsonMeta),
+      );
+    }
+    if (data.containsKey('calendar_text')) {
+      context.handle(
+        _calendarTextMeta,
+        calendarText.isAcceptableOrUnknown(
+          data['calendar_text']!,
+          _calendarTextMeta,
+        ),
       );
     }
     if (data.containsKey('size_bytes')) {
@@ -3666,6 +3687,10 @@ class $MessageBodiesTable extends MessageBodies
         DriftSqlType.string,
         data['${effectivePrefix}inline_json'],
       )!,
+      calendarText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_text'],
+      ),
       sizeBytes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}size_bytes'],
@@ -3695,6 +3720,9 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
 
   /// JSON map cid -> base64.
   final String inlineJson;
+
+  /// The text/calendar part, when the mail carries one (schema 5).
+  final String? calendarText;
   final int sizeBytes;
   final int cachedAt;
   final int lastAccessAt;
@@ -3704,6 +3732,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
     required this.bodyText,
     this.html,
     required this.inlineJson,
+    this.calendarText,
     required this.sizeBytes,
     required this.cachedAt,
     required this.lastAccessAt,
@@ -3718,6 +3747,9 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
       map['html'] = Variable<String>(html);
     }
     map['inline_json'] = Variable<String>(inlineJson);
+    if (!nullToAbsent || calendarText != null) {
+      map['calendar_text'] = Variable<String>(calendarText);
+    }
     map['size_bytes'] = Variable<int>(sizeBytes);
     map['cached_at'] = Variable<int>(cachedAt);
     map['last_access_at'] = Variable<int>(lastAccessAt);
@@ -3731,6 +3763,9 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
       bodyText: Value(bodyText),
       html: html == null && nullToAbsent ? const Value.absent() : Value(html),
       inlineJson: Value(inlineJson),
+      calendarText: calendarText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarText),
       sizeBytes: Value(sizeBytes),
       cachedAt: Value(cachedAt),
       lastAccessAt: Value(lastAccessAt),
@@ -3748,6 +3783,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
       bodyText: serializer.fromJson<String>(json['bodyText']),
       html: serializer.fromJson<String?>(json['html']),
       inlineJson: serializer.fromJson<String>(json['inlineJson']),
+      calendarText: serializer.fromJson<String?>(json['calendarText']),
       sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
       cachedAt: serializer.fromJson<int>(json['cachedAt']),
       lastAccessAt: serializer.fromJson<int>(json['lastAccessAt']),
@@ -3762,6 +3798,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
       'bodyText': serializer.toJson<String>(bodyText),
       'html': serializer.toJson<String?>(html),
       'inlineJson': serializer.toJson<String>(inlineJson),
+      'calendarText': serializer.toJson<String?>(calendarText),
       'sizeBytes': serializer.toJson<int>(sizeBytes),
       'cachedAt': serializer.toJson<int>(cachedAt),
       'lastAccessAt': serializer.toJson<int>(lastAccessAt),
@@ -3774,6 +3811,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
     String? bodyText,
     Value<String?> html = const Value.absent(),
     String? inlineJson,
+    Value<String?> calendarText = const Value.absent(),
     int? sizeBytes,
     int? cachedAt,
     int? lastAccessAt,
@@ -3783,6 +3821,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
     bodyText: bodyText ?? this.bodyText,
     html: html.present ? html.value : this.html,
     inlineJson: inlineJson ?? this.inlineJson,
+    calendarText: calendarText.present ? calendarText.value : this.calendarText,
     sizeBytes: sizeBytes ?? this.sizeBytes,
     cachedAt: cachedAt ?? this.cachedAt,
     lastAccessAt: lastAccessAt ?? this.lastAccessAt,
@@ -3798,6 +3837,9 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
       inlineJson: data.inlineJson.present
           ? data.inlineJson.value
           : this.inlineJson,
+      calendarText: data.calendarText.present
+          ? data.calendarText.value
+          : this.calendarText,
       sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
       cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
       lastAccessAt: data.lastAccessAt.present
@@ -3814,6 +3856,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
           ..write('bodyText: $bodyText, ')
           ..write('html: $html, ')
           ..write('inlineJson: $inlineJson, ')
+          ..write('calendarText: $calendarText, ')
           ..write('sizeBytes: $sizeBytes, ')
           ..write('cachedAt: $cachedAt, ')
           ..write('lastAccessAt: $lastAccessAt')
@@ -3828,6 +3871,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
     bodyText,
     html,
     inlineJson,
+    calendarText,
     sizeBytes,
     cachedAt,
     lastAccessAt,
@@ -3841,6 +3885,7 @@ class MessageBody extends DataClass implements Insertable<MessageBody> {
           other.bodyText == this.bodyText &&
           other.html == this.html &&
           other.inlineJson == this.inlineJson &&
+          other.calendarText == this.calendarText &&
           other.sizeBytes == this.sizeBytes &&
           other.cachedAt == this.cachedAt &&
           other.lastAccessAt == this.lastAccessAt);
@@ -3852,6 +3897,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
   final Value<String> bodyText;
   final Value<String?> html;
   final Value<String> inlineJson;
+  final Value<String?> calendarText;
   final Value<int> sizeBytes;
   final Value<int> cachedAt;
   final Value<int> lastAccessAt;
@@ -3862,6 +3908,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
     this.bodyText = const Value.absent(),
     this.html = const Value.absent(),
     this.inlineJson = const Value.absent(),
+    this.calendarText = const Value.absent(),
     this.sizeBytes = const Value.absent(),
     this.cachedAt = const Value.absent(),
     this.lastAccessAt = const Value.absent(),
@@ -3873,6 +3920,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
     required String bodyText,
     this.html = const Value.absent(),
     this.inlineJson = const Value.absent(),
+    this.calendarText = const Value.absent(),
     this.sizeBytes = const Value.absent(),
     required int cachedAt,
     required int lastAccessAt,
@@ -3888,6 +3936,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
     Expression<String>? bodyText,
     Expression<String>? html,
     Expression<String>? inlineJson,
+    Expression<String>? calendarText,
     Expression<int>? sizeBytes,
     Expression<int>? cachedAt,
     Expression<int>? lastAccessAt,
@@ -3899,6 +3948,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
       if (bodyText != null) 'body_text': bodyText,
       if (html != null) 'html': html,
       if (inlineJson != null) 'inline_json': inlineJson,
+      if (calendarText != null) 'calendar_text': calendarText,
       if (sizeBytes != null) 'size_bytes': sizeBytes,
       if (cachedAt != null) 'cached_at': cachedAt,
       if (lastAccessAt != null) 'last_access_at': lastAccessAt,
@@ -3912,6 +3962,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
     Value<String>? bodyText,
     Value<String?>? html,
     Value<String>? inlineJson,
+    Value<String?>? calendarText,
     Value<int>? sizeBytes,
     Value<int>? cachedAt,
     Value<int>? lastAccessAt,
@@ -3923,6 +3974,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
       bodyText: bodyText ?? this.bodyText,
       html: html ?? this.html,
       inlineJson: inlineJson ?? this.inlineJson,
+      calendarText: calendarText ?? this.calendarText,
       sizeBytes: sizeBytes ?? this.sizeBytes,
       cachedAt: cachedAt ?? this.cachedAt,
       lastAccessAt: lastAccessAt ?? this.lastAccessAt,
@@ -3948,6 +4000,9 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
     if (inlineJson.present) {
       map['inline_json'] = Variable<String>(inlineJson.value);
     }
+    if (calendarText.present) {
+      map['calendar_text'] = Variable<String>(calendarText.value);
+    }
     if (sizeBytes.present) {
       map['size_bytes'] = Variable<int>(sizeBytes.value);
     }
@@ -3971,6 +4026,7 @@ class MessageBodiesCompanion extends UpdateCompanion<MessageBody> {
           ..write('bodyText: $bodyText, ')
           ..write('html: $html, ')
           ..write('inlineJson: $inlineJson, ')
+          ..write('calendarText: $calendarText, ')
           ..write('sizeBytes: $sizeBytes, ')
           ..write('cachedAt: $cachedAt, ')
           ..write('lastAccessAt: $lastAccessAt, ')
@@ -18006,6 +18062,7 @@ typedef $$MessageBodiesTableCreateCompanionBuilder =
       required String bodyText,
       Value<String?> html,
       Value<String> inlineJson,
+      Value<String?> calendarText,
       Value<int> sizeBytes,
       required int cachedAt,
       required int lastAccessAt,
@@ -18018,6 +18075,7 @@ typedef $$MessageBodiesTableUpdateCompanionBuilder =
       Value<String> bodyText,
       Value<String?> html,
       Value<String> inlineJson,
+      Value<String?> calendarText,
       Value<int> sizeBytes,
       Value<int> cachedAt,
       Value<int> lastAccessAt,
@@ -18055,6 +18113,11 @@ class $$MessageBodiesTableFilterComposer
 
   ColumnFilters<String> get inlineJson => $composableBuilder(
     column: $table.inlineJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarText => $composableBuilder(
+    column: $table.calendarText,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18108,6 +18171,11 @@ class $$MessageBodiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get calendarText => $composableBuilder(
+    column: $table.calendarText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sizeBytes => $composableBuilder(
     column: $table.sizeBytes,
     builder: (column) => ColumnOrderings(column),
@@ -18149,6 +18217,11 @@ class $$MessageBodiesTableAnnotationComposer
 
   GeneratedColumn<String> get inlineJson => $composableBuilder(
     column: $table.inlineJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarText => $composableBuilder(
+    column: $table.calendarText,
     builder: (column) => column,
   );
 
@@ -18202,6 +18275,7 @@ class $$MessageBodiesTableTableManager
                 Value<String> bodyText = const Value.absent(),
                 Value<String?> html = const Value.absent(),
                 Value<String> inlineJson = const Value.absent(),
+                Value<String?> calendarText = const Value.absent(),
                 Value<int> sizeBytes = const Value.absent(),
                 Value<int> cachedAt = const Value.absent(),
                 Value<int> lastAccessAt = const Value.absent(),
@@ -18212,6 +18286,7 @@ class $$MessageBodiesTableTableManager
                 bodyText: bodyText,
                 html: html,
                 inlineJson: inlineJson,
+                calendarText: calendarText,
                 sizeBytes: sizeBytes,
                 cachedAt: cachedAt,
                 lastAccessAt: lastAccessAt,
@@ -18224,6 +18299,7 @@ class $$MessageBodiesTableTableManager
                 required String bodyText,
                 Value<String?> html = const Value.absent(),
                 Value<String> inlineJson = const Value.absent(),
+                Value<String?> calendarText = const Value.absent(),
                 Value<int> sizeBytes = const Value.absent(),
                 required int cachedAt,
                 required int lastAccessAt,
@@ -18234,6 +18310,7 @@ class $$MessageBodiesTableTableManager
                 bodyText: bodyText,
                 html: html,
                 inlineJson: inlineJson,
+                calendarText: calendarText,
                 sizeBytes: sizeBytes,
                 cachedAt: cachedAt,
                 lastAccessAt: lastAccessAt,

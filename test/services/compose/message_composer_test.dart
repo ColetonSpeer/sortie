@@ -7,6 +7,7 @@ import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/services/compose/message_composer.dart';
 
 void main() {
+  calendarReplyTests();
   const identity = Identity(id: 'i', accountId: 'a', name: 'Coleton Speer', email: 'coleton@example.com', replyTo: 'reply@example.com', signature: 'Coleton\nExample Corp');
   final composer = MessageComposer(clock: FakeClock(DateTime.utc(2026, 9, 16, 9, 30)));
 
@@ -111,3 +112,22 @@ void main() {
     expect(m.decodeTextPlainPart(), contains('FYI'));
   });
 }
+
+// Meeting replies: the iTIP object travels as a text/calendar alternative
+// with method=REPLY plus a reply.ics attachment.
+void calendarReplyTests() => test('calendar reply: text/calendar;method=REPLY alternative plus reply.ics attachment', () {
+  final composer = MessageComposer(clock: FakeClock(DateTime.utc(2026, 10, 20, 12)));
+  const id = Identity(id: 'i', accountId: 'a', name: 'Me', email: 'me@hky.test', isDefault: true);
+  const ics = 'BEGIN:VCALENDAR\r\nMETHOD:REPLY\r\nBEGIN:VEVENT\r\nUID:u1\r\nATTENDEE;PARTSTAT=ACCEPTED:mailto:me@hky.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n';
+  final out = composer.compose(const ComposeRequest(identity: id, to: ['org@hky.test'], subject: 'Accepted: x', text: 'ok', includeSignature: false, calendarReply: ics));
+  final mime = em.MimeMessage.parseFromText(utf8.decode(out.raw));
+  expect(mime.mediaType.sub, em.MediaSubtype.multipartMixed);
+  final parts = mime.allPartsFlat;
+  final calParts = parts.where((p) => p.mediaType.sub == em.MediaSubtype.textCalendar).toList();
+  expect(calParts.length, 2, reason: 'alternative part and attachment');
+  final alternative = calParts.firstWhere((p) => p.decodeFileName() == null);
+  expect(alternative.getHeaderValue('content-type')!.toLowerCase(), contains('method=reply'));
+  expect(alternative.decodeContentText(), contains('PARTSTAT=ACCEPTED'));
+  final attachment = calParts.firstWhere((p) => p.decodeFileName() != null);
+  expect(attachment.decodeFileName(), 'reply.ics');
+});

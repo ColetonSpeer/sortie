@@ -35,10 +35,16 @@ class ComposeRequest {
     this.includeSignature = true,
     this.inReplyTo,
     this.references = const [],
+    this.calendarReply,
   });
 
   final Identity identity;
   final ComposeMode mode;
+
+  /// An iTIP `METHOD:REPLY` object: sent as a `text/calendar; method=REPLY`
+  /// alternative plus a `reply.ics` attachment, the shape organizers' mail
+  /// servers (Exchange, Google) process automatically.
+  final String? calendarReply;
 
   /// Addresses as typed: `Name <a@b>` or bare.
   final List<String> to;
@@ -274,7 +280,8 @@ class MessageComposer {
 
     final text = _assembleText(r);
     final html = r.html ?? _assembleHtml(r, text);
-    if (r.attachments.isEmpty) {
+    final cal = r.calendarReply;
+    if (r.attachments.isEmpty && cal == null) {
       b.setContentType(em.MediaSubtype.multipartAlternative.mediaType);
       b.addTextPlain(text, transferEncoding: em.TransferEncoding.quotedPrintable);
       b.addTextHtml(html, transferEncoding: em.TransferEncoding.quotedPrintable);
@@ -283,6 +290,18 @@ class MessageComposer {
       final alt = b.addPart(mediaSubtype: em.MediaSubtype.multipartAlternative);
       alt.addTextPlain(text, transferEncoding: em.TransferEncoding.quotedPrintable);
       alt.addTextHtml(html, transferEncoding: em.TransferEncoding.quotedPrintable);
+      if (cal != null) {
+        final calType = em.MediaType.fromText('text/calendar');
+        final part = alt.addText(cal, mediaType: calType, transferEncoding: em.TransferEncoding.quotedPrintable);
+        part.setContentType(calType, characterSet: em.CharacterSet.utf8, parameters: {'method': 'REPLY'});
+        final bytes = Uint8List.fromList(utf8.encode(cal));
+        b.addBinary(
+          bytes,
+          calType,
+          filename: 'reply.ics',
+          disposition: em.ContentDispositionHeader.from(em.ContentDisposition.attachment, filename: 'reply.ics', size: bytes.length),
+        );
+      }
       for (final a in r.attachments) {
         final bytes = Uint8List.fromList(a.bytes);
         b.addBinary(

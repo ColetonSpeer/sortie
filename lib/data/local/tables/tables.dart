@@ -93,6 +93,9 @@ class MessageBodies extends Table {
 
   /// JSON map cid -> base64.
   TextColumn get inlineJson => text().withDefault(const Constant('{}'))();
+
+  /// The text/calendar part, when the mail carries one (schema 5).
+  TextColumn get calendarText => text().nullable()();
   IntColumn get sizeBytes => integer().withDefault(const Constant(0))();
   IntColumn get cachedAt => integer()();
   IntColumn get lastAccessAt => integer()();

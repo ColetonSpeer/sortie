@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
-import '../compose/open_compose.dart';
 import '../../router/app_router.dart';
+import '../../services/calendar/invitations.dart';
+import '../compose/open_compose.dart';
 import '../mailbox/message_actions.dart';
 import '../mailbox/threading.dart';
 import 'html_body.dart';
+import 'invitation_card.dart';
 import 'message_header_view.dart';
 import 'open_in_browser.dart';
 
@@ -248,14 +250,19 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                           builder: (context, snap) {
                             if (snap.hasError) return Text('Could not load body: ${snap.error}');
                             if (!snap.hasData) return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
-                            return MessageBodyView(
-                              body: snap.data!,
-                              allowRemoteImages: allowRemote,
-                              mode: bodyMode,
-                              onRemoteImagesBlocked: (n) {
-                                if (mounted && n != _blockedImages) setState(() => _blockedImages = n);
-                              },
-                            );
+                            final body = snap.data!;
+                            final invitation = body.calendar == null ? null : MeetingInvitation.parse(body.calendar!);
+                            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                              if (invitation != null) InvitationCard(header: h, invitation: invitation),
+                              MessageBodyView(
+                                body: body,
+                                allowRemoteImages: allowRemote,
+                                mode: bodyMode,
+                                onRemoteImagesBlocked: (n) {
+                                  if (mounted && n != _blockedImages) setState(() => _blockedImages = n);
+                                },
+                              ),
+                            ]);
                           },
                         ),
                       ]),

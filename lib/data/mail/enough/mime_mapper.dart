@@ -154,7 +154,23 @@ abstract final class MimeMapper {
       final bytes = m.getPart(info.fetchId)?.decodeContentBinary();
       if (bytes != null) inline[cid] = bytes;
     }
-    return MessageBody(text: text ?? '', html: html, inlineParts: inline, attachments: attachments(m));
+    return MessageBody(text: text ?? '', html: html, inlineParts: inline, attachments: attachments(m), calendar: calendarPart(m));
+  }
+
+  /// The first iCalendar part: an inline `text/calendar` alternative
+  /// (Exchange, Google) or an `.ics` attachment.
+  static String? calendarPart(em.MimeMessage m) {
+    for (final part in m.allPartsFlat) {
+      final mt = part.mediaType;
+      final name = part.decodeFileName()?.toLowerCase() ?? '';
+      final isCal = mt.sub == em.MediaSubtype.textCalendar || mt.text.toLowerCase() == 'application/ics' || name.endsWith('.ics');
+      if (!isCal) continue;
+      try {
+        final t = part.decodeContentText();
+        if (t != null && t.contains('BEGIN:VCALENDAR')) return t;
+      } catch (_) {}
+    }
+    return null;
   }
 
   /// Raw header map (lower-cased name -> first value) from a header-only fetch.
