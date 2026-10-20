@@ -4,8 +4,9 @@ import 'package:logging/logging.dart';
 import 'background_runner.dart';
 
 /// Low-priority persistent notification that keeps the process (and its IMAP
-/// IDLE connections in the main isolate) alive on Android. Only used when
-/// `DeviceSettings.androidForegroundService` is on.
+/// IDLE connections in the main isolate) alive on Android. On by default
+/// (`DeviceSettings.androidForegroundService`); the periodic WorkManager
+/// cycle is the fallback when it is switched off.
 class AndroidForegroundRunner implements BackgroundRunner {
   static final _log = Logger('fg-service');
   static bool _initialized = false;
@@ -43,7 +44,7 @@ class AndroidForegroundRunner implements BackgroundRunner {
       if (perm != NotificationPermission.granted) await FlutterForegroundTask.requestNotificationPermission();
       final r = await FlutterForegroundTask.startService(
         serviceId: 4242,
-        serviceTypes: [ForegroundServiceTypes.dataSync],
+        serviceTypes: [ForegroundServiceTypes.remoteMessaging],
         notificationTitle: 'Sortie is syncing',
         notificationText: 'Keeping your mailbox sorted',
         callback: sortieForegroundCallback,

@@ -106,6 +106,22 @@ and mail where you are only copied stay quiet. Mail already read on another
 device, your own copies and anything older than a day are never announced;
 bursts of more than eight messages collapse into one summary.
 
+### Sorting in the background on phones
+
+Desktops sort as long as Sortie runs, focused or hidden in the tray. Phones
+keep sorting after you leave the app too, each in the way its platform
+allows (Settings → Devices → "Keep sorting in the background", on by
+default):
+
+- **Android** runs a persistent low-priority foreground service
+  (`remoteMessaging` type, so Android 15's six-hours-a-day cap on data-sync
+  services does not apply) that keeps the IMAP IDLE connections up.
+- **iOS** has no such service. Sortie holds a silent audio session
+  (`audio` background mode, mixes with whatever is playing) so iOS does not
+  freeze the process; this costs some battery. With it off, the phone sorts
+  only while on screen, for about 30 s after you leave, and in the short
+  background-refresh windows iOS grants.
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android

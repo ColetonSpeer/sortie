@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app.dart';
 import '../domain/entities/entities.dart';
+import '../platform/background/background_keep_alive.dart';
 import '../platform/background/background_runner.dart';
 import '../platform/background/background_runner_provider.dart';
 import '../platform/desktop/autostart.dart';
@@ -80,6 +81,7 @@ class _SortieBootstrapState extends ConsumerState<SortieBootstrap> {
       _runner = next;
       await _runner!.start();
     }
+    if (BackgroundKeepAlive.supported) await BackgroundKeepAlive.set(enabled: s.backgroundKeepAlive);
     if (isDesktop && _lastAutostart != s.launchAtStartup) {
       _lastAutostart = s.launchAtStartup;
       await Autostart.set(enabled: s.launchAtStartup);

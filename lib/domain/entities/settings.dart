@@ -227,7 +227,8 @@ class DeviceSettings {
   const DeviceSettings({
     this.mayLead = true,
     this.preferThisDevice = false,
-    this.androidForegroundService = false,
+    this.androidForegroundService = true,
+    this.backgroundKeepAlive = true,
     this.minimizeToTray = true,
     this.launchAtStartup = false,
     this.notifyMode,
@@ -238,7 +239,13 @@ class DeviceSettings {
   });
   final bool mayLead;
   final bool preferThisDevice;
+  /// Android: persistent foreground service so IMAP IDLE survives the app
+  /// leaving the screen.
   final bool androidForegroundService;
+
+  /// iOS: keep the process alive in the background (silent audio session)
+  /// so this phone can keep sorting; costs some battery.
+  final bool backgroundKeepAlive;
   final bool minimizeToTray;
   final bool launchAtStartup;
 
@@ -260,6 +267,7 @@ class DeviceSettings {
     bool? mayLead,
     bool? preferThisDevice,
     bool? androidForegroundService,
+    bool? backgroundKeepAlive,
     bool? minimizeToTray,
     bool? launchAtStartup,
     NotifyMode? notifyMode,
@@ -272,6 +280,7 @@ class DeviceSettings {
         mayLead: mayLead ?? this.mayLead,
         preferThisDevice: preferThisDevice ?? this.preferThisDevice,
         androidForegroundService: androidForegroundService ?? this.androidForegroundService,
+        backgroundKeepAlive: backgroundKeepAlive ?? this.backgroundKeepAlive,
         minimizeToTray: minimizeToTray ?? this.minimizeToTray,
         launchAtStartup: launchAtStartup ?? this.launchAtStartup,
         notifyMode: notifyMode ?? this.notifyMode,
@@ -285,6 +294,7 @@ class DeviceSettings {
         'mayLead': mayLead,
         'prefer': preferThisDevice,
         'fgService': androidForegroundService,
+        'keepAlive': backgroundKeepAlive,
         'tray': minimizeToTray,
         'autostart': launchAtStartup,
         'notifyMode': notifyMode?.name,
@@ -297,7 +307,8 @@ class DeviceSettings {
   static DeviceSettings fromJson(Map<String, dynamic> j) => DeviceSettings(
         mayLead: (j['mayLead'] as bool?) ?? true,
         preferThisDevice: (j['prefer'] as bool?) ?? false,
-        androidForegroundService: (j['fgService'] as bool?) ?? false,
+        androidForegroundService: (j['fgService'] as bool?) ?? true,
+        backgroundKeepAlive: (j['keepAlive'] as bool?) ?? true,
         minimizeToTray: (j['tray'] as bool?) ?? true,
         launchAtStartup: (j['autostart'] as bool?) ?? false,
         notifyMode: _notifyMode(j),

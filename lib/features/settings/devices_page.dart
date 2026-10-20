@@ -32,6 +32,7 @@ class _DevicesBody extends ConsumerWidget {
     final lastSync = ref.watch(lastConfigSyncProvider(accountId)).asData?.value;
     final theme = Theme.of(context);
     final android = !kIsWeb && Platform.isAndroid;
+    final ios = !kIsWeb && Platform.isIOS;
 
     return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
       ListTile(
@@ -84,6 +85,13 @@ class _DevicesBody extends ConsumerWidget {
           subtitle: const Text('Runs a persistent low-priority notification so this phone can lead while the app is closed'),
           value: device.androidForegroundService,
           onChanged: (v) => saveDeviceSettings(ref, (d) => d.copyWith(androidForegroundService: v)),
+        ),
+      if (ios)
+        SwitchListTile(
+          title: const Text('Keep sorting in the background'),
+          subtitle: const Text('Keeps Sortie running after you leave it (a silent audio session) so this phone can lead; uses more battery'),
+          value: device.backgroundKeepAlive,
+          onChanged: (v) => saveDeviceSettings(ref, (d) => d.copyWith(backgroundKeepAlive: v)),
         ),
     ]);
   }
