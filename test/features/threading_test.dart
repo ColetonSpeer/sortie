@@ -36,6 +36,7 @@ MessageHeader h(
 List<int> uids(MessageThread t) => t.messages.map((m) => m.uid).toList();
 
 void main() {
+  sentMergeTests();
   group('buildThreads', () {
     test('References / In-Reply-To chain becomes one thread, oldest first', () {
       final a = h(1, minutes: 0, subject: 'Plan');
@@ -164,5 +165,42 @@ void main() {
     expect(participantSummary(t), 'alice, me, bob');
     final many = buildThreads([a, c, h(4, irt: '<m1@example.test>', from: 'carol@example.test', minutes: 3), h(5, irt: '<m1@example.test>', from: 'dan@example.test', minutes: 4)]).single;
     expect(participantSummary(many), 'alice, bob, carol, +1');
+  });
+}
+
+void sentMergeTests() {
+  group('buildThreadsWithSent', () {
+    MessageHeader sent(int uid, {String? irt, String subject = 'Re: Subject', String to = 'alice@example.test'}) => MessageHeader(
+          accountId: 'a',
+          folderPath: 'Sent',
+          uid: uid,
+          uidValidity: 1,
+          messageIdHash: 'sent-$uid',
+          messageId: '<s$uid@example.test>',
+          inReplyTo: irt,
+          subject: subject,
+          from: const MailAddress('me@example.test', 'Me'),
+          to: [MailAddress(to)],
+          // Replies come after the inbox mail they answer.
+          date: DateTime.utc(2030, 1, 1, 0, uid),
+          flags: const {r'\Seen'},
+        );
+
+    test('my reply joins the inbox thread through In-Reply-To and the folder stays the source of truth', () {
+      final inbox = [h(1, minutes: 0), h(2, irt: '<m1@example.test>', minutes: 1, subject: 'Re: Subject')];
+      final reply = sent(10, irt: '<m2@example.test>');
+      final unrelated = sent(11, subject: 'Lunch?', to: 'bob@example.test');
+      final threads = buildThreadsWithSent(inbox, [reply, unrelated], ownAddresses: {'me@example.test'});
+      expect(threads.length, 1, reason: 'the Sent-only conversation is not shown in the inbox');
+      final t = threads.single;
+      expect(t.messages.map((m) => m.folderPath), ['INBOX', 'INBOX', 'Sent']);
+      expect(t.latest.messageIdHash, 'sent-10');
+      expect(participantSummary(t, ownAddresses: {'me@example.test'}), 'alice, you');
+    });
+
+    test('without Sent mail the threads are unchanged', () {
+      final inbox = [h(1), h(2, irt: '<m1@example.test>', minutes: 1)];
+      expect(buildThreadsWithSent(inbox, const []).single.messages.length, 2);
+    });
   });
 }

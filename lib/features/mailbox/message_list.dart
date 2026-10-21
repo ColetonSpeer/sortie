@@ -22,11 +22,15 @@ class MessageListPane extends ConsumerStatefulWidget {
     required this.folderPath,
     required this.selectedUid,
     required this.showMenuButton,
+    this.selectedFolder,
   });
   final String accountId;
   final String folderPath;
   final int? selectedUid;
   final bool showMenuButton;
+
+  /// Folder of the selected message; defaults to [folderPath].
+  final String? selectedFolder;
 
   @override
   ConsumerState<MessageListPane> createState() => _MessageListPaneState();
@@ -38,6 +42,7 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
 
   // buildThreads memo: the stream hands us a new list only when data changed.
   List<MessageHeader>? _threadedFrom;
+  List<MessageHeader>? _threadedSent;
   Set<String>? _threadedOwn;
   List<MessageThread> _threads = const [];
 
@@ -60,11 +65,12 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     };
   }
 
-  List<MessageThread> _threadsFor(List<MessageHeader> list, Set<String> own) {
-    if (!identical(list, _threadedFrom) || !setEquals(_threadedOwn, own)) {
+  List<MessageThread> _threadsFor(List<MessageHeader> list, List<MessageHeader> sent, Set<String> own) {
+    if (!identical(list, _threadedFrom) || !identical(sent, _threadedSent) || !setEquals(_threadedOwn, own)) {
       _threadedFrom = list;
+      _threadedSent = sent;
       _threadedOwn = own;
-      _threads = buildThreads(list, ownAddresses: own);
+      _threads = buildThreadsWithSent(list, sent, ownAddresses: own);
     }
     return _threads;
   }
@@ -89,6 +95,17 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     final threaded = ref.watch(deviceSettingsProvider).asData?.value.threadedView ?? true;
     final own = threaded ? _ownAddresses() : const <String>{};
     final isInbox = folder?.isInbox ?? widget.folderPath.toUpperCase() == 'INBOX';
+    // Your own replies live in Sent; fold them into the threads of ordinary
+    // folders so a conversation reads whole.
+    final sentPath = ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.specialUse == SpecialUse.sent).firstOrNull?.path;
+    final su = folder?.specialUse ?? SpecialUse.none;
+    final mergeSent = threaded &&
+        sentPath != null &&
+        sentPath != widget.folderPath &&
+        (isInbox || su == SpecialUse.none || su == SpecialUse.archive);
+    final sentList = mergeSent
+        ? ref.watch(messagesProvider((accountId: widget.accountId, folderPath: sentPath, search: ''))).asData?.value ?? const <MessageHeader>[]
+        : const <MessageHeader>[];
     final suggestionCount = isInbox && !ref.watch(suggestionBannerDismissedProvider)
         ? (ref.watch(pendingSuggestionsProvider(widget.accountId)).asData?.value.length ?? 0)
         : 0;
@@ -97,10 +114,10 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
       final t = MessageTile(
         header: h,
         badge: badges[h.key],
-        selected: h.uid == widget.selectedUid,
+        selected: h.uid == widget.selectedUid && h.folderPath == (widget.selectedFolder ?? widget.folderPath),
         checked: selection.contains(h.key),
         selectionMode: selection.isNotEmpty,
-        onTap: () => context.go(Routes.message(widget.accountId, widget.folderPath, h.uid)),
+        onTap: () => context.go(Routes.messageIn(widget.accountId, widget.folderPath, h.folderPath, h.uid)),
         onToggleCheck: () {
           final s = Set<MessageKey>.of(selection);
           s.contains(h.key) ? s.remove(h.key) : s.add(h.key);
@@ -158,13 +175,13 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
             ),
       body: Column(children: [
         if (suggestionCount > 0) _SuggestionBanner(count: suggestionCount),
-        Expanded(child: _content(context, messages, threaded, own, selection, badges, tile)),
+        Expanded(child: _content(context, messages, sentList, threaded, own, selection, badges, tile)),
       ]),
     );
   }
 
-  Widget _content(BuildContext context, AsyncValue<List<MessageHeader>> messages, bool threaded, Set<String> own, Set<MessageKey> selection,
-      Map<MessageKey, PendingBadge> badges, Widget Function(MessageHeader) tile) =>
+  Widget _content(BuildContext context, AsyncValue<List<MessageHeader>> messages, List<MessageHeader> sent, bool threaded, Set<String> own,
+      Set<MessageKey> selection, Map<MessageKey, PendingBadge> badges, Widget Function(MessageHeader) tile) =>
       messages.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load messages: $e')),
@@ -176,7 +193,7 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
             );
           }
           if (threaded) {
-            final threads = _threadsFor(list, own);
+            final threads = _threadsFor(list, sent, own);
             return ListView.separated(
               key: PageStorageKey('threads:${widget.accountId}:${widget.folderPath}'),
               itemCount: threads.length,

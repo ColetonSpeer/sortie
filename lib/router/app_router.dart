@@ -37,6 +37,12 @@ abstract final class Routes {
   static String mailbox(String accountId, String folder) =>
       '/mail/${Uri.encodeComponent(accountId)}/${Uri.encodeComponent(folder)}';
   static String message(String accountId, String folder, int uid) => '${mailbox(accountId, folder)}/message/$uid';
+
+  /// A message of [messageFolder] opened from [listFolder]'s list (a Sent
+  /// reply inside an inbox thread): the list stays where it is.
+  static String messageIn(String accountId, String listFolder, String messageFolder, int uid) => messageFolder == listFolder
+      ? message(accountId, listFolder, uid)
+      : '${message(accountId, listFolder, uid)}?in=${Uri.encodeQueryComponent(messageFolder)}';
   static String composeWith({
     required String accountId,
     String? reply,
@@ -140,7 +146,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 Page<void> _mailPage(BuildContext context, GoRouterState s, {required int? uid}) {
   final accountId = Uri.decodeComponent(s.pathParameters['accountId']!);
   final folder = Uri.decodeComponent(s.pathParameters['folder']!);
-  final child = AdaptiveScaffold(accountId: accountId, folderPath: folder, uid: uid);
+  final child = AdaptiveScaffold(accountId: accountId, folderPath: folder, uid: uid, messageFolder: s.uri.queryParameters['in']);
   final wide = MediaQuery.sizeOf(context).width >= AdaptiveScaffold.compactBreakpoint;
   // Wide layouts keep the shell on screen; only the panes change, so no slide.
   return wide ? NoTransitionPage(key: s.pageKey, child: child) : MaterialPage(key: s.pageKey, child: child);

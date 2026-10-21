@@ -191,6 +191,18 @@ List<MessageThread> buildThreads(List<MessageHeader> msgs, {Set<String> ownAddre
   return threads;
 }
 
+/// Threads of a folder's messages with the user's own replies from the Sent
+/// folder folded in: Sent mail joins through its References / In-Reply-To
+/// headers (or the subject fallback), and threads made only of Sent mail are
+/// dropped so the folder shows nothing it does not hold itself.
+List<MessageThread> buildThreadsWithSent(List<MessageHeader> folder, List<MessageHeader> sent, {Set<String> ownAddresses = const {}}) {
+  if (sent.isEmpty) return buildThreads(folder, ownAddresses: ownAddresses);
+  final inFolder = {for (final h in folder) h.messageIdHash};
+  final merged = [...folder, for (final h in sent) if (!inFolder.contains(h.messageIdHash)) h];
+  final threads = buildThreads(merged, ownAddresses: ownAddresses);
+  return [for (final t in threads) if (t.messages.any((m) => inFolder.contains(m.messageIdHash))) t];
+}
+
 /// "Alice, Bob, you" for the thread header: distinct senders oldest-first,
 /// the user's own addresses collapsed to "you" at the end.
 String participantSummary(MessageThread t, {Set<String> ownAddresses = const {}, int max = 3}) {

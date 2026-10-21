@@ -12,11 +12,15 @@ import 'rail_header.dart';
 
 /// Three-pane (>= 1000 dp), two-pane (600-999) or stacked (< 600) mail shell.
 class AdaptiveScaffold extends ConsumerWidget {
-  const AdaptiveScaffold({super.key, required this.accountId, required this.folderPath, this.uid});
+  const AdaptiveScaffold({super.key, required this.accountId, required this.folderPath, this.uid, this.messageFolder});
 
   final String accountId;
   final String folderPath;
   final int? uid;
+
+  /// Folder of the open message when it differs from [folderPath] (a Sent
+  /// reply opened from a thread in another folder).
+  final String? messageFolder;
 
   static const compactBreakpoint = 600.0;
   static const expandedBreakpoint = 1000.0;
@@ -44,15 +48,16 @@ class AdaptiveScaffold extends ConsumerWidget {
         accountId: accountId,
         folderPath: folderPath,
         selectedUid: uid,
+        selectedFolder: messageFolder ?? folderPath,
         showMenuButton: showMenuButton,
       );
 
   Widget _view({required bool standalone}) => uid == null
       ? const _EmptyMessagePane()
       : MessageScreen(
-          key: ValueKey('msg:$accountId:$folderPath:$uid'),
+          key: ValueKey('msg:$accountId:${messageFolder ?? folderPath}:$uid'),
           accountId: accountId,
-          folderPath: folderPath,
+          folderPath: messageFolder ?? folderPath,
           uid: uid!,
           standalone: standalone,
         );

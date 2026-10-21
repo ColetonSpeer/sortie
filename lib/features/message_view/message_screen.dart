@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
@@ -393,19 +394,31 @@ class _ConversationBar extends StatelessWidget {
 Future<MessageBody> loadBodyWithCalendar(MailSyncService sync, MessageHeader h) async {
   final body = await sync.body(h.accountId, h.folderPath, h.uid);
   if (body.calendar != null) return body;
-  final candidates = [...body.attachments, ...h.attachments];
-  for (final a in candidates) {
+  final seen = <String>{};
+  for (final a in [...body.attachments, ...h.attachments]) {
+    if (!seen.add(a.partId)) continue;
     final mt = a.mimeType.toLowerCase();
     final isCal = mt.startsWith('text/calendar') || mt == 'application/ics' || a.fileName.toLowerCase().endsWith('.ics');
     if (!isCal) continue;
     try {
-      final text = utf8.decode(await sync.attachment(h.accountId, h.folderPath, h.uid, a.partId), allowMalformed: true);
+      final bytes = await sync.attachment(h.accountId, h.folderPath, h.uid, a.partId);
+      var text = utf8.decode(bytes, allowMalformed: true);
+      if (!text.contains('BEGIN:VCALENDAR')) {
+        // Transfer encoding not applied by the server path: try base64.
+        try {
+          text = utf8.decode(base64Decode(text.replaceAll(RegExp(r'\s'), '')), allowMalformed: true);
+        } catch (_) {}
+      }
       if (text.contains('BEGIN:VCALENDAR')) {
+        _log.info('invitation part ${a.partId} of ${h.folderPath}/${h.uid} loaded (${bytes.length} bytes)');
         return MessageBody(text: body.text, html: body.html, inlineParts: body.inlineParts, attachments: body.attachments, calendar: text);
       }
-    } catch (_) {
-      // Leave the body as it is; the mail still reads fine without the card.
+      _log.info('attachment ${a.partId} of ${h.folderPath}/${h.uid} is not an iCalendar object (${bytes.length} bytes)');
+    } catch (e) {
+      _log.warning('could not load invitation part ${a.partId} of ${h.folderPath}/${h.uid}: $e');
     }
   }
   return body;
 }
+
+final _log = Logger('invitations.ui');
