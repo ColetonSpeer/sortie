@@ -24,7 +24,7 @@ Color? _spanColor(WidgetTester tester, Finder scope, String needle) {
 }
 
 void main() {
-  testWidgets('dark-theme app renders author #222 text visibly on a white canvas', (tester) async {
+  testWidgets('dark-theme app draws the mail on a dark page with author #222 text lifted to light', (tester) async {
     const body = MessageBody(text: 'Hello world', html: '<p style="color:#222">Hello world</p><p>Default text</p>');
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData.dark(useMaterial3: true),
@@ -37,10 +37,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final canvas = find.byKey(MailCanvas.canvasKey);
-    expect(tester.widget<Material>(canvas).color, MailCanvas.canvasColor);
-    expect(DefaultTextStyle.of(tester.element(find.byType(SelectionArea).first)).style.color, MailCanvas.textColor);
-    expect(_spanColor(tester, canvas, 'Hello world'), const Color(0xFF222222));
-    expect(_spanColor(tester, canvas, 'Default text'), MailCanvas.textColor);
+    expect(tester.widget<Material>(canvas).color, MailCanvas.darkCanvasColor);
+    expect(DefaultTextStyle.of(tester.element(find.byType(SelectionArea).first)).style.color, MailCanvas.darkTextFlutterColor);
+    expect(_spanColor(tester, canvas, 'Hello world'), const Color(0xFFDDDDDD), reason: '#222 on a light page becomes #ddd on the dark one');
+    expect(_spanColor(tester, canvas, 'Default text'), MailCanvas.darkTextFlutterColor);
     // Fluid content gets no horizontal viewport of its own.
     expect(find.ancestor(of: canvas, matching: find.byType(SingleChildScrollView)), findsOneWidget);
   });

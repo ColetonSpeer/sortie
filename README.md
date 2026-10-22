@@ -122,6 +122,15 @@ default):
   only while on screen, for about 30 s after you leave, and in the short
   background-refresh windows iOS grants.
 
+### Dark mode for HTML mail
+
+With a dark app theme, HTML mail is re-coloured onto a dark page the way
+mail apps' dark modes do: light greyish backgrounds become dark greys, dark
+text becomes light, saturated brand colours (status bars, buttons) stay with
+their own text, pastel tints are deepened and dark accents lifted so links
+stay readable; images are untouched. "Original formatting" in the message
+menu still shows the author's colours on a white page.
+
 ### Meeting invitations
 
 A mail that carries a `text/calendar` part (inline alternative as Exchange

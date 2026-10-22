@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/entities.dart';
 import '../../services/sorter/text_cleaner.dart';
+import 'html/dark_mail.dart';
 import 'html/sanitizer.dart';
 import 'plain_text_view.dart';
 
@@ -47,11 +48,11 @@ class _MessageBodyViewState extends State<MessageBodyView> {
   String? _cacheKey;
   SanitizedHtml? _cached;
 
-  SanitizedHtml _sanitize(String html, int viewport) {
-    final key = '${widget.mode.name}|${widget.allowRemoteImages}|$viewport|${html.hashCode}|${html.length}';
+  SanitizedHtml _sanitize(String html, int viewport, {required bool dark}) {
+    final key = '${widget.mode.name}|$dark|${widget.allowRemoteImages}|$viewport|${html.hashCode}|${html.length}';
     if (_cacheKey != key || _cached == null) {
       _cacheKey = key;
-      _cached = HtmlSanitizer(viewportWidth: viewport, contrastGuard: widget.mode != BodyViewMode.original)
+      _cached = HtmlSanitizer(viewportWidth: viewport, contrastGuard: widget.mode != BodyViewMode.original, darkCanvas: dark)
           .sanitize(html, inlineParts: widget.body.inlineParts, allowRemoteImages: widget.allowRemoteImages);
     }
     return _cached!;
@@ -64,10 +65,13 @@ class _MessageBodyViewState extends State<MessageBodyView> {
     if (widget.mode == BodyViewMode.plainText || html == null || html.trim().isEmpty) {
       return PlainTextBodyView(text: plainTextOf(body), onOpenUrl: (u) => openMailUrl(context, u));
     }
+    // Dark app theme: the mail is re-coloured onto a dark page, unless the
+    // reader asked for the author's original formatting.
+    final dark = Theme.of(context).brightness == Brightness.dark && widget.mode == BodyViewMode.html;
     return LayoutBuilder(builder: (context, constraints) {
       final viewport = constraints.maxWidth.isFinite ? constraints.maxWidth : 600.0;
       // Bucket the viewport so resizing by a few pixels does not re-sanitise.
-      final result = _sanitize(html, (viewport / 50).ceil() * 50);
+      final result = _sanitize(html, (viewport / 50).ceil() * 50, dark: dark);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) widget.onRemoteImagesBlocked(result.blockedRemoteImages ? result.remoteImageCount : 0);
       });
@@ -78,11 +82,12 @@ class _MessageBodyViewState extends State<MessageBodyView> {
       final renderWidth = math.max(viewport, math.min(wanted.toDouble(), 1400.0));
       final canvas = MailCanvas(
         width: renderWidth,
+        dark: dark,
         child: SelectionArea(
           child: HtmlWidget(
             result.html,
             renderMode: RenderMode.column,
-            textStyle: MailCanvas.textStyle,
+            textStyle: dark ? MailCanvas.darkTextStyle : MailCanvas.textStyle,
             onTapUrl: (url) => openMailUrl(context, url),
             onErrorBuilder: (_, _, _) => PlainTextBodyView(text: plainTextOf(body), onOpenUrl: (u) => openMailUrl(context, u)),
           ),
@@ -98,33 +103,44 @@ class _MessageBodyViewState extends State<MessageBodyView> {
 /// defaults real mail clients use (white, near-black text, blue links, 15px
 /// at 1.4 line height) so author colours mean what the author saw.
 class MailCanvas extends StatelessWidget {
-  const MailCanvas({super.key, required this.child, this.width});
+  const MailCanvas({super.key, required this.child, this.width, this.dark = false});
   final Widget child;
   final double? width;
+
+  /// Dark page (the mail was re-coloured by [DarkMailAdapter]).
+  final bool dark;
 
   static const canvasKey = ValueKey('mail-canvas');
   static const canvasColor = Color(0xFFFFFFFF);
   static const textColor = Color(0xFF1F1F1F);
   static const linkColor = Color(0xFF1A56C4);
+  static const darkCanvasColor = Color(0xFF1C1C1E);
+  static const darkTextFlutterColor = Color(0xFFE6E6E6);
+  static const darkLinkColor = Color(0xFF8AB4F8);
   static const padding = 16;
   static const textStyle = TextStyle(color: textColor, fontSize: 15, height: 1.4);
+  static const darkTextStyle = TextStyle(color: darkTextFlutterColor, fontSize: 15, height: 1.4);
 
   @override
   Widget build(BuildContext context) {
     final app = Theme.of(context);
-    final light = ThemeData(
+    final page = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(seedColor: linkColor, brightness: Brightness.light, primary: linkColor),
-      textTheme: app.textTheme.apply(bodyColor: textColor, displayColor: textColor),
+      brightness: dark ? Brightness.dark : Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: dark ? darkLinkColor : linkColor,
+        brightness: dark ? Brightness.dark : Brightness.light,
+        primary: dark ? darkLinkColor : linkColor,
+      ),
+      textTheme: app.textTheme.apply(bodyColor: dark ? darkTextFlutterColor : textColor, displayColor: dark ? darkTextFlutterColor : textColor),
     );
     return Theme(
-      data: light,
+      data: page,
       child: DefaultTextStyle(
-        style: textStyle,
+        style: dark ? darkTextStyle : textStyle,
         child: Material(
           key: canvasKey,
-          color: canvasColor,
+          color: dark ? darkCanvasColor : canvasColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
             side: BorderSide(color: app.colorScheme.outlineVariant),

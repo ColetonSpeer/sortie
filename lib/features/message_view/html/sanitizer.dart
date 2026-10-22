@@ -4,6 +4,7 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
 import 'contrast_guard.dart';
+import 'dark_mail.dart';
 import 'css_inliner.dart';
 import 'layout_normalizer.dart';
 
@@ -34,13 +35,17 @@ class SanitizedHtml {
 /// - converts presentational attributes to CSS ([LayoutNormalizer]) and, unless
 ///   [contrastGuard] is false, keeps text readable ([ContrastGuard])
 class HtmlSanitizer {
-  const HtmlSanitizer({this.viewportWidth = 600, this.contrastGuard = true});
+  const HtmlSanitizer({this.viewportWidth = 600, this.contrastGuard = true, this.darkCanvas = false});
 
   /// Width used for `@media` evaluation.
   final int viewportWidth;
 
   /// Set false for "original formatting": author colours are left untouched.
   final bool contrastGuard;
+
+  /// Re-colour the mail for a dark page (see [DarkMailAdapter]); only with
+  /// [contrastGuard], which then guards against the dark canvas.
+  final bool darkCanvas;
 
   static const _dropElements = {
     'script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'form', 'input', 'button',
@@ -137,7 +142,14 @@ class HtmlSanitizer {
     }
     final contentWidth = const LayoutNormalizer().normalize(doc);
     final body = doc.body;
-    if (body != null && contrastGuard) const ContrastGuard().apply(body);
+    if (body != null && contrastGuard) {
+      if (darkCanvas) {
+        const DarkMailAdapter().apply(body);
+        const ContrastGuard(canvas: DarkMailAdapter.darkCanvas, defaultText: DarkMailAdapter.darkText).apply(body);
+      } else {
+        const ContrastGuard().apply(body);
+      }
+    }
     return SanitizedHtml(
       html: body?.innerHtml ?? '',
       blockedRemoteImages: remote > 0 && !allowRemoteImages,
