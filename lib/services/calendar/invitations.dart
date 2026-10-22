@@ -56,7 +56,6 @@ class MeetingInvitation {
     if (events.isEmpty) return null;
     // Prefer the master; a single detached occurrence is fine too.
     final event = events.firstWhere((e) => e.recurrenceId == null, orElse: () => events.first);
-    if (method == InvitationMethod.other && event.organizer == null) return null;
     final vevent = cal.childrenNamed('VEVENT').firstOrNull;
     final seq = int.tryParse(vevent?.prop('SEQUENCE')?.value ?? '') ?? 0;
     final organizerName = vevent?.prop('ORGANIZER')?.param('CN');
@@ -200,6 +199,22 @@ class InvitationService {
     await _recordInCalendar(invitation, me, status);
   }
 
+  /// Keeps the event without answering the organizer.
+  Future<void> addToCalendar({required String accountId, required MeetingInvitation invitation}) async {
+    final me = await identityFor(accountId, invitation);
+    await _recordInCalendar(invitation, me, AttendeeStatus.needsAction);
+  }
+
+  /// True when some calendar already holds this event.
+  Future<bool> isInCalendar(MeetingInvitation invitation) async {
+    final cal = _calendar;
+    if (cal == null) return false;
+    for (final src in await cal.sources()) {
+      if ((await cal.eventsByUid(src.id, invitation.event.uid)).isNotEmpty) return true;
+    }
+    return false;
+  }
+
   /// The organizer cancelled: drop the local copy and forget the answer.
   Future<void> withdraw({required String accountId, required MeetingInvitation invitation}) async {
     await _settings.setString(_key(accountId, invitation.event.uid), null);
@@ -211,7 +226,7 @@ class InvitationService {
     }
   }
 
-  Future<void> _recordInCalendar(MeetingInvitation inv, Identity me, AttendeeStatus status) async {
+  Future<void> _recordInCalendar(MeetingInvitation inv, Identity? me, AttendeeStatus status) async {
     final cal = _calendar;
     if (cal == null) return;
     try {
@@ -231,7 +246,8 @@ class InvitationService {
         await cal.upsertSource(const CalendarSource(id: localCalendarId, name: 'Invitations', kind: CalendarKind.local, color: 0xFF3F51B5, enabled: true));
       }
       final attendees = [
-        for (final a in inv.event.attendees) a.email.toLowerCase() == me.email.toLowerCase() ? Attendee(email: a.email, name: a.name, status: status) : a,
+        for (final a in inv.event.attendees)
+          me != null && a.email.toLowerCase() == me.email.toLowerCase() ? Attendee(email: a.email, name: a.name, status: status) : a,
       ];
       final e = inv.event.copyWith(
         id: calendarEventId(localCalendarId, uid, inv.event.recurrenceId),

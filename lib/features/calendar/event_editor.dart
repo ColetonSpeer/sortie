@@ -7,18 +7,30 @@ import '../../services/calendar/recurrence.dart';
 import '../../services/calendar/tz.dart';
 import 'calendar_providers.dart';
 
-Future<void> openEventEditor(BuildContext context, {EventOccurrence? occurrence, bool thisOccurrenceOnly = false, DateTime? initialStart}) =>
+Future<void> openEventEditor(BuildContext context,
+        {EventOccurrence? occurrence, bool thisOccurrenceOnly = false, DateTime? initialStart, EventPrefill? prefill}) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
       fullscreenDialog: true,
-      builder: (_) => EventEditorPage(occurrence: occurrence, thisOccurrenceOnly: thisOccurrenceOnly, initialStart: initialStart),
+      builder: (_) => EventEditorPage(occurrence: occurrence, thisOccurrenceOnly: thisOccurrenceOnly, initialStart: initialStart, prefill: prefill),
     ));
+
+/// Starting values for a new event made from something else (a mail).
+class EventPrefill {
+  const EventPrefill({this.title, this.location, this.description, this.start, this.end});
+  final String? title;
+  final String? location;
+  final String? description;
+  final DateTime? start;
+  final DateTime? end;
+}
 
 /// Create / edit form. Validates that the end is after the start.
 class EventEditorPage extends ConsumerStatefulWidget {
-  const EventEditorPage({super.key, this.occurrence, this.thisOccurrenceOnly = false, this.initialStart});
+  const EventEditorPage({super.key, this.occurrence, this.thisOccurrenceOnly = false, this.initialStart, this.prefill});
   final EventOccurrence? occurrence;
   final bool thisOccurrenceOnly;
   final DateTime? initialStart;
+  final EventPrefill? prefill;
 
   @override
   ConsumerState<EventEditorPage> createState() => _EventEditorPageState();
@@ -48,9 +60,10 @@ class _EventEditorPageState extends ConsumerState<EventEditorPage> {
     super.initState();
     final e = _existing;
     final o = widget.occurrence;
-    _title = TextEditingController(text: e?.summary ?? '');
-    _location = TextEditingController(text: e?.location ?? '');
-    _description = TextEditingController(text: e?.description ?? '');
+    final pre = widget.prefill;
+    _title = TextEditingController(text: e?.summary ?? pre?.title ?? '');
+    _location = TextEditingController(text: e?.location ?? pre?.location ?? '');
+    _description = TextEditingController(text: e?.description ?? pre?.description ?? '');
     _rrule = TextEditingController(text: e?.rrule ?? '');
     _calendarId = e?.calendarId;
     _allDay = e?.isAllDay ?? false;
@@ -58,6 +71,9 @@ class _EventEditorPageState extends ConsumerState<EventEditorPage> {
       final (s, en) = localSpan(o);
       _start = s;
       _end = en;
+    } else if (pre?.start != null) {
+      _start = pre!.start!;
+      _end = pre.end != null && pre.end!.isAfter(_start) ? pre.end! : _start.add(const Duration(hours: 1));
     } else {
       final s = widget.initialStart ?? DateTime.now();
       _start = DateTime(s.year, s.month, s.day, s.hour, (s.minute ~/ 15) * 15);

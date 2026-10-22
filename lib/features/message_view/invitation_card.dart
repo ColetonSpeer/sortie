@@ -20,6 +20,7 @@ class InvitationCard extends ConsumerStatefulWidget {
 
 class _InvitationCardState extends ConsumerState<InvitationCard> {
   AttendeeStatus? _answer;
+  bool _inCalendar = false;
   bool _busy = false;
   bool _loaded = false;
   String? _error;
@@ -32,8 +33,15 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
 
   Future<void> _load() async {
     try {
-      final a = await ref.read(invitationServiceProvider).responseOf(widget.header.accountId, widget.invitation);
-      if (mounted) setState(() => _answer = a);
+      final svc = ref.read(invitationServiceProvider);
+      final a = await svc.responseOf(widget.header.accountId, widget.invitation);
+      final present = await svc.isInCalendar(widget.invitation);
+      if (mounted) {
+        setState(() {
+          _answer = a;
+          _inCalendar = present;
+        });
+      }
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loaded = true);
@@ -52,9 +60,29 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
             status: status,
             original: widget.header,
           );
-      if (mounted) setState(() => _answer = status);
+      if (mounted) {
+        setState(() {
+          _answer = status;
+          _inCalendar = status != AttendeeStatus.declined;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not send the reply: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _add() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(invitationServiceProvider).addToCalendar(accountId: widget.header.accountId, invitation: widget.invitation);
+      if (mounted) setState(() => _inCalendar = true);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not add it: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -91,6 +119,7 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
               switch (inv.method) {
                 InvitationMethod.cancel => 'Meeting cancelled',
                 InvitationMethod.reply => 'Reply to your invitation',
+                InvitationMethod.other => 'Calendar event',
                 _ => 'Meeting invitation',
               },
               style: theme.textTheme.titleSmall,
@@ -104,7 +133,7 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
           if (who.isNotEmpty) _line(Icons.person_outline, who),
           if (e.attendees.isNotEmpty) _line(Icons.group_outlined, '${e.attendees.length} invited'),
           const SizedBox(height: 12),
-          if (inv.method == InvitationMethod.request) _answerRow(theme),
+          if (inv.method == InvitationMethod.request || inv.method == InvitationMethod.other) _answerRow(theme),
           if (cancelled)
             Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
               const Text('The organizer cancelled this meeting.'),
@@ -120,20 +149,33 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
 
   Widget _answerRow(ThemeData theme) {
     final a = _answer;
-    return Row(children: [
-      if (a != null) ...[
-        Icon(Icons.check_circle_outline, size: 18, color: theme.colorScheme.primary),
-        const SizedBox(width: 6),
-        Text('You ${a == AttendeeStatus.tentative ? 'answered tentative' : a.name}', key: const Key('invitationAnswer')),
-        const SizedBox(width: 12),
-      ],
-      if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-      if (!_busy && _loaded)
-        Wrap(spacing: 8, children: [
-          if (a != AttendeeStatus.accepted) FilledButton(onPressed: () => _respond(AttendeeStatus.accepted), child: const Text('Accept')),
-          if (a != AttendeeStatus.tentative) OutlinedButton(onPressed: () => _respond(AttendeeStatus.tentative), child: const Text('Tentative')),
-          if (a != AttendeeStatus.declined) OutlinedButton(onPressed: () => _respond(AttendeeStatus.declined), child: const Text('Decline')),
+    final canReply = widget.invitation.method == InvitationMethod.request && (widget.invitation.organizer ?? '').isNotEmpty;
+    return Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+      if (a != null)
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.check_circle_outline, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text('You ${a == AttendeeStatus.tentative ? 'answered tentative' : a.name}', key: const Key('invitationAnswer')),
+        ])
+      else if (_inCalendar)
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.event_available, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          const Text('In your calendar', key: Key('invitationInCalendar')),
         ]),
+      if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+      if (!_busy && _loaded) ...[
+        if (canReply && a != AttendeeStatus.accepted) FilledButton(onPressed: () => _respond(AttendeeStatus.accepted), child: const Text('Accept')),
+        if (canReply && a != AttendeeStatus.tentative) OutlinedButton(onPressed: () => _respond(AttendeeStatus.tentative), child: const Text('Tentative')),
+        if (canReply && a != AttendeeStatus.declined) OutlinedButton(onPressed: () => _respond(AttendeeStatus.declined), child: const Text('Decline')),
+        if (!_inCalendar)
+          TextButton.icon(
+            key: const Key('addToCalendar'),
+            onPressed: _add,
+            icon: const Icon(Icons.event_outlined, size: 18),
+            label: Text(canReply ? 'Add without replying' : 'Add to calendar'),
+          ),
+      ],
     ]);
   }
 

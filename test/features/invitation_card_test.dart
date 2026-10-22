@@ -1,6 +1,7 @@
 import 'package:enough_mail/enough_mail.dart' as em;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sortie/app/demo/fake_calendar.dart';
 import 'package:sortie/app/providers.dart';
 import 'package:sortie/core/clock.dart';
 import 'package:sortie/data/mail/enough/mime_mapper.dart';
@@ -78,5 +79,32 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('invitationCard')), findsOneWidget);
+  });
+
+  testWidgets('Add without replying stores the event and sends nothing', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    f.sync.bodiesByHash[h.messageIdHash] = MessageBody(text: 'You are invited', calendar: request);
+    final calendar = FakeCalendarRepository();
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) => f.sync.send(a, i, r, raw),
+      identities: f.accounts.identities,
+      settings: f.settings,
+      calendar: calendar,
+    );
+    await tester.pumpWidget(f.app(
+      MessageScreen(accountId: h.accountId, folderPath: h.folderPath, uid: h.uid, standalone: false),
+      extra: [invitationServiceProvider.overrideWithValue(svc)],
+    ));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('addToCalendar')));
+    await tester.tap(find.byKey(const Key('addToCalendar')));
+    await tester.pumpAndSettle();
+    expect(f.sync.sent, isEmpty);
+    expect(find.byKey(const Key('invitationInCalendar')), findsOneWidget);
+    expect(find.byKey(const Key('addToCalendar')), findsNothing);
+    expect(find.text('Accept'), findsOneWidget, reason: 'answering later is still possible');
+    expect((await calendar.eventsByUid(InvitationService.localCalendarId, 'abc123@google.com')).single.summary, 'Speed upgrade planning');
   });
 }

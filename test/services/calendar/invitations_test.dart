@@ -98,4 +98,31 @@ void main() {
     final parsed = em.MimeMessage.parseFromText(mime.renderMessage());
     expect(MimeMapper.bodyFrom(parsed).calendar, contains('BEGIN:VCALENDAR'));
   });
+
+  test('addToCalendar keeps the event without mailing anyone', () async {
+    final sent = <List<String>>[];
+    final calendar = FakeCalendarRepository();
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) async => sent.add(r),
+      identities: (_) async => [me],
+      settings: FakeSettingsRepository(),
+      calendar: calendar,
+    );
+    final inv = MeetingInvitation.parse(request)!;
+    expect(await svc.isInCalendar(inv), isFalse);
+    await svc.addToCalendar(accountId: 'acct', invitation: inv);
+    expect(sent, isEmpty);
+    expect(await svc.isInCalendar(inv), isTrue);
+    expect(await svc.responseOf('acct', inv), isNull, reason: 'no answer was given');
+    final stored = (await calendar.eventsByUid(InvitationService.localCalendarId, 'abc123@google.com')).single;
+    expect(stored.summary, 'Speed upgrade planning');
+  });
+
+  test('a method-less calendar object still parses so it can be added', () {
+    final ics = request.replaceFirst('METHOD:REQUEST\n', '').replaceFirst('ORGANIZER;CN=Brian Jeffers:mailto:brian@hky.test\n', '');
+    final inv = MeetingInvitation.parse(ics)!;
+    expect(inv.method, InvitationMethod.other);
+    expect(inv.organizer, isNull);
+  });
 }

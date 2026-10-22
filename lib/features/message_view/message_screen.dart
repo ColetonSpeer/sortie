@@ -9,6 +9,8 @@ import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
 import '../../router/app_router.dart';
 import '../../services/calendar/invitations.dart';
+import '../../services/calendar/meeting_text.dart';
+import '../calendar/event_editor.dart';
 import '../compose/open_compose.dart';
 import '../mailbox/message_actions.dart';
 import '../mailbox/threading.dart';
@@ -204,6 +206,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                     if (v == 'plain') setState(() => _plainText = !plainText);
                     if (v == 'original') setState(() => _originalFormatting = !_originalFormatting);
                     if (v == 'browser') _openInBrowser(h, allowRemote);
+                    if (v == 'calendar') _addToCalendar(h);
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'unread', child: Text('Mark unread')),
@@ -217,6 +220,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                       child: const Text('Original formatting'),
                     ),
                     const PopupMenuItem(value: 'browser', child: Text('Open in browser')),
+                    const PopupMenuItem(value: 'calendar', child: Text('Add to calendar')),
                   ],
                 ),
               ],
@@ -301,6 +305,38 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     } catch (e) {
       messenger?.showSnackBar(SnackBar(content: Text('Could not open in browser: $e')));
     }
+  }
+
+  /// New event from this mail: the invitation's details when it carries one,
+  /// otherwise subject, text, the meeting link and a guessed time, all
+  /// editable before saving.
+  Future<void> _addToCalendar(MessageHeader h) async {
+    MessageBody? body;
+    try {
+      body = await _body;
+    } catch (_) {}
+    if (!mounted) return;
+    final inv = body?.calendar == null ? null : MeetingInvitation.parse(body!.calendar!);
+    if (inv != null) {
+      final e = inv.event;
+      await openEventEditor(context, prefill: EventPrefill(title: e.summary, location: e.location, description: e.description, start: e.start.toLocal(), end: e.end.toLocal()));
+      return;
+    }
+    final text = body == null ? '' : plainTextOf(body);
+    final guess = guessMeetingTime(text);
+    final fallback = DateTime.now().add(const Duration(hours: 1));
+    final start = guess?.start ?? DateTime(fallback.year, fallback.month, fallback.day, fallback.hour);
+    final link = meetingLink(text);
+    await openEventEditor(
+      context,
+      prefill: EventPrefill(
+        title: h.subject,
+        location: link,
+        description: text.length > 4000 ? text.substring(0, 4000) : text,
+        start: start,
+        end: guess?.end ?? start.add(const Duration(hours: 1)),
+      ),
+    );
   }
 
   void _compose({MessageHeader? reply, MessageHeader? replyAll, MessageHeader? forward, MessageHeader? draft}) {
