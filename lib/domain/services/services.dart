@@ -50,7 +50,8 @@ abstract class MailSyncService {
   Future<void> markSeen(String accountId, String folderPath, int uid, {bool seen = true});
   Future<void> move(String accountId, String fromFolder, List<int> uids, String toFolder, {String cause = 'manual'});
   Future<void> delete(String accountId, String folderPath, List<int> uids, {bool permanent = false});
-  Future<MessageBody> body(String accountId, String folderPath, int uid);
+  /// Cached when available; [refresh] fetches again and replaces the cache.
+  Future<MessageBody> body(String accountId, String folderPath, int uid, {bool refresh = false});
   Future<List<int>> attachment(String accountId, String folderPath, int uid, String partId);
   Future<List<int>> rawMessage(String accountId, String folderPath, int uid);
   /// Stores [raw] in Drafts. [supersedesMessageId] names the previous copy

@@ -428,8 +428,20 @@ class _ConversationBar extends StatelessWidget {
 /// invitations that only come as an attachment), pulls the `.ics` part so
 /// the invitation card can show.
 Future<MessageBody> loadBodyWithCalendar(MailSyncService sync, MessageHeader h) async {
-  final body = await sync.body(h.accountId, h.folderPath, h.uid);
+  var body = await sync.body(h.accountId, h.folderPath, h.uid);
   if (body.calendar != null) return body;
+  if (!body.calendarKnown) {
+    // Cached by a build that did not extract calendar parts: look once more.
+    try {
+      body = await sync.body(h.accountId, h.folderPath, h.uid, refresh: true);
+      if (body.calendar != null) {
+        _log.info('calendar part found on refetch of ${h.folderPath}/${h.uid}');
+        return body;
+      }
+    } catch (e) {
+      _log.fine('refetch of ${h.folderPath}/${h.uid} failed: $e');
+    }
+  }
   final seen = <String>{};
   for (final a in [...body.attachments, ...h.attachments]) {
     if (!seen.add(a.partId)) continue;

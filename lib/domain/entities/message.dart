@@ -145,7 +145,7 @@ class MessageHeader {
 }
 
 class MessageBody {
-  const MessageBody({required this.text, this.html, this.inlineParts = const {}, this.attachments = const [], this.calendar});
+  const MessageBody({required this.text, this.html, this.inlineParts = const {}, this.attachments = const [], this.calendar, this.calendarKnown = true});
 
   /// Plain text (decoded, or derived from HTML when the mail has none).
   final String text;
@@ -154,6 +154,10 @@ class MessageBody {
   /// The `text/calendar` part (meeting invitation, update, cancellation or
   /// reply) when the mail carries one.
   final String? calendar;
+
+  /// False for bodies cached before calendar parts were extracted: nobody
+  /// has looked yet, so a null [calendar] means "unknown", not "none".
+  final bool calendarKnown;
 
   /// cid: -> bytes for inline images.
   final Map<String, List<int>> inlineParts;

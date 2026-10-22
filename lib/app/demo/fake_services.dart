@@ -15,6 +15,9 @@ class FakeMailSyncService implements MailSyncService {
   final _statusCtrl = StreamController<Map<String, AccountSyncStatus>>.broadcast();
   final List<String> calls = [];
   final Map<String, MessageBody> bodiesByHash = {};
+
+  /// What a `refresh: true` fetch returns (falls back to [bodiesByHash]).
+  final Map<String, MessageBody> refreshedBodiesByHash = {};
   final Map<String, List<int>> attachmentBytes = {};
   final List<(String, String, List<String>, List<int>)> sent = [];
   final List<(String, List<int>, String?)> drafts = [];
@@ -91,8 +94,13 @@ class FakeMailSyncService implements MailSyncService {
   }
 
   @override
-  Future<MessageBody> body(String accountId, String folderPath, int uid) async {
-    calls.add('body:$folderPath:$uid');
+  Future<MessageBody> body(String accountId, String folderPath, int uid, {bool refresh = false}) async {
+    calls.add('body:$folderPath:$uid${refresh ? ':refresh' : ''}');
+    if (refresh) {
+      final h = await messages.byUid(accountId, folderPath, uid);
+      final fresh = refreshedBodiesByHash[h?.messageIdHash];
+      if (fresh != null) return fresh;
+    }
     final h = await messages.byUid(accountId, folderPath, uid);
     return bodiesByHash[h?.messageIdHash] ??
         MessageBody(text: h == null ? '' : '${h.snippet}\n\n(demo body — no server connected)');

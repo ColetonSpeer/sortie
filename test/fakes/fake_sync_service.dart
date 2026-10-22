@@ -74,7 +74,8 @@ class CoordFakeSyncService implements MailSyncService {
   @override
   Future<void> delete(String accountId, String folderPath, List<int> uids, {bool permanent = false}) async {}
   @override
-  Future<MessageBody> body(String accountId, String folderPath, int uid) async => server.mailboxes[folderPath]?.messages[uid]?.body ?? const MessageBody(text: '');
+  Future<MessageBody> body(String accountId, String folderPath, int uid, {bool refresh = false}) async =>
+      server.mailboxes[folderPath]?.messages[uid]?.body ?? const MessageBody(text: '');
   @override
   Future<List<int>> attachment(String accountId, String folderPath, int uid, String partId) async => const [];
   @override

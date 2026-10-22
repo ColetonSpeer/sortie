@@ -305,9 +305,9 @@ class SyncEngine implements MailSyncService {
   }
 
   @override
-  Future<MessageBody> body(String accountId, String folderPath, int uid) async {
+  Future<MessageBody> body(String accountId, String folderPath, int uid, {bool refresh = false}) async {
     final h = await messages.byUid(accountId, folderPath, uid);
-    if (h != null) {
+    if (h != null && !refresh) {
       final cached = await messages.cachedBody(accountId, h.messageIdHash);
       if (cached != null) return cached;
     }

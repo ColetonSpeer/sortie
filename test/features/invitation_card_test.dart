@@ -107,4 +107,24 @@ void main() {
     expect(find.text('Accept'), findsOneWidget, reason: 'answering later is still possible');
     expect((await calendar.eventsByUid(InvitationService.localCalendarId, 'abc123@google.com')).single.summary, 'Speed upgrade planning');
   });
+
+  testWidgets('a body cached before calendar support is fetched again once and then shows the card', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    f.sync.bodiesByHash[h.messageIdHash] = const MessageBody(text: 'old cache', calendarKnown: false);
+    f.sync.refreshedBodiesByHash[h.messageIdHash] = MessageBody(text: 'fresh', calendar: request);
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) => f.sync.send(a, i, r, raw),
+      identities: f.accounts.identities,
+      settings: f.settings,
+    );
+    await tester.pumpWidget(f.app(
+      MessageScreen(accountId: h.accountId, folderPath: h.folderPath, uid: h.uid, standalone: false),
+      extra: [invitationServiceProvider.overrideWithValue(svc)],
+    ));
+    await tester.pumpAndSettle();
+    expect(f.sync.calls.where((c) => c.endsWith(':refresh')).length, 1);
+    expect(find.byKey(const Key('invitationCard')), findsOneWidget);
+  });
 }

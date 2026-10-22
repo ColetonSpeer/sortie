@@ -364,7 +364,8 @@ class DriftMessageRepository implements MessageRepository {
       html: r.html,
       inlineParts: inline,
       attachments: header == null ? const [] : _attachments(header.attachmentsJson),
-      calendar: r.calendarText,
+      calendar: (r.calendarText ?? '').isEmpty ? null : r.calendarText,
+      calendarKnown: r.calendarText != null,
     );
   }
 
@@ -380,7 +381,7 @@ class DriftMessageRepository implements MessageRepository {
         bodyText: Value(body.text),
         html: Value(body.html),
         inlineJson: Value(inlineJson),
-        calendarText: Value(body.calendar),
+        calendarText: Value(body.calendar ?? ''),
         sizeBytes: Value(size),
         cachedAt: Value(now),
         lastAccessAt: Value(now),
