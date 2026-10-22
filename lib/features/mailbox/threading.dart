@@ -38,6 +38,16 @@ class MessageThread {
 
 final _prefix = RegExp(r'^\s*((re|fwd?|fw|aw|wg|sv|vs|antw)\s*(\[\d+\])?\s*:\s*|\[[^\]]*\]\s*)+', caseSensitive: false);
 
+/// How long a conversation may have been quiet for a header-less "Re:" to
+/// still join it by subject.
+const subjectJoinWindow = Duration(days: 14);
+
+final _replyPrefix = RegExp(r'^\s*(\[[^\]]*\]\s*)*(re|fwd?|fw|aw|wg|sv|vs|antw)\s*(\[\d+\])?\s*:', caseSensitive: false);
+
+/// True when the subject carries a reply or forward prefix (list tags such
+/// as `[team]` may come first).
+bool isReplyOrForward(String subject) => _replyPrefix.hasMatch(subject);
+
 /// Strips Re:/Fwd:/AW:/[list tags] repeatedly, lower-cases, trims and squeezes
 /// whitespace. Empty when nothing meaningful is left.
 String normalizeSubject(String s) => s.replaceAll(_prefix, '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
@@ -144,8 +154,13 @@ List<MessageThread> buildThreads(List<MessageHeader> msgs, {Set<String> ownAddre
     }
   }
 
-  // Subject fallback. subject -> participant -> some node in that group.
-  final bySubject = <String, Map<String, String>>{};
+  // Subject fallback. subject -> participant -> (some node in that group,
+  // date of the latest message seen for it). Only a message that calls
+  // itself a reply or forward may join this way, and only a conversation
+  // that was active within [subjectJoinWindow]: recurring automated mail
+  // (form submissions, alerts) shares subject and sender for years without
+  // being one conversation.
+  final bySubject = <String, Map<String, (String, DateTime)>>{};
   final participantsOf = <MessageHeader, Set<String>>{for (final h in sorted) h: _participantsOf(h)};
   for (final h in sorted) {
     final me = nodeOf(h);
@@ -153,17 +168,18 @@ List<MessageThread> buildThreads(List<MessageHeader> msgs, {Set<String> ownAddre
     if (subj.isEmpty) continue;
     final index = bySubject.putIfAbsent(subj, () => {});
     final shared = participantsOf[h]!.where((p) => !own.contains(p)).toList();
-    if (!connected.contains(me)) {
+    if (!connected.contains(me) && isReplyOrForward(h.subject)) {
       for (final p in shared) {
         final other = index[p];
-        if (other != null && uf.find(other) != uf.find(me)) {
-          uf.union(me, other);
-          break;
-        }
+        if (other == null || uf.find(other.$1) == uf.find(me)) continue;
+        if (h.date.difference(other.$2) > subjectJoinWindow) continue;
+        uf.union(me, other.$1);
+        break;
       }
     }
     for (final p in shared) {
-      index.putIfAbsent(p, () => me);
+      final prev = index[p];
+      index[p] = (prev?.$1 ?? me, h.date);
     }
   }
 

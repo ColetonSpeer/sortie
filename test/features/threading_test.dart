@@ -36,6 +36,7 @@ MessageHeader h(
 List<int> uids(MessageThread t) => t.messages.map((m) => m.uid).toList();
 
 void main() {
+  subjectFallbackTests();
   sentMergeTests();
   group('buildThreads', () {
     test('References / In-Reply-To chain becomes one thread, oldest first', () {
@@ -165,6 +166,34 @@ void main() {
     expect(participantSummary(t), 'alice, me, bob');
     final many = buildThreads([a, c, h(4, irt: '<m1@example.test>', from: 'carol@example.test', minutes: 3), h(5, irt: '<m1@example.test>', from: 'dan@example.test', minutes: 4)]).single;
     expect(participantSummary(many), 'alice, bob, carol, +1');
+  });
+}
+
+void subjectFallbackTests() {
+  group('subject fallback', () {
+    test('recurring mail with the same subject and sender is not one thread', () {
+      final a = h(1, subject: 'Form Submission - Contact Us', from: 'form@squarespace.test', minutes: 0);
+      final b = h(2, subject: 'Form Submission - Contact Us', from: 'form@squarespace.test', minutes: 60 * 24 * 90);
+      final c = h(3, subject: 'Form Submission - Contact Us', from: 'form@squarespace.test', minutes: 60 * 24 * 180);
+      expect(buildThreads([a, b, c]).length, 3);
+    });
+    test('a header-less reply joins a recent conversation, not one from months ago', () {
+      final first = h(1, subject: 'Internet issues', from: 'janie@icloud.test', minutes: 0);
+      final soon = h(2, subject: 'Re: Internet issues', from: 'janie@icloud.test', minutes: 60 * 24 * 3, irt: '<lost@x>');
+      final late = h(3, subject: 'Re: Internet issues', from: 'janie@icloud.test', minutes: 60 * 24 * 120, irt: '<lost2@x>');
+      final threads = buildThreads([first, soon, late]);
+      expect(threads.length, 2);
+      expect(threads.firstWhere((t) => t.contains(first)).messages.length, 2, reason: 'the reply three days later belongs');
+      expect(threads.firstWhere((t) => t.contains(late)).isSingle, isTrue, reason: 'four months later is a new conversation');
+    });
+    test('replies to different submissions do not chain into one thread', () {
+      final replies = [
+        h(10, subject: 'Re: Form Submission - Contact Us', from: 'me@example.test', to: const ['a@x.test'], minutes: 0),
+        h(11, subject: 'Re: Form Submission - Contact Us', from: 'me@example.test', to: const ['b@x.test'], minutes: 60 * 24 * 100),
+        h(12, subject: 'Re: Form Submission - Contact Us', from: 'me@example.test', to: const ['c@x.test'], minutes: 60 * 24 * 200),
+      ];
+      expect(buildThreads(replies, ownAddresses: {'me@example.test'}).length, 3);
+    });
   });
 }
 
