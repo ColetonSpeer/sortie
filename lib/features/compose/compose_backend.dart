@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/compose_models.dart';
 import '../../app/providers.dart';
+import '../../core/hashing.dart';
 import '../../domain/entities/entities.dart';
 import '../../services/compose/draft_reviewer.dart';
 
@@ -11,6 +12,9 @@ import '../../services/compose/draft_reviewer.dart';
 abstract class ComposeBackend {
   Future<List<Identity>> identities(String accountId);
   Future<MessageHeader?> message(String accountId, String folderPath, int uid);
+
+  /// An earlier message of a thread by its Message-ID, from the local cache.
+  Future<MessageHeader?> messageById(String accountId, String messageId);
   Future<MessageBody> body(String accountId, String folderPath, int uid);
   Future<List<MailAddress>> recentAddresses(String accountId);
   Future<List<int>> compose(ComposeDraft draft);
@@ -32,6 +36,10 @@ class LocalComposeBackend implements ComposeBackend {
   @override
   Future<MessageHeader?> message(String accountId, String folderPath, int uid) =>
       _ref.read(messageRepositoryProvider).byUid(accountId, folderPath, uid);
+
+  @override
+  Future<MessageHeader?> messageById(String accountId, String messageId) =>
+      _ref.read(messageRepositoryProvider).byMessageIdHash(accountId, messageIdHash(messageId: messageId));
 
   @override
   Future<MessageBody> body(String accountId, String folderPath, int uid) =>

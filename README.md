@@ -148,7 +148,10 @@ first date and time the text mentions.
 The compose window has a "Review with AI" button (the wand). It sends the
 text you wrote, not your signature or the quoted message, to the configured
 AI backend with an optional instruction ("shorter", "more formal", ...) and
-shows the suggested revision with a list of changes; "Use revision" swaps
+shows the suggested revision with a list of changes. For a reply, the message
+being answered and up to three earlier messages of the thread (from the local
+cache, their own quoted tails stripped) go along as context, so the revision
+answers what was asked and keeps names and dates straight; "Use revision" swaps
 it in, leaving the signature and quote untouched, and can also apply a
 better subject. It needs an AI backend under Settings → AI backend, honours
 the pause switch and spend caps, and is counted in the usage meter.

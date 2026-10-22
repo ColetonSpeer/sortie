@@ -12,6 +12,7 @@ import '../../domain/entities/entities.dart';
 import '../../services/compose/draft_reviewer.dart';
 import '../../services/compose/message_composer.dart' show MessageComposer;
 import 'compose_backend.dart';
+import 'conversation_context.dart';
 import 'quote.dart';
 import 'recipient_field.dart';
 import 'review_sheet.dart';
@@ -222,16 +223,21 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Write something first.')));
       return;
     }
+    final src = widget.draftUid == null ? _source : null;
     final outcome = await showReviewSheet(
       context,
       currentSubject: _subject.text,
-      run: (instruction) => _backend.reviewDraft(DraftReviewRequest(
-        subject: _subject.text,
-        body: parts.own,
-        recipients: [for (final a in [..._to, ..._cc]) a.toString()],
-        instruction: instruction,
-        senderName: _identity?.name ?? '',
-      )),
+      run: (instruction) async {
+        final conversation = src == null ? const <ConversationTurn>[] : await gatherConversation(_backend, src);
+        return _backend.reviewDraft(DraftReviewRequest(
+          subject: _subject.text,
+          body: parts.own,
+          recipients: [for (final a in [..._to, ..._cc]) a.toString()],
+          instruction: instruction,
+          senderName: _identity?.name ?? '',
+          conversation: conversation,
+        ));
+      },
     );
     if (outcome == null || !mounted) return;
     // Re-split: the tail may have changed while the dialog was open.
