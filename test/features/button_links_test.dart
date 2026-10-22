@@ -61,4 +61,15 @@ void main() {
       expect(find.text('Open link?'), findsOneWidget);
     });
   });
+
+  test('display:block and float on table cells are dropped so the cell content survives', () {
+    const mail = '<table><tr><td style="float:left;padding-left:13px">Logo</td></tr>'
+        '<tr><td class="container" style="display:block;clear:both;margin:0 auto;padding:0 20px"><table><tr><td>Sensor Down</td></tr></table></td></tr></table>';
+    final out = sanitized(mail);
+    expect(out, isNot(contains('display:block')));
+    expect(out, isNot(contains('float:left')));
+    expect(out, contains('padding:0 20px'), reason: 'other declarations stay');
+    expect(out, contains('Sensor Down'));
+    expect(sanitized('<table><tr><td style="display:none">hidden</td></tr></table>'), contains('display:none'), reason: 'hiding a cell is still honoured');
+  });
 }

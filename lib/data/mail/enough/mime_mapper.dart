@@ -147,14 +147,35 @@ abstract final class MimeMapper {
     var text = m.decodeTextPlainPart();
     final html = m.decodeTextHtmlPart();
     if ((text == null || text.trim().isEmpty) && html != null) text = htmlToText(html);
+    // Any part with a Content-ID can be referenced as `cid:` from the HTML,
+    // whatever its disposition (PRTG, some Outlook builds mark them
+    // "attachment"); keep those as inline images, not as attachments.
     final inline = <String, List<int>>{};
-    for (final info in m.findContentInfo(disposition: em.ContentDisposition.inline)) {
-      final cid = info.cid?.replaceAll(RegExp(r'^<|>$'), '');
-      if (cid == null || cid.isEmpty || info.isText) continue;
-      final bytes = m.getPart(info.fetchId)?.decodeContentBinary();
-      if (bytes != null) inline[cid] = bytes;
+    final inlineIds = <String>{};
+    for (final part in m.allPartsFlat) {
+      final rawCid = part.getHeaderValue('content-id');
+      if (rawCid == null || part.mediaType.top != em.MediaToptype.image) continue;
+      final cid = rawCid.trim().replaceAll(RegExp(r'^<|>$'), '');
+      if (cid.isEmpty) continue;
+      try {
+        final bytes = part.decodeContentBinary();
+        if (bytes != null && bytes.isNotEmpty) {
+          inline[cid] = bytes;
+          inlineIds.add(cid);
+        }
+      } catch (_) {}
     }
-    return MessageBody(text: text ?? '', html: html, inlineParts: inline, attachments: attachments(m), calendar: calendarPart(m));
+    final atts = [
+      for (final a in attachments(m))
+        if (!_isInlineCid(m, a.partId, inlineIds)) a,
+    ];
+    return MessageBody(text: text ?? '', html: html, inlineParts: inline, attachments: atts, calendar: calendarPart(m));
+  }
+
+  static bool _isInlineCid(em.MimeMessage m, String fetchId, Set<String> inlineIds) {
+    final raw = m.getPart(fetchId)?.getHeaderValue('content-id');
+    if (raw == null) return false;
+    return inlineIds.contains(raw.trim().replaceAll(RegExp(r'^<|>$'), ''));
   }
 
   /// The first iCalendar part: an inline `text/calendar` alternative

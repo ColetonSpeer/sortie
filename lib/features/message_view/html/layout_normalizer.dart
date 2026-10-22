@@ -55,6 +55,12 @@ class LayoutNormalizer {
       }
 
       decls = [...prepend, ...decls];
+      if (const {'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th'}.contains(name)) {
+        // Browsers keep a cell a cell whatever `display`/`float` say (mail
+        // templates put `display:block; float:left` on cells for phones);
+        // flutter_widget_from_html_core would drop the cell and its content.
+        decls = decls.where((d) => !((d.property == 'display' && d.value.trim().toLowerCase() != 'none') || d.property == 'float' || d.property == 'clear')).toList();
+      }
       if (name == 'table' || name == 'td' || name == 'th' || name == 'div') {
         // flutter_widget_from_html_core collapses tables that carry max-width
         // or min-width (the column shrinks to one glyph per line).
