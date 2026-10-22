@@ -181,6 +181,28 @@ it in, leaving the signature and quote untouched, and can also apply a
 better subject. It needs an AI backend under Settings → AI backend, honours
 the pause switch and spend caps, and is counted in the usage meter.
 
+### Blabber: say it, Sortie writes it
+
+Blabber turns rough thoughts into a finished email. On a phone, tap the
+microphone in the compose toolbar (or the small mic button above Compose in
+the inbox, which opens a new message straight into dictation) and talk: the
+phone's own dictation (Apple or Google, on the device) transcribes what you
+say, fillers and all, and keeps listening through pauses until you tap Stop.
+"Make the email" sends the transcript, an optional instruction ("formal",
+"two short paragraphs") and, for a reply, the thread being answered to the
+configured AI backend, which writes the email in your voice: fillers and
+false starts dropped, self-corrections ("actually Thursday") applied, nothing
+invented. You see the subject, the email and the model's notes, can keep
+talking or try again, and "Use it" puts the text into the composer above
+your signature (and above the quote in a reply). Nothing is ever sent by
+itself; the normal Send button still does that. On desktop there is no
+dictation yet (Linux has no recogniser; Windows voice is not enabled), so
+the Blabber button opens the same sheet with a text box to type or paste
+into. Only the transcript leaves the device, to the AI backend you chose;
+the audio never does. The first use asks for the microphone and speech
+recognition permissions. Blabber honours the pause switch and the spend
+caps and shows in the usage meter as "blabber".
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android

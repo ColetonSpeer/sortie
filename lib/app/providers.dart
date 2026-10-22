@@ -7,12 +7,16 @@ import '../domain/entities/entities.dart';
 import '../domain/repositories/calendar_repository.dart';
 import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
+import '../platform/device_info.dart' show isDesktop;
 import '../services/calendar/calendar_service.dart';
 import '../services/calendar/invitations.dart';
+import '../services/compose/blabber_composer.dart';
 import '../services/compose/draft_reviewer.dart';
 import '../services/coordination/coordination_service.dart' show CoordinationService, SharedConfigSyncEvent;
 import '../services/import/calendar_import_sink.dart';
 import '../services/import/thunderbird/thunderbird_importer.dart';
+import '../services/speech/speech_input.dart';
+import '../services/speech/speech_to_text_input.dart';
 import '../services/sorter/user_rules.dart';
 import 'ai_models.dart';
 import 'compose_models.dart';
@@ -80,6 +84,11 @@ final refreshAiBackendProvider = Provider<Future<void> Function()>((_) => _unbou
 
 /// Reviews a compose draft with the configured AI backend.
 final draftReviewerProvider = Provider<DraftReviewer>((_) => _unbound('draftReviewer'));
+final blabberComposerProvider = Provider<BlabberComposer>((_) => _unbound('blabberComposer'));
+
+/// Dictation for Blabber: the platform recogniser on phones, nothing on
+/// desktop (the sheet shows a text box instead).
+final speechInputProvider = Provider<SpeechInput>((_) => isDesktop ? const NoSpeechInput() : SpeechToTextInput());
 
 /// Answers meeting invitations (iTIP reply mail + local calendar).
 final invitationServiceProvider = Provider<InvitationService>((_) => _unbound('invitationService'));

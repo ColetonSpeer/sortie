@@ -17,6 +17,7 @@ class ComposeWindowArgs {
     this.forwardUid,
     this.draftUid,
     this.sourceFolder,
+    this.startBlabber = false,
   });
   final String accountId;
   final int? replyUid;
@@ -24,6 +25,7 @@ class ComposeWindowArgs {
   final int? forwardUid;
   final int? draftUid;
   final String? sourceFolder;
+  final bool startBlabber;
 
   String get title => draftUid != null
       ? 'Edit draft'
@@ -106,6 +108,7 @@ class _ComposeWindowState extends State<ComposeWindow> with WindowListener {
       forwardUid: a.forwardUid,
       draftUid: a.draftUid,
       sourceFolder: a.sourceFolder,
+      startBlabber: a.startBlabber,
       onClose: _closeNow,
     );
   }

@@ -4,6 +4,7 @@ import '../../app/compose_models.dart';
 import '../../app/providers.dart';
 import '../../core/hashing.dart';
 import '../../domain/entities/entities.dart';
+import '../../services/compose/blabber_composer.dart';
 import '../../services/compose/draft_reviewer.dart';
 
 /// Everything the compose screen needs from the rest of the app, so the
@@ -24,6 +25,8 @@ abstract class ComposeBackend {
   Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId});
   Future<String?> reviewUnavailableReason();
   Future<DraftReview> reviewDraft(DraftReviewRequest request);
+  Future<String?> blabberUnavailableReason();
+  Future<BlabberResult> blabber(BlabberRequest request);
 }
 
 /// In-process backend over the app's repositories and sync service.
@@ -72,6 +75,12 @@ class LocalComposeBackend implements ComposeBackend {
 
   @override
   Future<DraftReview> reviewDraft(DraftReviewRequest request) => _ref.read(draftReviewerProvider).review(request);
+
+  @override
+  Future<String?> blabberUnavailableReason() => _ref.read(blabberComposerProvider).unavailableReason();
+
+  @override
+  Future<BlabberResult> blabber(BlabberRequest request) => _ref.read(blabberComposerProvider).compose(request);
 }
 
 final composeBackendProvider = Provider<ComposeBackend>((ref) => LocalComposeBackend(ref));

@@ -8,9 +8,12 @@ import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 
 import '../../app/compose_models.dart';
+import '../../app/providers.dart' show speechInputProvider;
 import '../../domain/entities/entities.dart';
+import '../../services/compose/blabber_composer.dart';
 import '../../services/compose/draft_reviewer.dart';
 import '../../services/compose/message_composer.dart' show MessageComposer;
+import 'blabber_sheet.dart';
 import 'compose_backend.dart';
 import 'conversation_context.dart';
 import 'quote.dart';
@@ -33,6 +36,7 @@ class ComposeScreen extends ConsumerStatefulWidget {
     this.draftUid,
     this.sourceFolder,
     this.onClose,
+    this.startBlabber = false,
   });
   final String accountId;
   final int? replyUid;
@@ -44,6 +48,9 @@ class ComposeScreen extends ConsumerStatefulWidget {
   /// Set when the screen owns a window of its own: called to close it
   /// instead of popping a route.
   final VoidCallback? onClose;
+
+  /// Opens Blabber (dictate the email) as soon as the composer is ready.
+  final bool startBlabber;
 
   static const autosaveDelay = Duration(seconds: 20);
 
@@ -67,6 +74,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
   bool _ready = false;
   bool _busy = false;
   bool _allowPop = false;
+  bool _blabberOpened = false;
   String? _error;
 
   // Draft autosave state.
@@ -135,6 +143,12 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
     if (mounted) setState(() => _ready = true);
+    if (widget.startBlabber && !_blabberOpened && mounted) {
+      _blabberOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_blabber());
+      });
+    }
   }
 
   /// Forwarding carries the original's files along. Inline images already
@@ -272,6 +286,47 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
     final body = outcome.body.trimRight();
     _body.value = TextEditingValue(text: '$body${now.tail}', selection: TextSelection.collapsed(offset: body.length));
     if (outcome.subject != null) _subject.text = outcome.subject!;
+    _touch();
+    setState(() {});
+  }
+
+  /// Blabber: dictated (or typed) thoughts become the email text. Replies
+  /// hand the thread along; whatever the user already wrote is treated as
+  /// the draft the transcript changes. The signature and the quote stay.
+  Future<void> _blabber() async {
+    final reason = await _backend.blabberUnavailableReason();
+    if (!mounted) return;
+    if (reason != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reason)));
+      return;
+    }
+    final parts = splitOwnText(_body.text, signature: _sig());
+    final src = widget.draftUid == null && widget.forwardUid == null ? _source : null;
+    final outcome = await showBlabberSheet(
+      context,
+      speech: ref.read(speechInputProvider),
+      currentSubject: _subject.text,
+      isReply: src != null,
+      hasOwnText: parts.own.trim().isNotEmpty,
+      run: (transcript, instruction) async {
+        final conversation = src == null ? const <ConversationTurn>[] : await gatherConversation(_backend, src);
+        return _backend.blabber(BlabberRequest(
+          transcript: transcript,
+          instruction: instruction,
+          senderName: _identity?.name ?? '',
+          recipients: [for (final a in [..._to, ..._cc]) a.toString()],
+          currentSubject: _subject.text,
+          existingText: splitOwnText(_body.text, signature: _sig()).own,
+          conversation: conversation,
+          isReply: src != null,
+        ));
+      },
+    );
+    if (outcome == null || !mounted) return;
+    final now = splitOwnText(_body.text, signature: _sig());
+    final body = outcome.body.trimRight();
+    _body.value = TextEditingValue(text: '$body${now.tail}', selection: TextSelection.collapsed(offset: body.length));
+    if (outcome.applySubject && outcome.subject.trim().isNotEmpty) _subject.text = outcome.subject.trim();
     _touch();
     setState(() {});
   }
@@ -501,6 +556,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
                 child: Text('Draft saved ${DateFormat.jm().format(_savedAt!)}',
                     key: const Key('draftSavedAt'), style: Theme.of(context).textTheme.labelSmall),
               ),
+            IconButton(key: const Key('blabber'), tooltip: 'Blabber: talk, get an email', icon: const Icon(Icons.mic_none_outlined), onPressed: _busy || !_ready ? null : _blabber),
             IconButton(key: const Key('reviewDraft'), tooltip: 'Review with AI', icon: const Icon(Icons.auto_fix_high_outlined), onPressed: _busy || !_ready ? null : _review),
             IconButton(tooltip: 'Attach file', icon: const Icon(Icons.attach_file), onPressed: _busy ? null : _attach),
             IconButton(tooltip: 'Save draft', icon: const Icon(Icons.save_outlined), onPressed: _busy || !_ready ? null : _saveDraft),

@@ -47,6 +47,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sortie listens while you dictate an email with Blabber.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Sortie turns what you say into text so it can draft the email.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

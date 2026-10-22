@@ -87,11 +87,22 @@ class AdaptiveScaffold extends ConsumerWidget {
       drawer: Drawer(child: _rail()),
       body: _list(showMenuButton: true),
       floatingActionButton: Consumer(
-        builder: (context, ref, _) => FloatingActionButton(
-          tooltip: 'Compose',
-          onPressed: () => openCompose(context, ref, accountId: accountId),
-          child: const Icon(Icons.edit_outlined),
-        ),
+        builder: (context, ref, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+          FloatingActionButton.small(
+            key: const Key('blabberFab'),
+            heroTag: 'blabber',
+            tooltip: 'Blabber: talk, get an email',
+            onPressed: () => openCompose(context, ref, accountId: accountId, blabber: true),
+            child: const Icon(Icons.mic_none_outlined),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'compose',
+            tooltip: 'Compose',
+            onPressed: () => openCompose(context, ref, accountId: accountId),
+            child: const Icon(Icons.edit_outlined),
+          ),
+        ]),
       ),
     );
   }
@@ -114,11 +125,22 @@ class FolderRail extends ConsumerWidget {
           if (wide)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-              child: FilledButton.tonalIcon(
-                onPressed: () => openCompose(context, ref, accountId: accountId),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Compose'),
-              ),
+              child: Row(children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => openCompose(context, ref, accountId: accountId),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Compose'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  key: const Key('blabberCompose'),
+                  onPressed: () => openCompose(context, ref, accountId: accountId, blabber: true),
+                  icon: const Icon(Icons.mic_none_outlined),
+                  label: const Text('Blabber'),
+                ),
+              ]),
             ),
           Expanded(
             child: FolderList(

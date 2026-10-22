@@ -50,8 +50,10 @@ abstract final class Routes {
     String? forward,
     String? draft,
     String? folder,
+    bool blabber = false,
   }) {
     final q = <String, String>{'accountId': accountId};
+    if (blabber) q['blabber'] = '1';
     if (reply != null) q['reply'] = reply;
     if (replyAll != null) q['replyAll'] = replyAll;
     if (forward != null) q['forward'] = forward;
@@ -116,6 +118,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             forwardUid: int.tryParse(q['forward'] ?? ''),
             draftUid: int.tryParse(q['draft'] ?? ''),
             sourceFolder: q['folder'],
+            startBlabber: q['blabber'] == '1',
           );
         },
       ),

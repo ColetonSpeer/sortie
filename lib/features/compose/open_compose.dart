@@ -20,6 +20,7 @@ Future<void> openCompose(
   int? replyAll,
   int? forward,
   int? draft,
+  bool blabber = false,
 }) async {
   if (isDesktop && !_demo) {
     final opened = await openComposeWindow(ComposeWindowArgs(
@@ -29,6 +30,7 @@ Future<void> openCompose(
       forwardUid: forward,
       draftUid: draft,
       sourceFolder: folder,
+      startBlabber: blabber,
     ));
     if (opened) return;
   }
@@ -40,5 +42,6 @@ Future<void> openCompose(
     replyAll: replyAll?.toString(),
     forward: forward?.toString(),
     draft: draft?.toString(),
+    blabber: blabber,
   ));
 }

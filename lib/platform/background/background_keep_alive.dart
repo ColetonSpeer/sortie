@@ -11,6 +11,7 @@ abstract final class BackgroundKeepAlive {
   static final _log = Logger('keep-alive');
   static const _channel = MethodChannel('com.sortie.sortie/background');
   static bool? _last;
+  static bool _pausedWasOn = false;
 
   static bool get supported => !kIsWeb && Platform.isIOS;
 
@@ -25,5 +26,24 @@ abstract final class BackgroundKeepAlive {
     } catch (e) {
       _log.warning('keep-alive toggle failed', e);
     }
+  }
+
+  /// Dictation needs the microphone; the silent playback session would
+  /// fight it. Releases the session for the duration of the dictation and
+  /// [resumeAfterDictation] restores it if it was on.
+  static Future<void> pauseForDictation() async {
+    if (!supported) return;
+    _pausedWasOn = _last == true;
+    if (_pausedWasOn) {
+      _last = null; // bypass the short-circuit: force the native call
+      await set(enabled: false);
+    }
+  }
+
+  static Future<void> resumeAfterDictation() async {
+    if (!supported || !_pausedWasOn) return;
+    _pausedWasOn = false;
+    _last = null;
+    await set(enabled: true);
   }
 }

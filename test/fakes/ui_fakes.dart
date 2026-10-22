@@ -14,6 +14,7 @@ import 'package:sortie/app/onboarding_models.dart';
 import 'package:sortie/app/providers.dart';
 import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/services/services.dart';
+import 'package:sortie/services/speech/speech_input.dart';
 
 export 'package:sortie/app/demo/demo_data.dart';
 export 'package:sortie/app/demo/fake_repositories.dart';
@@ -64,6 +65,9 @@ class UiFakes {
   /// What the fake AI backend reports as ready (null = nothing), and how
   /// often the settings page asked for a rebuild.
   String? aiReadyModel;
+
+  /// What Blabber listens with; the default has no microphone (desktop).
+  SpeechInput speech = const NoSpeechInput();
   int aiRefreshes = 0;
   late final FakeSortCoordinator coordinator;
 
@@ -80,6 +84,7 @@ class UiFakes {
         sortCoordinatorProvider.overrideWith((ref, id) => coordinator),
         deviceIdentityProvider.overrideWithValue(const DeviceIdentity(
             deviceId: DemoData.deviceId, displayName: 'test', platform: DevicePlatform.linux, priority: 30)),
+        speechInputProvider.overrideWithValue(speech),
         aiBackendStatusProvider.overrideWithValue(() async => aiReadyModel),
         refreshAiBackendProvider.overrideWithValue(() async => aiRefreshes++),
         composeMessageProvider.overrideWithValue((d) async {
