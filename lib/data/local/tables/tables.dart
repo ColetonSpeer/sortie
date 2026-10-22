@@ -288,6 +288,9 @@ class RuleSuggestions extends Table {
   TextColumn get status => text().withDefault(const Constant('pending'))();
   IntColumn get createdAt => integer()();
   IntColumn get decidedAt => integer().nullable()();
+
+  /// The folder does not exist yet; accepting creates it first (schema 6).
+  BoolColumn get createsFolder => boolean().withDefault(const Constant(false))();
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -343,4 +346,14 @@ class JournalCursors extends Table {
   TextColumn get controlPath => text().nullable()();
   @override
   Set<Column> get primaryKey => {accountId};
+}
+
+/// Messages the advisor already turned into evidence by scanning a folder
+/// (the Trash), so a daily re-scan does not count them again.
+class AdvisorScans extends Table {
+  TextColumn get accountId => text()();
+  TextColumn get messageIdHash => text()();
+  IntColumn get scannedAt => integer()();
+  @override
+  Set<Column> get primaryKey => {accountId, messageIdHash};
 }

@@ -111,7 +111,7 @@ class _SuggestionCardState extends ConsumerState<SuggestionCard> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${s.matchLabel} → ${s.folderPath}', style: theme.textTheme.titleSmall),
+          Text('${s.matchLabel} → ${s.folderPath}${s.createsFolder ? ' (new folder)' : ''}', style: theme.textTheme.titleSmall),
           if (s.rationale.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(s.rationale, style: theme.textTheme.bodyMedium)),
           const SizedBox(height: 4),
           Text(examples.isEmpty ? meta : '$meta · e.g. $examples', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant), maxLines: 2, overflow: TextOverflow.ellipsis),

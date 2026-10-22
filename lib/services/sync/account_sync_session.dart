@@ -35,7 +35,7 @@ class SyncTuning {
 
 class _Request {
   _Request(this.kind, [this.path]);
-  final String kind; // sync | folders | drain | others
+  final String kind; // sync | folders | drain | others | createFolder
   final String? path;
   final completer = Completer<void>();
 }
@@ -138,6 +138,7 @@ class AccountSyncSession {
   Future<void> syncNow({String? folderPath}) => _enqueue(_Request('sync', folderPath ?? 'INBOX'));
 
   Future<void> refreshFolders() => _enqueue(_Request('folders'));
+  Future<void> createFolder(String path) => _enqueue(_Request('createFolder', path));
 
   /// Drain the offline queue now.
   Future<void> drainPendingOps() => _enqueue(_Request('drain'));
@@ -359,6 +360,9 @@ class AccountSyncSession {
             await _drain();
           case 'others':
             await _syncOtherFolders();
+          case 'createFolder':
+            await withCommand((gw) => gw.createFolder(r.path!));
+            await _refreshFolders();
         }
         if (!r.completer.isCompleted) r.completer.complete();
       } catch (e, s) {

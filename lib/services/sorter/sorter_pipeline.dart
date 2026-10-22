@@ -59,6 +59,7 @@ class SorterService implements MessageClassifier {
     PriceTable? prices,
     SorterTuning tuning = const SorterTuning(),
     Set<String> extraFreeMailDomains = const {},
+    Future<void> Function(String accountId, String path)? createFolder,
   })  : _db = database,
         _messages = messages,
         _settings = settings,
@@ -83,6 +84,9 @@ class SorterService implements MessageClassifier {
       costs: costs,
       evidence: evidence,
       suggestions: suggestions,
+      database: _db,
+      messages: _messages,
+      createFolder: createFolder,
     );
     _replay = AccuracyReplay(messages: _messages, profiles: profiles);
   }

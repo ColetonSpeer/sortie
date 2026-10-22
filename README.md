@@ -152,6 +152,16 @@ date in the text) has "Add to calendar" in the message menu: it opens the
 event editor pre-filled with the subject, the text, the meeting link and the
 first date and time the text mentions.
 
+### New folders and the Trash
+
+The rule advisor also reads the Trash: mail deleted in the last four months
+becomes "deleted" evidence (once per message), so a sender or list you keep
+throwing away can be offered a folder instead. When a clear group fits none
+of your folders, the advisor may propose a new one; the suggestion shows
+"(new folder)" and Accept creates the folder on the server (under INBOX when
+your folders live there) before adding the rule. Nothing is created or moved
+until you accept, and the advisor never proposes a rule that deletes.
+
 ### Reviewing a draft with AI
 
 The compose window has a "Review with AI" button (the wand). It sends the

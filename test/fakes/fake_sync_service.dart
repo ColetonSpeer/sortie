@@ -72,6 +72,8 @@ class CoordFakeSyncService implements MailSyncService {
   @override
   Future<void> refreshFolders(String accountId) async {}
   @override
+  Future<void> createFolder(String accountId, String path) async => server.createMailbox(path);
+  @override
   Future<void> delete(String accountId, String folderPath, List<int> uids, {bool permanent = false}) async {}
   @override
   Future<MessageBody> body(String accountId, String folderPath, int uid, {bool refresh = false}) async =>

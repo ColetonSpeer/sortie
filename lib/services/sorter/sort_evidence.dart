@@ -10,7 +10,7 @@ import 'folder_profiles.dart';
 import 'sender_stats.dart';
 
 /// Why an evidence row exists.
-enum EvidenceKind { unsorted, manualMove, undo }
+enum EvidenceKind { unsorted, manualMove, undo, trashed }
 
 /// Records what the deterministic layers could not place and what the owner
 /// files by hand, so the rule advisor can look for patterns without the
@@ -35,6 +35,26 @@ class SortEvidenceStore {
   /// A message the rules and learned stats left in INBOX.
   Future<void> recordUnsorted(String accountId, MessageHeader h) => _record(accountId, EvidenceKind.unsorted, h.messageIdHash,
       from: h.from?.email, domain: h.from?.domain, listId: h.listId, subject: h.subject, folder: null, at: _clock.now());
+
+  /// Mail the owner threw away: repeated deletions of one sender or list
+  /// are a hint that a folder would serve better than the Trash. Recorded
+  /// from a folder scan; [scanned] keeps the scan idempotent.
+  Future<void> recordTrashed(String accountId, MessageHeader h) => _record(accountId, EvidenceKind.trashed, h.messageIdHash,
+      from: h.from?.email, domain: h.from?.domain, listId: h.listId, subject: h.subject, folder: 'Trash', at: h.date);
+
+  /// Records every header not scanned before; returns how many were new.
+  Future<int> scanTrashed(String accountId, Iterable<MessageHeader> headers) async {
+    final now = _clock.now().millisecondsSinceEpoch;
+    var added = 0;
+    for (final h in headers) {
+      final seen = await (_db.select(_db.advisorScans)..where((r) => r.accountId.equals(accountId) & r.messageIdHash.equals(h.messageIdHash))).getSingleOrNull();
+      if (seen != null) continue;
+      await _db.into(_db.advisorScans).insert(db.AdvisorScansCompanion.insert(accountId: accountId, messageIdHash: h.messageIdHash, scannedAt: now));
+      await recordTrashed(accountId, h);
+      added++;
+    }
+    return added;
+  }
 
   /// A user-origin move (manualFile / lateMove / badgeWrong) or an undo.
   Future<void> recordCorrection(Correction c, {String? fromAddress, String? fromDomain, String? listId, String? subjectNorm}) async {

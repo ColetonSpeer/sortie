@@ -21,6 +21,7 @@ class RuleSuggestion {
     required this.createdAt,
     this.status = SuggestionStatus.pending,
     this.decidedAt,
+    this.createsFolder = false,
   });
 
   final String id;
@@ -30,6 +31,9 @@ class RuleSuggestion {
   final String rationale;
   final double confidence;
   final SuggestionSource source;
+
+  /// [folderPath] does not exist yet; accepting creates it first.
+  final bool createsFolder;
 
   /// Messages / moves that back this suggestion.
   final int evidenceCount;
@@ -113,6 +117,7 @@ class RuleSuggestion {
         'evidence': evidenceCount,
         'examples': examples,
         'createdAt': createdAt.toUtc().toIso8601String(),
+        if (createsFolder) 'newFolder': true,
       };
 
   static RuleSuggestion fromJson(String accountId, Map<String, dynamic> j) => RuleSuggestion(
@@ -126,6 +131,7 @@ class RuleSuggestion {
         evidenceCount: ((j['evidence'] as num?) ?? 0).toInt(),
         examples: ((j['examples'] as List?) ?? const []).map((e) => e.toString()).toList(),
         createdAt: DateTime.tryParse((j['createdAt'] as String?) ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        createsFolder: j['newFolder'] == true,
       );
 }
 

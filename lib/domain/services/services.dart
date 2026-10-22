@@ -38,6 +38,9 @@ abstract class MailSyncService {
   Future<void> syncNow(String accountId, {String? folderPath});
   Future<void> refreshFolders(String accountId);
 
+  /// Creates [path] on the server and refreshes the folder list.
+  Future<void> createFolder(String accountId, String path);
+
   /// Headers newly arrived in INBOX (after they are in the local cache).
   Stream<List<MessageHeader>> newInboxMessages(String accountId);
   Stream<FlagsObservation> flagChanges(String accountId);

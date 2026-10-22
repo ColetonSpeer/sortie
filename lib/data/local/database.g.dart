@@ -10980,6 +10980,21 @@ class $RuleSuggestionsTable extends RuleSuggestions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _createsFolderMeta = const VerificationMeta(
+    'createsFolder',
+  );
+  @override
+  late final GeneratedColumn<bool> createsFolder = GeneratedColumn<bool>(
+    'creates_folder',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("creates_folder" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10994,6 +11009,7 @@ class $RuleSuggestionsTable extends RuleSuggestions
     status,
     createdAt,
     decidedAt,
+    createsFolder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -11096,6 +11112,15 @@ class $RuleSuggestionsTable extends RuleSuggestions
         decidedAt.isAcceptableOrUnknown(data['decided_at']!, _decidedAtMeta),
       );
     }
+    if (data.containsKey('creates_folder')) {
+      context.handle(
+        _createsFolderMeta,
+        createsFolder.isAcceptableOrUnknown(
+          data['creates_folder']!,
+          _createsFolderMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -11153,6 +11178,10 @@ class $RuleSuggestionsTable extends RuleSuggestions
         DriftSqlType.int,
         data['${effectivePrefix}decided_at'],
       ),
+      createsFolder: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}creates_folder'],
+      )!,
     );
   }
 
@@ -11179,6 +11208,9 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
   final String status;
   final int createdAt;
   final int? decidedAt;
+
+  /// The folder does not exist yet; accepting creates it first (schema 6).
+  final bool createsFolder;
   const RuleSuggestion({
     required this.id,
     required this.accountId,
@@ -11192,6 +11224,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
     required this.status,
     required this.createdAt,
     this.decidedAt,
+    required this.createsFolder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -11210,6 +11243,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
     if (!nullToAbsent || decidedAt != null) {
       map['decided_at'] = Variable<int>(decidedAt);
     }
+    map['creates_folder'] = Variable<bool>(createsFolder);
     return map;
   }
 
@@ -11229,6 +11263,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
       decidedAt: decidedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(decidedAt),
+      createsFolder: Value(createsFolder),
     );
   }
 
@@ -11250,6 +11285,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
       status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       decidedAt: serializer.fromJson<int?>(json['decidedAt']),
+      createsFolder: serializer.fromJson<bool>(json['createsFolder']),
     );
   }
   @override
@@ -11268,6 +11304,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
       'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<int>(createdAt),
       'decidedAt': serializer.toJson<int?>(decidedAt),
+      'createsFolder': serializer.toJson<bool>(createsFolder),
     };
   }
 
@@ -11284,6 +11321,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
     String? status,
     int? createdAt,
     Value<int?> decidedAt = const Value.absent(),
+    bool? createsFolder,
   }) => RuleSuggestion(
     id: id ?? this.id,
     accountId: accountId ?? this.accountId,
@@ -11297,6 +11335,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     decidedAt: decidedAt.present ? decidedAt.value : this.decidedAt,
+    createsFolder: createsFolder ?? this.createsFolder,
   );
   RuleSuggestion copyWithCompanion(RuleSuggestionsCompanion data) {
     return RuleSuggestion(
@@ -11320,6 +11359,9 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       decidedAt: data.decidedAt.present ? data.decidedAt.value : this.decidedAt,
+      createsFolder: data.createsFolder.present
+          ? data.createsFolder.value
+          : this.createsFolder,
     );
   }
 
@@ -11337,7 +11379,8 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
           ..write('examplesJson: $examplesJson, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
-          ..write('decidedAt: $decidedAt')
+          ..write('decidedAt: $decidedAt, ')
+          ..write('createsFolder: $createsFolder')
           ..write(')'))
         .toString();
   }
@@ -11356,6 +11399,7 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
     status,
     createdAt,
     decidedAt,
+    createsFolder,
   );
   @override
   bool operator ==(Object other) =>
@@ -11372,7 +11416,8 @@ class RuleSuggestion extends DataClass implements Insertable<RuleSuggestion> {
           other.examplesJson == this.examplesJson &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
-          other.decidedAt == this.decidedAt);
+          other.decidedAt == this.decidedAt &&
+          other.createsFolder == this.createsFolder);
 }
 
 class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
@@ -11388,6 +11433,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
   final Value<String> status;
   final Value<int> createdAt;
   final Value<int?> decidedAt;
+  final Value<bool> createsFolder;
   final Value<int> rowid;
   const RuleSuggestionsCompanion({
     this.id = const Value.absent(),
@@ -11402,6 +11448,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.decidedAt = const Value.absent(),
+    this.createsFolder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RuleSuggestionsCompanion.insert({
@@ -11417,6 +11464,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
     this.status = const Value.absent(),
     required int createdAt,
     this.decidedAt = const Value.absent(),
+    this.createsFolder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        accountId = Value(accountId),
@@ -11438,6 +11486,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
     Expression<String>? status,
     Expression<int>? createdAt,
     Expression<int>? decidedAt,
+    Expression<bool>? createsFolder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11453,6 +11502,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (decidedAt != null) 'decided_at': decidedAt,
+      if (createsFolder != null) 'creates_folder': createsFolder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11470,6 +11520,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
     Value<String>? status,
     Value<int>? createdAt,
     Value<int?>? decidedAt,
+    Value<bool>? createsFolder,
     Value<int>? rowid,
   }) {
     return RuleSuggestionsCompanion(
@@ -11485,6 +11536,7 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       decidedAt: decidedAt ?? this.decidedAt,
+      createsFolder: createsFolder ?? this.createsFolder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11528,6 +11580,9 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
     if (decidedAt.present) {
       map['decided_at'] = Variable<int>(decidedAt.value);
     }
+    if (createsFolder.present) {
+      map['creates_folder'] = Variable<bool>(createsFolder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11549,6 +11604,281 @@ class RuleSuggestionsCompanion extends UpdateCompanion<RuleSuggestion> {
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('decidedAt: $decidedAt, ')
+          ..write('createsFolder: $createsFolder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AdvisorScansTable extends AdvisorScans
+    with TableInfo<$AdvisorScansTable, AdvisorScan> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AdvisorScansTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageIdHashMeta = const VerificationMeta(
+    'messageIdHash',
+  );
+  @override
+  late final GeneratedColumn<String> messageIdHash = GeneratedColumn<String>(
+    'message_id_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scannedAtMeta = const VerificationMeta(
+    'scannedAt',
+  );
+  @override
+  late final GeneratedColumn<int> scannedAt = GeneratedColumn<int>(
+    'scanned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [accountId, messageIdHash, scannedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'advisor_scans';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AdvisorScan> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('message_id_hash')) {
+      context.handle(
+        _messageIdHashMeta,
+        messageIdHash.isAcceptableOrUnknown(
+          data['message_id_hash']!,
+          _messageIdHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdHashMeta);
+    }
+    if (data.containsKey('scanned_at')) {
+      context.handle(
+        _scannedAtMeta,
+        scannedAt.isAcceptableOrUnknown(data['scanned_at']!, _scannedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scannedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {accountId, messageIdHash};
+  @override
+  AdvisorScan map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AdvisorScan(
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      messageIdHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id_hash'],
+      )!,
+      scannedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scanned_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AdvisorScansTable createAlias(String alias) {
+    return $AdvisorScansTable(attachedDatabase, alias);
+  }
+}
+
+class AdvisorScan extends DataClass implements Insertable<AdvisorScan> {
+  final String accountId;
+  final String messageIdHash;
+  final int scannedAt;
+  const AdvisorScan({
+    required this.accountId,
+    required this.messageIdHash,
+    required this.scannedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['account_id'] = Variable<String>(accountId);
+    map['message_id_hash'] = Variable<String>(messageIdHash);
+    map['scanned_at'] = Variable<int>(scannedAt);
+    return map;
+  }
+
+  AdvisorScansCompanion toCompanion(bool nullToAbsent) {
+    return AdvisorScansCompanion(
+      accountId: Value(accountId),
+      messageIdHash: Value(messageIdHash),
+      scannedAt: Value(scannedAt),
+    );
+  }
+
+  factory AdvisorScan.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AdvisorScan(
+      accountId: serializer.fromJson<String>(json['accountId']),
+      messageIdHash: serializer.fromJson<String>(json['messageIdHash']),
+      scannedAt: serializer.fromJson<int>(json['scannedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'accountId': serializer.toJson<String>(accountId),
+      'messageIdHash': serializer.toJson<String>(messageIdHash),
+      'scannedAt': serializer.toJson<int>(scannedAt),
+    };
+  }
+
+  AdvisorScan copyWith({
+    String? accountId,
+    String? messageIdHash,
+    int? scannedAt,
+  }) => AdvisorScan(
+    accountId: accountId ?? this.accountId,
+    messageIdHash: messageIdHash ?? this.messageIdHash,
+    scannedAt: scannedAt ?? this.scannedAt,
+  );
+  AdvisorScan copyWithCompanion(AdvisorScansCompanion data) {
+    return AdvisorScan(
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      messageIdHash: data.messageIdHash.present
+          ? data.messageIdHash.value
+          : this.messageIdHash,
+      scannedAt: data.scannedAt.present ? data.scannedAt.value : this.scannedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AdvisorScan(')
+          ..write('accountId: $accountId, ')
+          ..write('messageIdHash: $messageIdHash, ')
+          ..write('scannedAt: $scannedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(accountId, messageIdHash, scannedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AdvisorScan &&
+          other.accountId == this.accountId &&
+          other.messageIdHash == this.messageIdHash &&
+          other.scannedAt == this.scannedAt);
+}
+
+class AdvisorScansCompanion extends UpdateCompanion<AdvisorScan> {
+  final Value<String> accountId;
+  final Value<String> messageIdHash;
+  final Value<int> scannedAt;
+  final Value<int> rowid;
+  const AdvisorScansCompanion({
+    this.accountId = const Value.absent(),
+    this.messageIdHash = const Value.absent(),
+    this.scannedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AdvisorScansCompanion.insert({
+    required String accountId,
+    required String messageIdHash,
+    required int scannedAt,
+    this.rowid = const Value.absent(),
+  }) : accountId = Value(accountId),
+       messageIdHash = Value(messageIdHash),
+       scannedAt = Value(scannedAt);
+  static Insertable<AdvisorScan> custom({
+    Expression<String>? accountId,
+    Expression<String>? messageIdHash,
+    Expression<int>? scannedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (accountId != null) 'account_id': accountId,
+      if (messageIdHash != null) 'message_id_hash': messageIdHash,
+      if (scannedAt != null) 'scanned_at': scannedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AdvisorScansCompanion copyWith({
+    Value<String>? accountId,
+    Value<String>? messageIdHash,
+    Value<int>? scannedAt,
+    Value<int>? rowid,
+  }) {
+    return AdvisorScansCompanion(
+      accountId: accountId ?? this.accountId,
+      messageIdHash: messageIdHash ?? this.messageIdHash,
+      scannedAt: scannedAt ?? this.scannedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (messageIdHash.present) {
+      map['message_id_hash'] = Variable<String>(messageIdHash.value);
+    }
+    if (scannedAt.present) {
+      map['scanned_at'] = Variable<int>(scannedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AdvisorScansCompanion(')
+          ..write('accountId: $accountId, ')
+          ..write('messageIdHash: $messageIdHash, ')
+          ..write('scannedAt: $scannedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15976,6 +16306,7 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
   late final $RuleSuggestionsTable ruleSuggestions = $RuleSuggestionsTable(
     this,
   );
+  late final $AdvisorScansTable advisorScans = $AdvisorScansTable(this);
   late final $AiUsageTable aiUsage = $AiUsageTable(this);
   late final $JournalEventsTable journalEvents = $JournalEventsTable(this);
   late final $JournalCursorsTable journalCursors = $JournalCursorsTable(this);
@@ -16004,6 +16335,7 @@ abstract class _$SortieDatabase extends GeneratedDatabase {
     sortQueue,
     sortEvidence,
     ruleSuggestions,
+    advisorScans,
     aiUsage,
     journalEvents,
     journalCursors,
@@ -21713,6 +22045,7 @@ typedef $$RuleSuggestionsTableCreateCompanionBuilder =
       Value<String> status,
       required int createdAt,
       Value<int?> decidedAt,
+      Value<bool> createsFolder,
       Value<int> rowid,
     });
 typedef $$RuleSuggestionsTableUpdateCompanionBuilder =
@@ -21729,6 +22062,7 @@ typedef $$RuleSuggestionsTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int> createdAt,
       Value<int?> decidedAt,
+      Value<bool> createsFolder,
       Value<int> rowid,
     });
 
@@ -21798,6 +22132,11 @@ class $$RuleSuggestionsTableFilterComposer
 
   ColumnFilters<int> get decidedAt => $composableBuilder(
     column: $table.decidedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get createsFolder => $composableBuilder(
+    column: $table.createsFolder,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -21870,6 +22209,11 @@ class $$RuleSuggestionsTableOrderingComposer
     column: $table.decidedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get createsFolder => $composableBuilder(
+    column: $table.createsFolder,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RuleSuggestionsTableAnnotationComposer
@@ -21924,6 +22268,11 @@ class $$RuleSuggestionsTableAnnotationComposer
 
   GeneratedColumn<int> get decidedAt =>
       $composableBuilder(column: $table.decidedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get createsFolder => $composableBuilder(
+    column: $table.createsFolder,
+    builder: (column) => column,
+  );
 }
 
 class $$RuleSuggestionsTableTableManager
@@ -21975,6 +22324,7 @@ class $$RuleSuggestionsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> decidedAt = const Value.absent(),
+                Value<bool> createsFolder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RuleSuggestionsCompanion(
                 id: id,
@@ -21989,6 +22339,7 @@ class $$RuleSuggestionsTableTableManager
                 status: status,
                 createdAt: createdAt,
                 decidedAt: decidedAt,
+                createsFolder: createsFolder,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -22005,6 +22356,7 @@ class $$RuleSuggestionsTableTableManager
                 Value<String> status = const Value.absent(),
                 required int createdAt,
                 Value<int?> decidedAt = const Value.absent(),
+                Value<bool> createsFolder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RuleSuggestionsCompanion.insert(
                 id: id,
@@ -22019,6 +22371,7 @@ class $$RuleSuggestionsTableTableManager
                 status: status,
                 createdAt: createdAt,
                 decidedAt: decidedAt,
+                createsFolder: createsFolder,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -22053,6 +22406,179 @@ typedef $$RuleSuggestionsTableProcessedTableManager =
         BaseReferences<_$SortieDatabase, $RuleSuggestionsTable, RuleSuggestion>,
       ),
       RuleSuggestion,
+      PrefetchHooks Function()
+    >;
+typedef $$AdvisorScansTableCreateCompanionBuilder =
+    AdvisorScansCompanion Function({
+      required String accountId,
+      required String messageIdHash,
+      required int scannedAt,
+      Value<int> rowid,
+    });
+typedef $$AdvisorScansTableUpdateCompanionBuilder =
+    AdvisorScansCompanion Function({
+      Value<String> accountId,
+      Value<String> messageIdHash,
+      Value<int> scannedAt,
+      Value<int> rowid,
+    });
+
+class $$AdvisorScansTableFilterComposer
+    extends Composer<_$SortieDatabase, $AdvisorScansTable> {
+  $$AdvisorScansTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get scannedAt => $composableBuilder(
+    column: $table.scannedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AdvisorScansTableOrderingComposer
+    extends Composer<_$SortieDatabase, $AdvisorScansTable> {
+  $$AdvisorScansTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get scannedAt => $composableBuilder(
+    column: $table.scannedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AdvisorScansTableAnnotationComposer
+    extends Composer<_$SortieDatabase, $AdvisorScansTable> {
+  $$AdvisorScansTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get messageIdHash => $composableBuilder(
+    column: $table.messageIdHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get scannedAt =>
+      $composableBuilder(column: $table.scannedAt, builder: (column) => column);
+}
+
+class $$AdvisorScansTableTableManager
+    extends
+        RootTableManager<
+          _$SortieDatabase,
+          $AdvisorScansTable,
+          AdvisorScan,
+          $$AdvisorScansTableFilterComposer,
+          $$AdvisorScansTableOrderingComposer,
+          $$AdvisorScansTableAnnotationComposer,
+          $$AdvisorScansTableCreateCompanionBuilder,
+          $$AdvisorScansTableUpdateCompanionBuilder,
+          (
+            AdvisorScan,
+            BaseReferences<_$SortieDatabase, $AdvisorScansTable, AdvisorScan>,
+          ),
+          AdvisorScan,
+          PrefetchHooks Function()
+        > {
+  $$AdvisorScansTableTableManager(_$SortieDatabase db, $AdvisorScansTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AdvisorScansTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AdvisorScansTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AdvisorScansTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> accountId = const Value.absent(),
+                Value<String> messageIdHash = const Value.absent(),
+                Value<int> scannedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AdvisorScansCompanion(
+                accountId: accountId,
+                messageIdHash: messageIdHash,
+                scannedAt: scannedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String accountId,
+                required String messageIdHash,
+                required int scannedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AdvisorScansCompanion.insert(
+                accountId: accountId,
+                messageIdHash: messageIdHash,
+                scannedAt: scannedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AdvisorScansTable, AdvisorScan>(table),
+                  BaseReferences<
+                    _$SortieDatabase,
+                    $AdvisorScansTable,
+                    AdvisorScan
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AdvisorScansTableProcessedTableManager =
+    ProcessedTableManager<
+      _$SortieDatabase,
+      $AdvisorScansTable,
+      AdvisorScan,
+      $$AdvisorScansTableFilterComposer,
+      $$AdvisorScansTableOrderingComposer,
+      $$AdvisorScansTableAnnotationComposer,
+      $$AdvisorScansTableCreateCompanionBuilder,
+      $$AdvisorScansTableUpdateCompanionBuilder,
+      (
+        AdvisorScan,
+        BaseReferences<_$SortieDatabase, $AdvisorScansTable, AdvisorScan>,
+      ),
+      AdvisorScan,
       PrefetchHooks Function()
     >;
 typedef $$AiUsageTableCreateCompanionBuilder = AiUsageCompanion Function({
@@ -24672,6 +25198,8 @@ class $SortieDatabaseManager {
       $$SortEvidenceTableTableManager(_db, _db.sortEvidence);
   $$RuleSuggestionsTableTableManager get ruleSuggestions =>
       $$RuleSuggestionsTableTableManager(_db, _db.ruleSuggestions);
+  $$AdvisorScansTableTableManager get advisorScans =>
+      $$AdvisorScansTableTableManager(_db, _db.advisorScans);
   $$AiUsageTableTableManager get aiUsage =>
       $$AiUsageTableTableManager(_db, _db.aiUsage);
   $$JournalEventsTableTableManager get journalEvents =>

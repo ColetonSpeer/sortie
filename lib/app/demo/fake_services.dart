@@ -51,6 +51,8 @@ class FakeMailSyncService implements MailSyncService {
   @override
   Future<void> refreshFolders(String accountId) async => calls.add('refreshFolders:$accountId');
   @override
+  Future<void> createFolder(String accountId, String path) async => calls.add('createFolder:$path');
+  @override
   Stream<List<MessageHeader>> newInboxMessages(String accountId) => const Stream.empty();
   @override
   Stream<FlagsObservation> flagChanges(String accountId) => const Stream.empty();

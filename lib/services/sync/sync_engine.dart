@@ -204,6 +204,9 @@ class SyncEngine implements MailSyncService {
   Future<void> refreshFolders(String accountId) => _session(accountId).refreshFolders();
 
   @override
+  Future<void> createFolder(String accountId, String path) => _session(accountId).createFolder(path);
+
+  @override
   Stream<List<MessageHeader>> newInboxMessages(String accountId) => _inboxCtrl(accountId).stream;
 
   /// INBOX mail that arrived after the account was caught up (no initial

@@ -124,6 +124,7 @@ class SortieServices {
       provider: () => s._aiProvider,
       clock: s.clock,
       deviceId: s.device.deviceId,
+      createFolder: (accountId, path) => s.sync.createFolder(accountId, path),
     );
     s.composer = mc.MessageComposer(clock: s.clock);
     s._buildCalendar();

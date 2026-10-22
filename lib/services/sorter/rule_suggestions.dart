@@ -75,6 +75,7 @@ class RuleSuggestionStore implements SyncableSuggestionStore {
     required List<String> examples,
     required DateTime now,
     String? id,
+    bool createsFolder = false,
   }) async {
     final s = RuleSuggestion(
       id: id ?? _uuid.v4(),
@@ -87,6 +88,7 @@ class RuleSuggestionStore implements SyncableSuggestionStore {
       evidenceCount: evidenceCount,
       examples: examples.take(3).toList(),
       createdAt: now,
+      createsFolder: createsFolder,
     );
     await _upsert(s);
     return s;
@@ -105,6 +107,7 @@ class RuleSuggestionStore implements SyncableSuggestionStore {
         status: Value(s.status.name),
         createdAt: s.createdAt.millisecondsSinceEpoch,
         decidedAt: Value(s.decidedAt?.millisecondsSinceEpoch),
+        createsFolder: Value(s.createsFolder),
       ));
 
   /// Creates the rule (priority after every existing one), marks the
@@ -166,6 +169,7 @@ class RuleSuggestionStore implements SyncableSuggestionStore {
         evidenceCount: s.evidenceCount,
         examples: s.examples,
         createdAt: s.createdAt,
+        createsFolder: s.createsFolder,
       ));
     }
     // Pending here but gone from the writer's list: decided on another device.
@@ -202,5 +206,6 @@ class RuleSuggestionStore implements SyncableSuggestionStore {
         createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt, isUtc: true),
         status: SuggestionStatus.values.byName(r.status),
         decidedAt: r.decidedAt == null ? null : DateTime.fromMillisecondsSinceEpoch(r.decidedAt!, isUtc: true),
+        createsFolder: r.createsFolder,
       );
 }

@@ -82,6 +82,7 @@ class Harness {
     bool bootstrap = true,
     bool withProvider = true,
     int contextWindowTokens = 8192,
+    Future<void> Function(String accountId, String path)? createFolder,
   }) async {
     final database = openTestDb();
     final messages = FakeMessageRepository()..headers.addAll(Corpus.history());
@@ -96,6 +97,7 @@ class Harness {
       provider: () => h.provider,
       clock: clock,
       deviceId: 'dev-test',
+      createFolder: createFolder,
     );
     h = Harness._(database, messages, settings, clock, fake, sorter);
     h.provider = withProvider ? fake : null;

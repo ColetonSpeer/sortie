@@ -25,6 +25,7 @@ part 'database.g.dart';
   SortQueue,
   SortEvidence,
   RuleSuggestions,
+  AdvisorScans,
   AiUsage,
   JournalEvents,
   JournalCursors,
@@ -36,7 +37,7 @@ class SortieDatabase extends _$SortieDatabase {
   SortieDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +70,10 @@ class SortieDatabase extends _$SortieDatabase {
           }
           if (from < 5) {
             await m.addColumn(messageBodies, messageBodies.calendarText);
+          }
+          if (from < 6) {
+            await m.addColumn(ruleSuggestions, ruleSuggestions.createsFolder);
+            await m.createTable(advisorScans);
           }
         },
         beforeOpen: (details) async {
