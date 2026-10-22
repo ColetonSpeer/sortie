@@ -9,6 +9,7 @@ import '../domain/repositories/repositories.dart';
 import '../domain/services/services.dart';
 import '../services/calendar/calendar_service.dart';
 import '../services/calendar/invitations.dart';
+import '../services/compose/draft_reviewer.dart';
 import '../services/coordination/coordination_service.dart' show CoordinationService, SharedConfigSyncEvent;
 import '../services/import/calendar_import_sink.dart';
 import '../services/import/thunderbird/thunderbird_importer.dart';
@@ -69,6 +70,9 @@ final autodiscoveryProvider =
 /// Test IMAP + SMTP login for an account with the given password; throws on failure.
 final loginProbeProvider =
     Provider<Future<void> Function(Account account, String password)>((_) => _unbound('loginProbe'));
+
+/// Reviews a compose draft with the configured AI backend.
+final draftReviewerProvider = Provider<DraftReviewer>((_) => _unbound('draftReviewer'));
 
 /// Answers meeting invitations (iTIP reply mail + local calendar).
 final invitationServiceProvider = Provider<InvitationService>((_) => _unbound('invitationService'));

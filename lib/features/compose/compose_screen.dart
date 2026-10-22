@@ -9,10 +9,12 @@ import 'package:logging/logging.dart';
 
 import '../../app/compose_models.dart';
 import '../../domain/entities/entities.dart';
+import '../../services/compose/draft_reviewer.dart';
 import '../../services/compose/message_composer.dart' show MessageComposer;
 import 'compose_backend.dart';
 import 'quote.dart';
 import 'recipient_field.dart';
+import 'review_sheet.dart';
 
 /// New message / reply / reply-all / forward / edit-draft.
 ///
@@ -206,6 +208,41 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
   bool get _hasContent => _snapshot() != _initialSnapshot;
 
   /// Called on every edit: arms the autosave timer once per unsaved stretch.
+  /// Sends what the user wrote (not the signature or the quote) to the AI
+  /// backend and swaps in the revision if they accept it.
+  Future<void> _review() async {
+    final reason = await _backend.reviewUnavailableReason();
+    if (!mounted) return;
+    if (reason != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reason)));
+      return;
+    }
+    final parts = splitOwnText(_body.text, signature: _sig());
+    if (parts.own.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Write something first.')));
+      return;
+    }
+    final outcome = await showReviewSheet(
+      context,
+      currentSubject: _subject.text,
+      run: (instruction) => _backend.reviewDraft(DraftReviewRequest(
+        subject: _subject.text,
+        body: parts.own,
+        recipients: [for (final a in [..._to, ..._cc]) a.toString()],
+        instruction: instruction,
+        senderName: _identity?.name ?? '',
+      )),
+    );
+    if (outcome == null || !mounted) return;
+    // Re-split: the tail may have changed while the dialog was open.
+    final now = splitOwnText(_body.text, signature: _sig());
+    final body = outcome.body.trimRight();
+    _body.value = TextEditingValue(text: '$body${now.tail}', selection: TextSelection.collapsed(offset: body.length));
+    if (outcome.subject != null) _subject.text = outcome.subject!;
+    _touch();
+    setState(() {});
+  }
+
   void _touch() {
     if (!_ready || _autosaveTimer != null) return;
     _autosaveTimer = Timer(ComposeScreen.autosaveDelay, _autosave);
@@ -431,6 +468,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
                 child: Text('Draft saved ${DateFormat.jm().format(_savedAt!)}',
                     key: const Key('draftSavedAt'), style: Theme.of(context).textTheme.labelSmall),
               ),
+            IconButton(key: const Key('reviewDraft'), tooltip: 'Review with AI', icon: const Icon(Icons.auto_fix_high_outlined), onPressed: _busy || !_ready ? null : _review),
             IconButton(tooltip: 'Attach file', icon: const Icon(Icons.attach_file), onPressed: _busy ? null : _attach),
             IconButton(tooltip: 'Save draft', icon: const Icon(Icons.save_outlined), onPressed: _busy || !_ready ? null : _saveDraft),
             Padding(
@@ -473,6 +511,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
                           _recipients(RecipientKind.bcc),
                         ],
                         TextField(
+                          key: const Key('composeSubject'),
                           controller: _subject,
                           decoration: const InputDecoration(hintText: 'Subject', border: InputBorder.none),
                           style: Theme.of(context).textTheme.titleMedium,
@@ -498,6 +537,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
                       ),
                     Expanded(
                       child: TextField(
+                        key: const Key('composeBody'),
                         controller: _body,
                         autofocus: _source != null,
                         maxLines: null,

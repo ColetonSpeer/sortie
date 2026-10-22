@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/compose_models.dart';
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
+import '../../services/compose/draft_reviewer.dart';
 
 /// Everything the compose screen needs from the rest of the app, so the
 /// same screen can run inside the main window or in a separate compose
@@ -16,6 +17,8 @@ abstract class ComposeBackend {
   Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId});
   Future<void> discardDraft(String accountId, String messageId);
   Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId});
+  Future<String?> reviewUnavailableReason();
+  Future<DraftReview> reviewDraft(DraftReviewRequest request);
 }
 
 /// In-process backend over the app's repositories and sync service.
@@ -50,6 +53,12 @@ class LocalComposeBackend implements ComposeBackend {
   @override
   Future<void> send(String accountId, String identityId, List<String> recipients, List<int> raw, {String? draftMessageId}) =>
       _ref.read(mailSyncServiceProvider).send(accountId, identityId, recipients, raw, draftMessageId: draftMessageId);
+
+  @override
+  Future<String?> reviewUnavailableReason() => _ref.read(draftReviewerProvider).unavailableReason();
+
+  @override
+  Future<DraftReview> reviewDraft(DraftReviewRequest request) => _ref.read(draftReviewerProvider).review(request);
 }
 
 final composeBackendProvider = Provider<ComposeBackend>((ref) => LocalComposeBackend(ref));

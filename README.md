@@ -143,6 +143,16 @@ date in the text) has "Add to calendar" in the message menu: it opens the
 event editor pre-filled with the subject, the text, the meeting link and the
 first date and time the text mentions.
 
+### Reviewing a draft with AI
+
+The compose window has a "Review with AI" button (the wand). It sends the
+text you wrote, not your signature or the quoted message, to the configured
+AI backend with an optional instruction ("shorter", "more formal", ...) and
+shows the suggested revision with a list of changes; "Use revision" swaps
+it in, leaving the signature and quote untouched, and can also apply a
+better subject. It needs an AI backend under Settings → AI backend, honours
+the pause switch and spend caps, and is counted in the usage meter.
+
 ## Releases
 
 Tag `vX.Y.Z` and push. Four workflows build Linux (tar.gz), Windows (zip), Android

@@ -34,6 +34,7 @@ import '../platform/device_info.dart';
 import '../services/calendar/calendar_service.dart';
 import '../services/calendar/invitations.dart';
 import '../services/compose/draft_request.dart';
+import '../services/compose/draft_reviewer.dart';
 import '../services/compose/message_composer.dart' as mc;
 import '../services/coordination/coordination_service.dart';
 import '../services/notifications/new_mail_notifier.dart';
@@ -67,6 +68,7 @@ class SortieServices {
   late final GoogleAccountLinks googleLinks;
   late final CalendarService calendar;
   late final InvitationService invitations;
+  late final AiDraftReviewer draftReviewer;
 
   /// Owned here so calendar reminders can reach it; the bootstrap inits it.
   final notifications = NotificationService();
@@ -125,6 +127,7 @@ class SortieServices {
     );
     s.composer = mc.MessageComposer(clock: s.clock);
     s._buildCalendar();
+    s.draftReviewer = AiDraftReviewer(provider: () => s._aiProvider, settings: s.settings, costs: s.classifier.costs);
     s.invitations = InvitationService(
       composer: s.composer,
       send: (accountId, identityId, recipients, raw) => s.sync.send(accountId, identityId, recipients, raw),
@@ -366,6 +369,7 @@ class SortieServices {
         loginProbeProvider.overrideWithValue(loginProbe),
         composeMessageProvider.overrideWithValue(compose),
         invitationServiceProvider.overrideWithValue(invitations),
+        draftReviewerProvider.overrideWithValue(draftReviewer),
         listModelsProvider.overrideWithValue(listModels),
         testAiConnectionProvider.overrideWithValue(testAi),
         calendarRepositoryProvider.overrideWithValue(calendarRepo),

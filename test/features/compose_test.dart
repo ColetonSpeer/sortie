@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sortie/features/compose/compose_screen.dart';
+import 'package:sortie/services/compose/draft_reviewer.dart';
+import 'package:sortie/app/providers.dart';
 import 'package:sortie/features/compose/quote.dart';
 
 import '../fakes/ui_fakes.dart';
@@ -193,4 +195,62 @@ void main() {
     expect(Quote.pickIdentity(DemoData.identities, h)!.id, 'id-main');
     expect(Quote.pickIdentity(DemoData.identities, DemoData.messages[7])!.id, 'id-alias');
   });
+
+  testWidgets('Review with AI replaces only what I wrote and can update the subject', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    var asked = '';
+    final reviewer = _StubReviewer((r) async {
+      asked = '${r.instruction}|${r.body}';
+      return const DraftReview(revisedBody: 'Thanks, that works for me.', revisedSubject: 'Re: Invoice confirmed', notes: ['Tightened wording.'], modelId: 'stub');
+    });
+    await tester.pumpWidget(f.app(
+      ComposeScreen(accountId: h.accountId, replyUid: h.uid, sourceFolder: h.folderPath),
+      extra: [draftReviewerProvider.overrideWithValue(reviewer)],
+    ));
+    await tester.pumpAndSettle();
+    final bodyField = find.byKey(const Key('composeBody'));
+    final before = tester.widget<TextField>(bodyField).controller!.text;
+    expect(before, contains('wrote:'));
+    final typed = 'thanks that werks for me';
+    tester.widget<TextField>(bodyField).controller!.text = '$typed$before';
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('reviewDraft')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reviewInstruction')), 'friendlier');
+    await tester.tap(find.byKey(const Key('runReview')));
+    await tester.pumpAndSettle();
+    expect(asked, 'friendlier|$typed');
+    expect(find.text('Tightened wording.'), findsOneWidget);
+    expect(find.byKey(const Key('revisedBody')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('applyReview')));
+    await tester.pumpAndSettle();
+    final after = tester.widget<TextField>(bodyField).controller!.text;
+    expect(after, startsWith('Thanks, that works for me.'));
+    expect(after, contains('wrote:'), reason: 'the quoted reply survives');
+    expect(after, isNot(contains('werks')));
+    expect(tester.widget<TextField>(find.byKey(const Key('composeSubject'))).controller!.text, 'Re: Invoice confirmed');
+  });
+
+  testWidgets('without an AI backend the review button explains instead of failing', (tester) async {
+    final f = UiFakes();
+    final reviewer = _StubReviewer((r) async => throw StateError('unreachable'), unavailable: 'No AI backend is configured.');
+    await tester.pumpWidget(f.app(const ComposeScreen(accountId: DemoData.accountId), extra: [draftReviewerProvider.overrideWithValue(reviewer)]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('reviewDraft')));
+    await tester.pumpAndSettle();
+    expect(find.text('No AI backend is configured.'), findsOneWidget);
+  });
+}
+
+class _StubReviewer implements DraftReviewer {
+  _StubReviewer(this.onReview, {this.unavailable});
+  final Future<DraftReview> Function(DraftReviewRequest r) onReview;
+  final String? unavailable;
+  @override
+  Future<String?> unavailableReason() async => unavailable;
+  @override
+  Future<DraftReview> review(DraftReviewRequest request) => onReview(request);
 }
