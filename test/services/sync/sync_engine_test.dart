@@ -53,6 +53,19 @@ void main() {
     await spool.delete(recursive: true);
   });
 
+  test('Sent and the other folders are read right after start, not after the first cadence', () async {
+    server.createMailbox('Sent', specialUse: SpecialUse.sent);
+    final reply = makeHeader(subject: 'Re: hello', folderPath: 'Sent');
+    server.deliver('Sent', reply, body: const MessageBody(text: 'my reply'));
+    await engine.startAccount(testAccountId);
+    MessageHeader? cached;
+    for (var i = 0; i < 50 && cached == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      cached = (await t.messages.list(const MessageQuery(accountId: testAccountId, folderPath: 'Sent'))).firstOrNull;
+    }
+    expect(cached?.subject, 'Re: hello', reason: 'otherFoldersEvery is an hour here; the first pass must not wait for it');
+  });
+
   test('delivered message reaches the repository and newInboxMessages', () async {
     final h = makeHeader(subject: 'welcome');
     server.deliver('INBOX', h, body: const MessageBody(text: 'hello there'));

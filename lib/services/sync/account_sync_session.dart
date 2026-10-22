@@ -88,7 +88,9 @@ class AccountSyncSession {
   ImapGateway? _cmd;
   ImapCapabilities? _caps;
   int _backfillRemaining = 0;
-  Duration _lastOthers = Duration.zero;
+  /// Null until the first pass: Sent, Drafts and the rest are read right
+  /// after start, then every [SyncTuning.otherFoldersEvery].
+  Duration? _lastOthers;
   late AccountSyncStatus _current = AccountSyncStatus(accountId: account.id, state: AccountSyncState.idle);
 
   Stream<AccountSyncStatus> get status => _status.stream;
@@ -216,6 +218,9 @@ class AccountSyncSession {
         _backfillRemaining = r.backfillRemaining;
         await _drain();
         await _handleRequests();
+        // First pass over Sent, Drafts and the rest now, not after the first
+        // inbox event: a reply sent before a restart must show in its thread.
+        await _housekeeping();
         _backoff.reset();
         if (_degraded || !(_caps?.idle ?? false)) {
           await _pollLoop();
@@ -372,7 +377,8 @@ class AccountSyncSession {
       if (_backfillRemaining > 0) _poke();
     }
     final now = clock.monotonic();
-    if (now - _lastOthers >= tuning.otherFoldersEvery) {
+    final last = _lastOthers;
+    if (last == null || now - last >= tuning.otherFoldersEvery) {
       _lastOthers = now;
       await _syncOtherFolders();
     }
