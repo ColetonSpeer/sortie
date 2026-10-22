@@ -71,6 +71,13 @@ final autodiscoveryProvider =
 final loginProbeProvider =
     Provider<Future<void> Function(Account account, String password)>((_) => _unbound('loginProbe'));
 
+/// The live AI backend: the model id it is ready to use, or null when no
+/// backend is usable on this device (no kind, or no key stored here).
+final aiBackendStatusProvider = Provider<Future<String?> Function()>((_) => _unbound('aiBackendStatus'));
+
+/// Rebuilds the AI backend after the key or settings changed.
+final refreshAiBackendProvider = Provider<Future<void> Function()>((_) => _unbound('refreshAiBackend'));
+
 /// Reviews a compose draft with the configured AI backend.
 final draftReviewerProvider = Provider<DraftReviewer>((_) => _unbound('draftReviewer'));
 

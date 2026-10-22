@@ -56,6 +56,11 @@ class UiFakes {
 
   /// Messages built so far by the stub composer (Message-ID `<dN@test>`).
   int composed = 0;
+
+  /// What the fake AI backend reports as ready (null = nothing), and how
+  /// often the settings page asked for a rebuild.
+  String? aiReadyModel;
+  int aiRefreshes = 0;
   late final FakeSortCoordinator coordinator;
 
   List<Override> overrides({List<Override> extra = const []}) => [
@@ -71,6 +76,8 @@ class UiFakes {
         sortCoordinatorProvider.overrideWith((ref, id) => coordinator),
         deviceIdentityProvider.overrideWithValue(const DeviceIdentity(
             deviceId: DemoData.deviceId, displayName: 'test', platform: DevicePlatform.linux, priority: 30)),
+        aiBackendStatusProvider.overrideWithValue(() async => aiReadyModel),
+        refreshAiBackendProvider.overrideWithValue(() async => aiRefreshes++),
         composeMessageProvider.overrideWithValue(
             (d) async => 'Subject: ${d.subject}\r\nMessage-ID: <d${++composed}@test>\r\n\r\n${d.bodyText}'.codeUnits),
         ...extra,

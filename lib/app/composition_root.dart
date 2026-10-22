@@ -157,6 +157,15 @@ class SortieServices {
     return s;
   }
 
+  /// Forces a rebuild: the settings page calls this after storing a key,
+  /// which the settings watch alone never notices.
+  Future<void> refreshAi() async {
+    _aiProviderKey = '';
+    await _refreshAiProvider(await settings.ai());
+  }
+
+  Future<String?> aiBackendStatus() async => _aiProvider?.modelId;
+
   Future<void> _refreshAiProvider(AiSettings ai) async {
     final key = ai.kind == AiProviderKind.none ? null : await credentials.read(CredentialStore.aiApiKey(ai.kind));
     final sig = '${ai.kind.name}|${ai.model}|${ai.baseUrl}|${key?.length ?? 0}';
@@ -370,6 +379,8 @@ class SortieServices {
         composeMessageProvider.overrideWithValue(compose),
         invitationServiceProvider.overrideWithValue(invitations),
         draftReviewerProvider.overrideWithValue(draftReviewer),
+        aiBackendStatusProvider.overrideWithValue(aiBackendStatus),
+        refreshAiBackendProvider.overrideWithValue(refreshAi),
         listModelsProvider.overrideWithValue(listModels),
         testAiConnectionProvider.overrideWithValue(testAi),
         calendarRepositoryProvider.overrideWithValue(calendarRepo),

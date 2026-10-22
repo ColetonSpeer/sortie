@@ -20,6 +20,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   final _baseUrl = TextEditingController();
   final _model = TextEditingController();
   AiProviderKind? _loadedKeyFor;
+  String _savedKey = '';
+
+  /// '' = no backend ready, null = unknown (fakes), else the model id.
+  String? _readyModel;
   bool _keyVisible = false;
   List<String> _models = const [];
   bool _busy = false;
@@ -37,13 +41,32 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
     if (_loadedKeyFor == kind || kind == AiProviderKind.none) return;
     _loadedKeyFor = kind;
     final v = await ref.read(credentialStoreProvider).read(CredentialStore.aiApiKey(kind));
+    _savedKey = v ?? '';
     if (mounted) setState(() => _apiKey.text = v ?? '');
+    await _loadStatus();
   }
 
   Future<void> _saveKey(AiProviderKind kind) async {
     final store = ref.read(credentialStoreProvider);
     final v = _apiKey.text.trim();
+    if (v == _savedKey) return;
     v.isEmpty ? await store.delete(CredentialStore.aiApiKey(kind)) : await store.write(CredentialStore.aiApiKey(kind), v);
+    _savedKey = v;
+    try {
+      await ref.read(refreshAiBackendProvider)();
+    } catch (_) {}
+    await _loadStatus();
+  }
+
+  /// What the running backend reports; shown under the key field so a key
+  /// that is missing on this device is visible instead of a silent "none".
+  Future<void> _loadStatus() async {
+    try {
+      final m = await ref.read(aiBackendStatusProvider)();
+      if (mounted) setState(() => _readyModel = m ?? '');
+    } catch (_) {
+      if (mounted) setState(() => _readyModel = null);
+    }
   }
 
   Future<void> _fetchModels(AiSettings s) async {
@@ -131,6 +154,17 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                 onSubmitted: (_) => _saveKey(s.kind),
                 onTapOutside: (_) => _saveKey(s.kind),
               )),
+              if (_readyModel != null)
+                _pad(Row(key: const Key('aiStatus'), children: [
+                  Icon(_readyModel!.isEmpty ? Icons.error_outline : Icons.check_circle_outline,
+                      size: 18, color: _readyModel!.isEmpty ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_readyModel!.isEmpty
+                        ? (cloud ? 'Not ready on this device: no API key is saved here. Keys stay on the device they were entered on.' : 'Not ready on this device.')
+                        : 'Ready on this device as $_readyModel'),
+                  ),
+                ])),
               _pad(Row(children: [
                 Expanded(
                   child: _models.isEmpty

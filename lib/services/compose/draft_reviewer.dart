@@ -1,6 +1,7 @@
 import 'package:logging/logging.dart';
 
 import '../../data/ai/ai_provider.dart';
+import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
 import '../sorter/cost_meter.dart';
 
@@ -59,8 +60,12 @@ class AiDraftReviewer implements DraftReviewer {
 
   @override
   Future<String?> unavailableReason() async {
-    if (_provider() == null) return 'No AI backend is configured. Add one under Settings → AI backend.';
     final ai = await _settings.ai();
+    if (_provider() == null) {
+      return ai.kind == AiProviderKind.none
+          ? 'No AI backend is configured. Add one under Settings → AI backend.'
+          : 'The API key for ${ai.kind.name} is not saved on this device. Enter it under Settings → AI backend.';
+    }
     if (ai.paused) return 'AI use is paused in Settings → AI backend.';
     final costs = _costs;
     if (costs != null && await costs.capState(ai) == CapState.exceeded) return 'The AI spend cap for today or this month is reached.';
