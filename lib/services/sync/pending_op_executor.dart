@@ -54,6 +54,18 @@ class PendingOpExecutor {
   /// Executes all runnable ops FIFO. Stops (rethrows) on connection loss or
   /// auth failure so the session can reconnect; other failures are recorded
   /// with a retry time and the next op proceeds. Returns the number done.
+  /// Folders whose contents changed server-side since the last [takeTouched]
+  /// (Sent after a send, Drafts after a save): the session re-reads them at
+  /// once instead of on the slow other-folders cadence, so a reply shows in
+  /// its thread right after sending.
+  final touchedFolders = <String>{};
+
+  Set<String> takeTouched() {
+    final t = Set<String>.of(touchedFolders);
+    touchedFolders.clear();
+    return t;
+  }
+
   Future<int> drain(String accountId, ImapGateway gw) async {
     var done = 0;
     for (final op in await ops.pending(accountId)) {
@@ -220,6 +232,7 @@ class PendingOpExecutor {
       }
     }
     if (o.supersedesMessageId != null) await _expungeByMessageId(gw, o.folderPath, o.supersedesMessageId!);
+    touchedFolders.add(o.folderPath);
     await _deleteFile(o.rawMessagePath);
   }
 
@@ -251,6 +264,7 @@ class PendingOpExecutor {
       } on ImapGatewayException catch (e) {
         if (!(e.isConnectionLost && await _alreadyAppended(gw, sent.path, raw))) rethrow;
       }
+      touchedFolders.add(sent.path);
     }
     if (o.draftMessageId != null) {
       final drafts = await _special(o.accountId, SpecialUse.drafts);

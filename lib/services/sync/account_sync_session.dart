@@ -426,5 +426,17 @@ class AccountSyncSession {
     ]);
   }
 
-  Future<void> _drain() => withCommand((gw) => executor.drain(account.id, gw));
+  Future<void> _drain() async {
+    await withCommand((gw) => executor.drain(account.id, gw));
+    // A sent reply or a saved draft lives in Sent / Drafts now: read those
+    // folders back right away so threads and the drafts list show it.
+    for (final path in executor.takeTouched()) {
+      if (path == 'INBOX') continue;
+      try {
+        await _syncFolder(path);
+      } catch (e) {
+        _log.fine('post-op sync of $path failed: $e');
+      }
+    }
+  }
 }

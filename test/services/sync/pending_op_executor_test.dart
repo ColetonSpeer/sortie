@@ -160,6 +160,7 @@ void main() {
     files['/spool/d2.eml'] = utf8.encode('From: test@example.com\r\nSubject: other\r\nMessage-ID: <other@example.com>\r\n\r\ndraft');
     await exec.execute(AppendOp(id: 'a2', accountId: testAccountId, createdAt: t.clock.now(), folderPath: 'Drafts', rawMessagePath: '/spool/d2.eml'), gw);
     expect(server.mailboxes['Drafts']!.messages.length, 2);
+    expect(exec.takeTouched(), {'Drafts'}, reason: 'saved drafts are re-read right away');
 
     files['/spool/s.eml'] = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: hi\r\nMessage-ID: <final@example.com>\r\nDate: Thu, 1 Jan 2026 10:00:00 +0000\r\n\r\nbody');
     await exec.execute(SendOp(id: 's', accountId: testAccountId, createdAt: t.clock.now(), identityId: 'id1', rawMessagePath: '/spool/s.eml', recipients: const ['bob@example.com'], draftMessageId: '<auto@example.com>'), gw);
@@ -188,6 +189,8 @@ void main() {
     final gw2 = FakeImapGateway(server, name: 'conn2');
     await gw2.connect(testAccount(), 'pw');
     expect(await exec.drain(testAccountId, gw2), 1);
+    expect(exec.takeTouched(), {'Sent'}, reason: 'the session re-reads Sent so the reply joins its thread at once');
+    expect(exec.takeTouched(), isEmpty);
     expect(smtp.sent.length, 1, reason: 'never re-sent');
     expect(server.mailboxes['Sent']!.messages.values.single.flags, contains(r'\Seen'));
     expect(await t.pendingOps.pending(testAccountId), isEmpty);
