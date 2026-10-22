@@ -186,7 +186,14 @@ void _writeTime(IcsWriter w, String name, DateTime utc, CalendarEvent e) {
   if (e.isAllDay) {
     w.prop(name, formatIcsDate(utc), params: const {'VALUE': 'DATE'});
   } else if (e.tzid != null) {
-    w.prop(name, formatIcsDateTime(resolveZone(e.tzid).toWall(utc)), params: {'TZID': e.tzid!});
+    // Only an IANA id travels as TZID: Google and other servers read a
+    // Windows name like "Central Standard Time" as UTC and shift the event.
+    final zone = resolveZone(e.tzid);
+    if (zone is IanaZone) {
+      w.prop(name, formatIcsDateTime(zone.toWall(utc)), params: {'TZID': zone.id});
+    } else {
+      w.prop(name, formatIcsDateTime(utc.toUtc(), utc: true));
+    }
   } else if (e.floating) {
     w.prop(name, formatIcsDateTime(const LocalZone().toWall(utc)));
   } else {

@@ -14,6 +14,7 @@ CalendarEvent _one(String ics) {
 CalendarEvent _roundTrip(CalendarEvent e) => eventsFromIcs(icsFromEvents([e]), calendarId: _cal).single;
 
 void main() {
+  exportZoneTests();
   setUpAll(ensureTimeZonesLoaded);
 
   group('content lines', () {
@@ -163,6 +164,31 @@ void main() {
           'BEGIN:VEVENT\nUID:v\nDTSTART;TZID=Custom/Zone:20260115T090000\nDTEND;TZID=Custom/Zone:20260115T100000\nEND:VEVENT\nEND:VCALENDAR';
       final v = _one(withVtz);
       expect(v.start, DateTime.utc(2026, 1, 15, 6));
+    });
+  });
+}
+
+void exportZoneTests() {
+  group('export TZID', () {
+    CalendarEvent ev(String? tzid) => CalendarEvent(
+          id: 'c|u1',
+          calendarId: 'c',
+          uid: 'u1',
+          start: DateTime.utc(2026, 10, 23, 18),
+          end: DateTime.utc(2026, 10, 23, 18, 30),
+          tzid: tzid,
+          summary: 'Hickory API discussion',
+          updatedAt: DateTime.utc(2026, 10, 22),
+        );
+    test('a Windows zone name is written as its IANA id with the right wall time', () {
+      final ics = icsFromEvents([ev('Central Standard Time')], now: DateTime.utc(2026, 10, 22));
+      expect(ics, contains('DTSTART;TZID=America/Chicago:20261023T130000'));
+      expect(ics, contains('DTEND;TZID=America/Chicago:20261023T133000'));
+      expect(ics, isNot(contains('Central Standard Time')));
+    });
+    test('an unknown zone name falls back to UTC instead of a label servers misread', () {
+      final ics = icsFromEvents([ev('Nowhere Standard Time')], now: DateTime.utc(2026, 10, 22));
+      expect(ics, contains('DTSTART:20261023T180000Z'));
     });
   });
 }
