@@ -16,6 +16,7 @@ abstract class ComposeBackend {
   /// An earlier message of a thread by its Message-ID, from the local cache.
   Future<MessageHeader?> messageById(String accountId, String messageId);
   Future<MessageBody> body(String accountId, String folderPath, int uid);
+  Future<List<int>> attachment(String accountId, String folderPath, int uid, String partId);
   Future<List<MailAddress>> recentAddresses(String accountId);
   Future<List<int>> compose(ComposeDraft draft);
   Future<void> saveDraft(String accountId, List<int> raw, {String? supersedesMessageId});
@@ -44,6 +45,10 @@ class LocalComposeBackend implements ComposeBackend {
   @override
   Future<MessageBody> body(String accountId, String folderPath, int uid) =>
       _ref.read(mailSyncServiceProvider).body(accountId, folderPath, uid);
+
+  @override
+  Future<List<int>> attachment(String accountId, String folderPath, int uid, String partId) =>
+      _ref.read(mailSyncServiceProvider).attachment(accountId, folderPath, uid, partId);
 
   @override
   Future<List<MailAddress>> recentAddresses(String accountId) => _ref.read(recentAddressesProvider(accountId).future);

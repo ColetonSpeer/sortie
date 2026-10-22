@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:sortie/app/compose_models.dart';
 import 'package:sortie/app/demo/demo_data.dart';
 import 'package:sortie/app/demo/fake_repositories.dart';
 import 'package:sortie/app/demo/fake_services.dart';
@@ -57,6 +58,9 @@ class UiFakes {
   /// Messages built so far by the stub composer (Message-ID `<dN@test>`).
   int composed = 0;
 
+  /// Every draft the stub composer was handed, in order.
+  final composedDrafts = <ComposeDraft>[];
+
   /// What the fake AI backend reports as ready (null = nothing), and how
   /// often the settings page asked for a rebuild.
   String? aiReadyModel;
@@ -78,8 +82,10 @@ class UiFakes {
             deviceId: DemoData.deviceId, displayName: 'test', platform: DevicePlatform.linux, priority: 30)),
         aiBackendStatusProvider.overrideWithValue(() async => aiReadyModel),
         refreshAiBackendProvider.overrideWithValue(() async => aiRefreshes++),
-        composeMessageProvider.overrideWithValue(
-            (d) async => 'Subject: ${d.subject}\r\nMessage-ID: <d${++composed}@test>\r\n\r\n${d.bodyText}'.codeUnits),
+        composeMessageProvider.overrideWithValue((d) async {
+          composedDrafts.add(d);
+          return 'Subject: ${d.subject}\r\nMessage-ID: <d${++composed}@test>\r\n\r\n${d.bodyText}'.codeUnits;
+        }),
         ...extra,
       ];
 

@@ -109,6 +109,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
         } else if (widget.forwardUid != null) {
           _subject.text = Quote.forwardSubject(src.subject);
           _body.text = _sig() + Quote.forward(src, body.text);
+          await _carryAttachments(src, body);
         } else {
           final (to, cc) = Quote.replyRecipients(src, _identities, all: widget.replyAllUid != null);
           _to = to;
@@ -134,6 +135,32 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
     if (mounted) setState(() => _ready = true);
+  }
+
+  /// Forwarding carries the original's files along. Inline images already
+  /// travel inside the quoted HTML-less body text as nothing, so only real
+  /// attachments are fetched; one that cannot be fetched is reported, not
+  /// silently dropped.
+  Future<void> _carryAttachments(MessageHeader src, MessageBody body) async {
+    final seen = <String>{};
+    final failed = <String>[];
+    for (final a in [...body.attachments, ...src.attachments]) {
+      if (!seen.add(a.partId)) continue;
+      try {
+        final bytes = await _backend.attachment(src.accountId, src.folderPath, src.uid, a.partId);
+        if (bytes.isEmpty) {
+          failed.add(a.fileName);
+          continue;
+        }
+        _attachments.add(ComposeAttachment(fileName: a.fileName, mimeType: a.mimeType, bytes: bytes));
+      } catch (e) {
+        _log.warning('could not fetch ${a.fileName} to forward it: $e');
+        failed.add(a.fileName);
+      }
+    }
+    if (failed.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not attach ${failed.join(', ')}. Attach the file again before sending.')));
+    }
   }
 
   /// Signature block for the body, with the standard `-- ` separator unless

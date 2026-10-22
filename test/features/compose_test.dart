@@ -246,6 +246,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No AI backend is configured.'), findsOneWidget);
   });
+
+  testWidgets('forwarding carries the original attachments into the draft and the sent message', (tester) async {
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    expect(h.attachments.single.fileName, 'demo-invoice.pdf');
+    f.sync.attachmentBytes['2'] = List<int>.generate(1000, (i) => i % 251);
+    await tester.pumpWidget(f.app(ComposeScreen(accountId: h.accountId, forwardUid: h.uid, sourceFolder: h.folderPath)));
+    await tester.pumpAndSettle();
+    expect(find.text('Fwd: ${h.subject}'), findsOneWidget);
+    expect(find.textContaining('demo-invoice.pdf'), findsOneWidget, reason: 'listed in the attachment strip');
+
+    await tester.enterText(find.byKey(const Key('recipients-To')), 'bob@example.test');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(f.sync.sent, hasLength(1));
+    expect(f.composedDrafts.single.attachments.single.fileName, 'demo-invoice.pdf');
+    expect(f.composedDrafts.single.attachments.single.size, 1000);
+  });
 }
 
 class _StubReviewer implements DraftReviewer {
