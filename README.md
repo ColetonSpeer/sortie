@@ -131,6 +131,9 @@ Answering mails the organizer an iTIP `METHOD:REPLY` (as a
 `text/calendar; method=REPLY` alternative plus `reply.ics`), which Exchange,
 Google and most calendar servers apply automatically, and puts the event in
 a local "Invitations" calendar unless a synced calendar already has it.
+With more than one writable calendar, Accept / Tentative / Add ask which one
+(the last choice is offered first) and the event is created through the
+calendar service, so a Google or CalDAV calendar receives it.
 "Add without replying" keeps the event with no answer sent; calendar objects
 without an organizer (METHOD:PUBLISH or none) get a plain "Add to calendar".
 Cancellations show a card with "Remove from calendar"; replies to your own

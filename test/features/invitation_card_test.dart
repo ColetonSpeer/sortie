@@ -127,4 +127,39 @@ void main() {
     expect(f.sync.calls.where((c) => c.endsWith(':refresh')).length, 1);
     expect(find.byKey(const Key('invitationCard')), findsOneWidget);
   });
+
+  testWidgets('with several writable calendars the card asks which one', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final f = UiFakes();
+    final h = DemoData.messages[0];
+    f.sync.bodiesByHash[h.messageIdHash] = MessageBody(text: 'You are invited', calendar: request);
+    final calendar = FakeCalendarRepository(sources: const [
+      CalendarSource(id: 'home', name: 'Home', kind: CalendarKind.local, color: 0xFF00FF00, enabled: true),
+      CalendarSource(id: 'google-1', name: 'HTC Installers', kind: CalendarKind.caldav, url: 'https://x', color: 0xFF0000FF, enabled: true),
+    ]);
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) => f.sync.send(a, i, r, raw),
+      identities: f.accounts.identities,
+      settings: f.settings,
+      calendar: calendar,
+    );
+    await tester.pumpWidget(f.app(
+      MessageScreen(accountId: h.accountId, folderPath: h.folderPath, uid: h.uid, standalone: false),
+      extra: [invitationServiceProvider.overrideWithValue(svc), calendarRepositoryProvider.overrideWithValue(calendar)],
+    ));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('addToCalendar')));
+    await tester.tap(find.byKey(const Key('addToCalendar')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add to which calendar?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('calendarChoice:google-1')));
+    await tester.pumpAndSettle();
+    expect((await calendar.eventsByUid('google-1', 'abc123@google.com')).single.summary, 'Speed upgrade planning');
+    expect(await calendar.eventsByUid('home', 'abc123@google.com'), isEmpty);
+    expect(await svc.preferredCalendar(), 'google-1');
+    expect(find.byKey(const Key('invitationInCalendar')), findsOneWidget);
+  });
 }

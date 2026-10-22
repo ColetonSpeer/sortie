@@ -125,4 +125,40 @@ void main() {
     expect(inv.method, InvitationMethod.other);
     expect(inv.organizer, isNull);
   });
+
+  test('a chosen calendar is used through the calendar service create/update hooks', () async {
+    final calendar = FakeCalendarRepository(sources: const [
+      CalendarSource(id: 'google-1', name: 'HTC Installers', kind: CalendarKind.caldav, url: 'https://x', color: 0xFF0000FF, enabled: true),
+    ]);
+    final created = <CalendarEvent>[];
+    final updated = <CalendarEvent>[];
+    final settings = FakeSettingsRepository();
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) async {},
+      identities: (_) async => [me],
+      settings: settings,
+      calendar: calendar,
+      createEvent: (d) async {
+        created.add(d);
+        await calendar.upsertEvents([d]);
+        return d;
+      },
+      updateEvent: (e) async {
+        updated.add(e);
+        await calendar.upsertEvents([e]);
+      },
+    );
+    final inv = MeetingInvitation.parse(request)!;
+    await svc.addToCalendar(accountId: 'acct', invitation: inv, calendarId: 'google-1');
+    expect(created.single.calendarId, 'google-1');
+    expect(created.single.id, 'google-1|abc123@google.com');
+    expect(await calendar.eventsByUid(InvitationService.localCalendarId, 'abc123@google.com'), isEmpty, reason: 'not duplicated locally');
+    // Answering later updates the same event instead of creating another.
+    await svc.respond(accountId: 'acct', invitation: inv, status: AttendeeStatus.accepted, calendarId: 'google-1');
+    expect(created.length, 1);
+    expect(updated.single.attendees.firstWhere((a) => a.email == me.email).status, AttendeeStatus.accepted);
+    await svc.rememberCalendar('google-1');
+    expect(await svc.preferredCalendar(), 'google-1');
+  });
 }

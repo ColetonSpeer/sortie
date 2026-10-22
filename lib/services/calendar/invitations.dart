@@ -119,12 +119,16 @@ class InvitationService {
     required Future<List<Identity>> Function(String accountId) identities,
     required SettingsRepository settings,
     CalendarRepository? calendar,
+    Future<CalendarEvent> Function(CalendarEvent draft)? createEvent,
+    Future<void> Function(CalendarEvent event)? updateEvent,
     DateTime Function()? now,
   })  : _composer = composer,
         _send = send,
         _identities = identities,
         _settings = settings,
         _calendar = calendar,
+        _createEvent = createEvent,
+        _updateEvent = updateEvent,
         _now = now ?? DateTime.now;
 
   static final _log = Logger('invitations');
@@ -135,9 +139,27 @@ class InvitationService {
   final Future<List<Identity>> Function(String accountId) _identities;
   final SettingsRepository _settings;
   final CalendarRepository? _calendar;
+
+  /// The calendar service's create / update: they queue the CalDAV push so
+  /// a Google or other remote calendar actually receives the event. Without
+  /// them the event is written to the local store only.
+  final Future<CalendarEvent> Function(CalendarEvent draft)? _createEvent;
+  final Future<void> Function(CalendarEvent event)? _updateEvent;
   final DateTime Function() _now;
 
   static String _key(String accountId, String uid) => 'invite.$accountId.$uid';
+  static const _preferredKey = 'invite.calendar';
+
+  /// The calendar picked last time, if it still exists and is writable.
+  Future<String?> preferredCalendar() async {
+    final id = await _settings.getString(_preferredKey);
+    final cal = _calendar;
+    if (id == null || cal == null) return null;
+    final src = await cal.source(id);
+    return src != null && src.isWritable ? id : null;
+  }
+
+  Future<void> rememberCalendar(String calendarId) => _settings.setString(_preferredKey, calendarId);
 
   /// What was answered for this event earlier on this device, if anything.
   Future<AttendeeStatus?> responseOf(String accountId, MeetingInvitation inv) async {
@@ -162,11 +184,14 @@ class InvitationService {
     return ids.firstWhere((i) => i.isDefault, orElse: () => ids.first);
   }
 
+  /// [calendarId] is where the event goes; null means the local
+  /// "Invitations" calendar (unless a synced calendar already has it).
   Future<void> respond({
     required String accountId,
     required MeetingInvitation invitation,
     required AttendeeStatus status,
     MessageHeader? original,
+    String? calendarId,
   }) async {
     final me = await identityFor(accountId, invitation);
     if (me == null) throw StateError('No identity for this account');
@@ -196,13 +221,13 @@ class InvitationService {
       _log.info('invitation without organizer: nothing to send');
     }
     await _settings.setString(_key(accountId, invitation.event.uid), status.name);
-    await _recordInCalendar(invitation, me, status);
+    await _recordInCalendar(invitation, me, status, calendarId);
   }
 
   /// Keeps the event without answering the organizer.
-  Future<void> addToCalendar({required String accountId, required MeetingInvitation invitation}) async {
+  Future<void> addToCalendar({required String accountId, required MeetingInvitation invitation, String? calendarId}) async {
     final me = await identityFor(accountId, invitation);
-    await _recordInCalendar(invitation, me, AttendeeStatus.needsAction);
+    await _recordInCalendar(invitation, me, AttendeeStatus.needsAction, calendarId);
   }
 
   /// True when some calendar already holds this event.
@@ -226,38 +251,61 @@ class InvitationService {
     }
   }
 
-  Future<void> _recordInCalendar(MeetingInvitation inv, Identity? me, AttendeeStatus status) async {
+  Future<void> _recordInCalendar(MeetingInvitation inv, Identity? me, AttendeeStatus status, String? calendarId) async {
     final cal = _calendar;
     if (cal == null) return;
     try {
       final uid = inv.event.uid;
-      // Declined: make sure no local copy lingers.
       if (status == AttendeeStatus.declined) {
+        // Declined: make sure no local copy lingers.
         final existing = await cal.eventsByUid(localCalendarId, uid);
         if (existing.isNotEmpty) await cal.deleteEvents([for (final e in existing) e.id]);
         return;
       }
-      // Already in a synced calendar (the invite landed there too)? Leave it.
-      for (final src in await cal.sources()) {
-        if (src.id == localCalendarId) continue;
-        if ((await cal.eventsByUid(src.id, uid)).isNotEmpty) return;
+      var target = calendarId;
+      if (target == null) {
+        // No choice made: a synced calendar that already has it wins, else
+        // the local Invitations calendar.
+        for (final src in await cal.sources()) {
+          if (src.id != localCalendarId && (await cal.eventsByUid(src.id, uid)).isNotEmpty) {
+            target = src.id;
+            break;
+          }
+        }
+        target ??= localCalendarId;
       }
-      if (await cal.source(localCalendarId) == null) {
+      if (target == localCalendarId && await cal.source(localCalendarId) == null) {
         await cal.upsertSource(const CalendarSource(id: localCalendarId, name: 'Invitations', kind: CalendarKind.local, color: 0xFF3F51B5, enabled: true));
       }
       final attendees = [
         for (final a in inv.event.attendees)
           me != null && a.email.toLowerCase() == me.email.toLowerCase() ? Attendee(email: a.email, name: a.name, status: status) : a,
       ];
-      final e = inv.event.copyWith(
-        id: calendarEventId(localCalendarId, uid, inv.event.recurrenceId),
-        calendarId: localCalendarId,
+      final existing = (await cal.eventsByUid(target, uid)).where((e) => e.recurrenceId == inv.event.recurrenceId).firstOrNull;
+      final now = _now().toUtc();
+      if (existing != null) {
+        final updated = existing.copyWith(attendees: attendees, updatedAt: now);
+        if (_updateEvent != null) {
+          await _updateEvent(updated);
+        } else {
+          await cal.upsertEvents([updated]);
+        }
+        return;
+      }
+      final draft = inv.event.copyWith(
+        id: calendarEventId(target, uid, inv.event.recurrenceId),
+        calendarId: target,
         attendees: attendees,
-        updatedAt: _now().toUtc(),
+        updatedAt: now,
       );
-      await cal.upsertEvents([e]);
+      if (_createEvent != null) {
+        await _createEvent(draft);
+      } else {
+        await cal.upsertEvents([draft]);
+      }
     } catch (e, st) {
       _log.warning('could not record the invitation in the calendar', e, st);
+      rethrow;
     }
   }
 }

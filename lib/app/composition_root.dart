@@ -131,6 +131,8 @@ class SortieServices {
       identities: s.accounts.identities,
       settings: s.settings,
       calendar: s.calendarRepo,
+      createEvent: s.calendar.createEvent,
+      updateEvent: s.calendar.updateEvent,
       now: s.clock.now,
     );
     final importance = ImportanceContext(accounts: s.accounts, folders: s.folders, messages: s.messages, clock: s.clock);

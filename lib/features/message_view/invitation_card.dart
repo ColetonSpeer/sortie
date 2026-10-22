@@ -48,7 +48,52 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
     }
   }
 
+  /// Which calendar the event goes to: the only writable one, or the one the
+  /// user picks from a dialog (last choice first). Null when cancelled.
+  Future<String?> _pickCalendar() async {
+    final svc = ref.read(invitationServiceProvider);
+    // Kept alive by the watch in build(); fall back to the first stream value.
+    var all = ref.read(calendarSourcesProvider).asData?.value;
+    if (all == null) {
+      try {
+        all = await ref.read(calendarSourcesProvider.future).timeout(const Duration(seconds: 3));
+      } catch (_) {
+        all = const [];
+      }
+    }
+    if (!mounted) return null;
+    final sources = all.where((s) => s.isWritable).toList();
+    if (sources.isEmpty) return InvitationService.localCalendarId;
+    if (sources.length == 1) return sources.single.id;
+    final preferred = await svc.preferredCalendar();
+    if (!mounted) return null;
+    sources.sort((a, b) => (a.id == preferred ? 0 : 1).compareTo(b.id == preferred ? 0 : 1));
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Add to which calendar?'),
+        children: [
+          for (final s in sources)
+            SimpleDialogOption(
+              key: Key('calendarChoice:${s.id}'),
+              onPressed: () => Navigator.of(ctx).pop(s.id),
+              child: Row(children: [
+                Container(width: 12, height: 12, decoration: BoxDecoration(color: Color(s.color), shape: BoxShape.circle)),
+                const SizedBox(width: 12),
+                Expanded(child: Text(s.name)),
+                if (s.id == preferred) const Icon(Icons.history, size: 16),
+              ]),
+            ),
+        ],
+      ),
+    );
+    if (picked != null) await svc.rememberCalendar(picked);
+    return picked;
+  }
+
   Future<void> _respond(AttendeeStatus status) async {
+    final calendarId = status == AttendeeStatus.declined ? null : await _pickCalendar();
+    if (status != AttendeeStatus.declined && calendarId == null) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -59,6 +104,7 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
             invitation: widget.invitation,
             status: status,
             original: widget.header,
+            calendarId: calendarId,
           );
       if (mounted) {
         setState(() {
@@ -74,12 +120,14 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
   }
 
   Future<void> _add() async {
+    final calendarId = await _pickCalendar();
+    if (calendarId == null) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await ref.read(invitationServiceProvider).addToCalendar(accountId: widget.header.accountId, invitation: widget.invitation);
+      await ref.read(invitationServiceProvider).addToCalendar(accountId: widget.header.accountId, invitation: widget.invitation, calendarId: calendarId);
       if (mounted) setState(() => _inCalendar = true);
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not add it: $e');
@@ -100,6 +148,7 @@ class _InvitationCardState extends ConsumerState<InvitationCard> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(calendarSourcesProvider);
     final inv = widget.invitation;
     final e = inv.event;
     final theme = Theme.of(context);
