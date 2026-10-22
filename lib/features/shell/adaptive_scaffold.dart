@@ -125,15 +125,13 @@ class FolderRail extends ConsumerWidget {
           if (wide)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-              child: Row(children: [
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: () => openCompose(context, ref, accountId: accountId),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Compose'),
-                  ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => openCompose(context, ref, accountId: accountId),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Compose'),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 6),
                 FilledButton.tonalIcon(
                   key: const Key('blabberCompose'),
                   onPressed: () => openCompose(context, ref, accountId: accountId, blabber: true),
