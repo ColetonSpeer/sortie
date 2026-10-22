@@ -393,9 +393,12 @@ class FakeRuleAdvisor implements RuleAdvisorApi {
     return runResult;
   }
 
+  String? lastAcceptFolder;
+
   @override
   Future<String> accept(String suggestionId, {Map<String, dynamic>? match, String? folderPath}) async {
     calls.add('accept:$suggestionId');
+    lastAcceptFolder = folderPath;
     accepted.add((suggestionId, match, folderPath));
     setPending(_pending.where((s) => s.id != suggestionId).toList());
     return 'rule-$suggestionId';

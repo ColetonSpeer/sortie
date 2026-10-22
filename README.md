@@ -158,9 +158,15 @@ The rule advisor also reads the Trash: mail deleted in the last four months
 becomes "deleted" evidence (once per message), so a sender or list you keep
 throwing away can be offered a folder instead. When a clear group fits none
 of your folders, the advisor may propose a new one; the suggestion shows
-"(new folder)" and Accept creates the folder on the server (under INBOX when
-your folders live there) before adding the rule. Nothing is created or moved
-until you accept, and the advisor never proposes a rule that deletes.
+"(new folder)" and Accept creates the folder on the server before adding the
+rule. The model says where it belongs: under INBOX for mail you act on, at
+the top level for reference material, or as a subfolder of one of your
+folders; the card lets you flip between those before accepting. About once a
+month (or on "Ask now" after a day) the advisor also reviews every folder
+with enough mail and proposes subfolders where one folder mixes distinct
+kinds; accepting such a split can also move the parent's matching mail into
+the new subfolder. Nothing is created or moved until you accept, and the
+advisor never proposes a rule that deletes.
 
 ### Reviewing a draft with AI
 

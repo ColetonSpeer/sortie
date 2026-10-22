@@ -46,13 +46,17 @@ void main() {
         h.messages.headers.add(Corpus.msg(folder: Corpus.trash, from: 'orders@supplier.example', subject: 'Order $i shipped', daysAgo: i + 1));
       }
       h.fake.script = (req) => suggestionsJson([
-            {'kind': 'from', 'value': 'orders@supplier.example', 'folder': '<new>', 'newFolder': 'Supplier orders', 'rationale': 'deleted repeatedly, worth keeping', 'confidence': 0.8, 'exampleIds': ['e1']},
+            {'kind': 'from', 'value': 'orders@supplier.example', 'folder': '<new>', 'newFolder': 'Supplier orders', 'placement': 'top', 'rationale': 'deleted repeatedly, worth keeping', 'confidence': 0.8, 'exampleIds': ['e1']},
             {'kind': 'domain', 'value': 'bank.example', 'folder': '<new>', 'newFolder': 'Receipts', 'rationale': 'already a folder', 'confidence': 0.8, 'exampleIds': <String>[]},
+            {'kind': 'from', 'value': 'ops@apollo.example', 'folder': '<new>', 'newFolder': 'Alerts', 'placement': 'under', 'parent': Corpus.apollo, 'rationale': 'belongs with Apollo', 'confidence': 0.8, 'exampleIds': <String>[]},
           ]);
       final run = await h.sorter.advisor.runNow(Corpus.account);
-      expect(run.modelSuggestions, 2);
+      expect(run.modelSuggestions, 3);
+      expect((await h.sorter.suggestions.pending(Corpus.account)).map((s) => s.folderPath), contains('${Corpus.apollo}/Alerts'), reason: 'a subfolder of an existing folder');
+      expect(((((h.fake.lastRequest.jsonSchema['properties'] as Map)['suggestions'] as Map)['items'] as Map)['properties'] as Map)['parent'], isNotNull);
       final schema = (((h.fake.lastRequest.jsonSchema['properties'] as Map)['suggestions'] as Map)['items'] as Map)['properties'] as Map;
       expect(((schema['folder'] as Map)['enum'] as List), contains('<new>'));
+      expect(((schema['placement'] as Map)['enum'] as List), ['inbox', 'top', 'under']);
       final pending = await h.sorter.suggestions.pending(Corpus.account);
       final fresh = pending.firstWhere((s) => s.createsFolder);
       expect(fresh.folderPath, 'Supplier orders', reason: 'this account keeps folders at the top level');
@@ -95,8 +99,56 @@ void main() {
         await (h.database.delete(h.database.folders)..where((f) => f.path.equals(path))).go();
       }
       expect(await h.sorter.advisor.newFolderPath(Corpus.account, 'Suppliers'), 'INBOX.Suppliers');
+      expect(await h.sorter.advisor.newFolderPath(Corpus.account, 'Newsletters', placement: FolderPlacement.top), 'Newsletters', reason: 'the model may keep reference mail out of the inbox tree');
+      expect(await h.sorter.advisor.newFolderPath(Corpus.account, 'Orders', placement: FolderPlacement.inbox), 'INBOX.Orders');
+      expect(RuleAdvisor.replacePlacement('INBOX.Suppliers', FolderPlacement.top), 'Suppliers');
+      expect(RuleAdvisor.replacePlacement('Suppliers', FolderPlacement.inbox), 'INBOX.Suppliers');
+      expect(await h.sorter.advisor.newFolderPath(Corpus.account, 'Orders', placement: FolderPlacement.under, parent: 'INBOX.Tickets'), 'INBOX.Tickets.Orders');
+      expect(RuleAdvisor.replacePlacement('INBOX.Tickets.Orders', FolderPlacement.top), 'Orders');
+      expect(RuleAdvisor.replacePlacement('Orders', FolderPlacement.under, parent: 'INBOX.Tickets'), 'INBOX.Tickets.Orders');
       expect(RuleAdvisor.cleanFolderName('  Vendor/Invoices!! '), 'Vendor Invoices');
       expect(RuleAdvisor.cleanFolderName('///'), isNull);
+    });
+  });
+
+  group('folder review', () {
+    test('runs on the first pass, proposes subfolders only, then waits a month (a day after Ask now)', () async {
+      h = await Harness.create(ai: advisorAi);
+      // Make Invoices big enough to be reviewed.
+      for (var i = 0; i < 45; i++) {
+        h.messages.headers.add(Corpus.msg(folder: Corpus.invoices, from: i.isEven ? 'billing@calix.example' : 'ar@adtran.example', subject: 'Invoice $i', daysAgo: i));
+      }
+      await h.sorter.profiles.bootstrap(Corpus.account, h.settings.config);
+      h.messages.headers.add(Corpus.msg(folder: Corpus.trash, from: 'x@y.example', subject: 'junk', daysAgo: 1));
+      var reviews = 0;
+      h.fake.script = (req) {
+        if (req.system.single.text.startsWith(RuleAdvisor.reviewInstructions)) {
+          reviews++;
+          expect(req.system.single.text, contains('### ${Corpus.invoices}'));
+          expect(req.user, contains(RegExp('${RegExp.escape(Corpus.invoices)}: \\d+ messages')));
+          return suggestionsJson([
+            {'kind': 'from', 'value': 'billing@calix.example', 'folder': '<new>', 'newFolder': 'Calix', 'placement': 'under', 'parent': Corpus.invoices, 'rationale': 'half the folder is Calix billing', 'confidence': 0.8, 'exampleIds': <String>[]},
+            {'kind': 'from', 'value': 'ar@adtran.example', 'folder': Corpus.receipts, 'rationale': 'not a subfolder', 'confidence': 0.9, 'exampleIds': <String>[]},
+          ]);
+        }
+        return suggestionsJson([]);
+      };
+      final run = await h.sorter.advisor.runNow(Corpus.account);
+      expect(reviews, 1);
+      expect(run.modelSuggestions, 1, reason: 'the non-subfolder answer is ignored in a review');
+      final s = (await h.sorter.suggestions.pending(Corpus.account)).single;
+      expect(s.createsFolder, isTrue);
+      expect(s.folderPath, '${Corpus.invoices}/Calix');
+      expect(h.settings.strings['advisor.lastFolderReview.${Corpus.account}'], isNotNull);
+
+      await h.sorter.advisor.runNow(Corpus.account);
+      expect(reviews, 1, reason: 'Ask now within a day does not review again');
+      h.clock.advance(const Duration(days: 2));
+      await h.sorter.advisor.runNow(Corpus.account);
+      expect(reviews, 2, reason: 'Ask now after a day reviews again');
+      h.clock.advance(const Duration(days: 10));
+      await h.sorter.advisor.runNow(Corpus.account, force: false);
+      expect(reviews, 2, reason: 'the scheduled pass waits for the monthly interval');
     });
   });
 }

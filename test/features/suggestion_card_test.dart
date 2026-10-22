@@ -99,4 +99,66 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('suggestionBanner')), findsNothing);
   });
+
+  testWidgets('a new-folder suggestion offers Under Inbox / Top level and accepts the chosen path', (tester) async {
+    final f = UiFakes();
+    final s = RuleSuggestion(
+      id: 'sug-new',
+      accountId: DemoData.accountId,
+      match: const {'from': 'orders@supplier.example'},
+      folderPath: 'INBOX.Supplier orders',
+      rationale: 'Deleted repeatedly, worth keeping',
+      confidence: 0.8,
+      source: SuggestionSource.model,
+      evidenceCount: 4,
+      examples: const ['Order shipped'],
+      createdAt: DateTime.utc(2026, 1, 1),
+      createsFolder: true,
+    );
+    f.advisor.setPending([s]);
+    await tester.pumpWidget(f.app(const SortLogScreen()));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('INBOX.Supplier orders (new folder)'), findsOneWidget);
+    await tester.tap(find.text('Top level'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('→ Supplier orders (new folder)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('accept:sug-new')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('acceptConfirm')));
+    await tester.pumpAndSettle();
+    expect(f.advisor.calls, contains('accept:sug-new'));
+    expect(f.advisor.lastAcceptFolder, 'Supplier orders');
+  });
+
+  testWidgets('accepting a subfolder suggestion can move the parent folder\'s matching mail into it', (tester) async {
+    final f = UiFakes();
+    final parent = (await f.messages.list(const MessageQuery(accountId: DemoData.accountId, limit: 500))).map((h) => h.folderPath).firstWhere((p) => p != 'INBOX');
+    final inParent = await f.messages.list(MessageQuery(accountId: DemoData.accountId, folderPath: parent, limit: 50));
+    final from = inParent.first.from!.email;
+    final s = RuleSuggestion(
+      id: 'sug-sub',
+      accountId: DemoData.accountId,
+      match: {'from': from},
+      folderPath: '$parent/Vendor',
+      rationale: 'Split',
+      confidence: 0.8,
+      source: SuggestionSource.model,
+      evidenceCount: 1,
+      examples: const [],
+      createdAt: DateTime.utc(2026, 1, 1),
+      createsFolder: true,
+    );
+    f.advisor.setPending([s]);
+    await tester.pumpWidget(f.app(const SortLogScreen()));
+    await tester.pumpAndSettle();
+    expect(find.text('Under ${parent.split('/').last}'), findsOneWidget, reason: 'the proposed parent is a placement choice');
+    await tester.tap(find.byKey(const Key('accept:sug-sub')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('moveFromParent')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('acceptConfirm')));
+    await tester.pumpAndSettle();
+    expect(f.advisor.lastAcceptFolder, '$parent/Vendor');
+    final n = inParent.where((h) => h.from!.email == from).length;
+    expect(f.sync.calls.where((c) => c.startsWith('move:')), isNotEmpty, reason: '$n message(s) moved from $parent');
+  });
 }
