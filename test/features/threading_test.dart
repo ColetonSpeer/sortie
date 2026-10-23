@@ -232,4 +232,21 @@ void sentMergeTests() {
       expect(buildThreadsWithSent(inbox, const []).single.messages.length, 2);
     });
   });
+
+  test('a Message-ID folded in the middle still threads and never leaks a fragment into another thread', () {
+    // Outlook ids are long; a client that folds the header inside the id
+    // leaves "nampr d13" after unfolding. The fragment must not become an
+    // id of its own, or two unrelated tickets from the same tenant merge.
+    const idA = '<IA3PR13MB9943422F9C9F110BF028AD7D1CB4652@IA3PR13MB994342.namprd13.prod.outlook.com>';
+    const idB = '<MWHPR1301MB2160265CBB877CB093E1FEB7BB672@MWHPR1301MB2160.namprd13.prod.outlook.com>';
+    final ticketA = h(1, mid: idA, subject: 'RE: AXOS plugin', from: 'sdp@innovsys.test');
+    final replyA = h(2, mid: '<r1@me.test>', irt: idA.replaceFirst('namprd13', 'nampr d13'), refs: [idA.replaceFirst('namprd13', 'namprd 13')], subject: 'RE: AXOS plugin', from: 'me@example.test', to: ['sdp@innovsys.test'], minutes: 10);
+    final ticketB = h(3, mid: idB, subject: 'Re: Calix plugin', from: 'aaron@innovsys.test', minutes: 20);
+    final replyB = h(4, mid: '<r2@me.test>', irt: idB, refs: ['<x@y.test> ${idB.replaceFirst('namprd13', 'nampr d13')}'], subject: 'Re: Calix plugin', from: 'me@example.test', to: ['aaron@innovsys.test'], minutes: 30);
+    final threads = buildThreads([ticketA, replyA, ticketB, replyB], ownAddresses: {'me@example.test'});
+    expect(threads.length, 2);
+    expect(threads.map((t) => t.messages.map((m) => m.uid).toList()).toSet(), {[1, 2], [3, 4]});
+    expect(messageIdsIn('<a@b.test>\r\n <c@d.te st>').toList(), ['a@b.test', 'c@d.test']);
+    expect(messageIdsIn('a@b.test c@d.test').toList(), ['a@b.test', 'c@d.test']);
+  });
 }

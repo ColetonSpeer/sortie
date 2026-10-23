@@ -19,9 +19,13 @@ class MessageTile extends ConsumerWidget {
     required this.onTap,
     required this.onToggleCheck,
     this.badge,
+    this.accountLabel,
   });
 
   final MessageHeader header;
+
+  /// Shown next to the date when the list mixes accounts (All inboxes).
+  final String? accountLabel;
   final bool selected;
   final bool checked;
   final bool selectionMode;
@@ -81,6 +85,7 @@ class MessageTile extends ConsumerWidget {
                         padding: const EdgeInsets.only(left: 4),
                         child: Icon(Icons.attach_file, size: 14, color: cs.onSurfaceVariant),
                       ),
+                    if (accountLabel != null) AccountLabel(accountLabel!),
                     const SizedBox(width: 6),
                     Text(Fmt.relativeDate(header.date),
                         style: theme.textTheme.labelSmall?.copyWith(
@@ -150,6 +155,27 @@ class _Leading extends StatelessWidget {
         foregroundColor: cs.onSurfaceVariant,
         child: Text(Fmt.initials(Fmt.sender(header)), style: const TextStyle(fontSize: 14)),
       ),
+    );
+  }
+}
+
+/// Small pill naming the account a row belongs to (All inboxes view).
+class AccountLabel extends StatelessWidget {
+  const AccountLabel(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      constraints: const BoxConstraints(maxWidth: 90),
+      decoration: BoxDecoration(color: cs.tertiaryContainer, borderRadius: BorderRadius.circular(8)),
+      child: Text(text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onTertiaryContainer)),
     );
   }
 }

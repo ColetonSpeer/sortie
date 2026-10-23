@@ -52,21 +52,40 @@ bool isReplyOrForward(String subject) => _replyPrefix.hasMatch(subject);
 /// whitespace. Empty when nothing meaningful is left.
 String normalizeSubject(String s) => s.replaceAll(_prefix, '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
-/// `<Abc@x>` / ` abc@X ` -> `abc@x`. Empty when there is no id.
+/// `<Abc@x>` / ` abc@X ` -> `abc@x`. Empty when there is no id. A
+/// Message-ID never contains whitespace, so any inside (a header folded in
+/// the middle of the id by a careless client) is dropped rather than kept.
 String _normId(String? raw) {
   if (raw == null) return '';
-  var s = raw.trim();
+  var s = raw.replaceAll(RegExp(r'\s+'), '');
   if (s.startsWith('<')) s = s.substring(1);
   if (s.endsWith('>')) s = s.substring(0, s.length - 1);
-  return s.trim().toLowerCase();
+  return s.toLowerCase();
+}
+
+final _angleId = RegExp(r'<[^<>]*>');
+
+/// Ids mentioned in a References value: the `<...>` tokens when there are
+/// any (whitespace inside one is a fold, not a separator), else the
+/// whitespace-separated words.
+Iterable<String> messageIdsIn(String raw) sync* {
+  final angles = _angleId.allMatches(raw).toList();
+  if (angles.isNotEmpty) {
+    for (final m in angles) {
+      final id = _normId(m.group(0));
+      if (id.isNotEmpty) yield id;
+    }
+    return;
+  }
+  for (final part in raw.split(RegExp(r'\s+'))) {
+    final id = _normId(part);
+    if (id.isNotEmpty) yield id;
+  }
 }
 
 Iterable<String> _refIds(MessageHeader h) sync* {
   for (final r in h.references) {
-    for (final part in r.split(RegExp(r'\s+'))) {
-      final id = _normId(part);
-      if (id.isNotEmpty) yield id;
-    }
+    yield* messageIdsIn(r);
   }
   final irt = _normId(h.inReplyTo);
   if (irt.isNotEmpty) yield irt;

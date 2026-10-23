@@ -7,6 +7,8 @@ import '../../domain/services/services.dart';
 import '../shell/format.dart';
 import 'badge_chip.dart';
 import 'message_actions.dart';
+import 'message_tile.dart' show AccountLabel;
+import 'swipe_actions.dart';
 import 'threading.dart';
 
 /// Ids of threads currently expanded in the message list (UI state only).
@@ -30,10 +32,21 @@ class ThreadTile extends ConsumerWidget {
     required this.onSelectAll,
     required this.onToggleAll,
     this.badge,
+    this.onDelete,
+    this.onArchive,
+    this.accountLabel,
   });
 
   final MessageThread thread;
   final Set<String> ownAddresses;
+
+  /// Touch layouts: swiping the collapsed header right deletes the whole
+  /// conversation, left archives it. Null = no swipe (desktop).
+  final Future<void> Function()? onDelete;
+  final Future<void> Function()? onArchive;
+
+  /// Shown next to the date when the list mixes accounts.
+  final String? accountLabel;
 
   /// Current multi-select state; non-empty means selection mode.
   final Set<MessageKey> selection;
@@ -62,17 +75,24 @@ class ThreadTile extends ConsumerWidget {
     }
 
     final cs = Theme.of(context).colorScheme;
+    Widget header = _ThreadHeader(
+      thread: thread,
+      ownAddresses: ownAddresses,
+      selection: selection,
+      expanded: expanded,
+      badge: badge,
+      accountLabel: accountLabel,
+      onToggleExpand: toggleExpand,
+      onSelectAll: onSelectAll,
+      onToggleAll: onToggleAll,
+    );
+    final del = onDelete;
+    final arch = onArchive;
+    if (del != null && arch != null && !expanded && !selection.isNotEmpty) {
+      header = SwipeToAct(swipeKey: ValueKey('swipe-thread:${thread.id}'), onDelete: del, onArchive: arch, child: header);
+    }
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      _ThreadHeader(
-        thread: thread,
-        ownAddresses: ownAddresses,
-        selection: selection,
-        expanded: expanded,
-        badge: badge,
-        onToggleExpand: toggleExpand,
-        onSelectAll: onSelectAll,
-        onToggleAll: onToggleAll,
-      ),
+      header,
       // Custom instead of ExpansionTile so the header keeps MessageTile's geometry.
       AnimatedSize(
         duration: const Duration(milliseconds: 200),
@@ -108,6 +128,7 @@ class _ThreadHeader extends ConsumerWidget {
     required this.onToggleExpand,
     required this.onSelectAll,
     required this.onToggleAll,
+    this.accountLabel,
   });
 
   final MessageThread thread;
@@ -115,6 +136,7 @@ class _ThreadHeader extends ConsumerWidget {
   final Set<MessageKey> selection;
   final bool expanded;
   final PendingBadge? badge;
+  final String? accountLabel;
   final VoidCallback onToggleExpand;
   final VoidCallback onSelectAll;
   final VoidCallback onToggleAll;
@@ -176,6 +198,7 @@ class _ThreadHeader extends ConsumerWidget {
                         padding: const EdgeInsets.only(left: 4),
                         child: Icon(Icons.attach_file, size: 14, color: cs.onSurfaceVariant),
                       ),
+                    if (accountLabel != null) AccountLabel(accountLabel!),
                     const SizedBox(width: 6),
                     Text(Fmt.relativeDate(thread.lastDate),
                         style: theme.textTheme.labelSmall?.copyWith(

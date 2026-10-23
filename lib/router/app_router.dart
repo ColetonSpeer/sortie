@@ -33,16 +33,28 @@ abstract final class Routes {
   static const calendar = '/calendar';
   static const settingsImport = '/settings/import';
 
+  /// Pseudo account id of the unified "All inboxes" view (every account's
+  /// INBOX in one list). Real ids are UUIDs, so it cannot collide.
+  static const allAccounts = 'all';
+  static String get allInboxes => mailbox(allAccounts, 'INBOX');
+
   static String identities(String accountId) => '/accounts/${Uri.encodeComponent(accountId)}/identities';
   static String mailbox(String accountId, String folder) =>
       '/mail/${Uri.encodeComponent(accountId)}/${Uri.encodeComponent(folder)}';
   static String message(String accountId, String folder, int uid) => '${mailbox(accountId, folder)}/message/$uid';
 
   /// A message of [messageFolder] opened from [listFolder]'s list (a Sent
-  /// reply inside an inbox thread): the list stays where it is.
-  static String messageIn(String accountId, String listFolder, String messageFolder, int uid) => messageFolder == listFolder
-      ? message(accountId, listFolder, uid)
-      : '${message(accountId, listFolder, uid)}?in=${Uri.encodeQueryComponent(messageFolder)}';
+  /// reply inside an inbox thread, or any message in All inboxes): the list
+  /// stays where it is. [account] is the message's account when the list is
+  /// not that account's own.
+  static String messageIn(String accountId, String listFolder, String messageFolder, int uid, {String? account}) {
+    final q = <String, String>{
+      if (messageFolder != listFolder) 'in': messageFolder,
+      if (account != null && account != accountId) 'acct': account,
+    };
+    final base = message(accountId, listFolder, uid);
+    return q.isEmpty ? base : Uri(path: base, queryParameters: q).toString();
+  }
   static String composeWith({
     required String accountId,
     String? reply,
@@ -86,7 +98,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (accounts.isLoading && !accounts.hasValue) return loc == '/' ? null : '/';
       final list = accounts.asData?.value ?? const [];
       if (list.isEmpty) return loc == Routes.onboarding ? null : Routes.onboarding;
-      if (loc == '/') return Routes.mailbox(list.first.id, 'INBOX');
+      if (loc == '/') return list.length > 1 ? Routes.allInboxes : Routes.mailbox(list.first.id, 'INBOX');
       return null;
     },
     routes: [
@@ -149,7 +161,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 Page<void> _mailPage(BuildContext context, GoRouterState s, {required int? uid}) {
   final accountId = Uri.decodeComponent(s.pathParameters['accountId']!);
   final folder = Uri.decodeComponent(s.pathParameters['folder']!);
-  final child = AdaptiveScaffold(accountId: accountId, folderPath: folder, uid: uid, messageFolder: s.uri.queryParameters['in']);
+  final child = AdaptiveScaffold(
+      accountId: accountId, folderPath: folder, uid: uid, messageFolder: s.uri.queryParameters['in'], messageAccount: s.uri.queryParameters['acct']);
   final wide = MediaQuery.sizeOf(context).width >= AdaptiveScaffold.compactBreakpoint;
   // Wide layouts keep the shell on screen; only the panes change, so no slide.
   return wide ? NoTransitionPage(key: s.pageKey, child: child) : MaterialPage(key: s.pageKey, child: child);

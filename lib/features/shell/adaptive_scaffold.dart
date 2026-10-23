@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
-import '../compose/open_compose.dart';
+import '../../domain/entities/entities.dart';
 import '../../router/app_router.dart';
+import '../compose/open_compose.dart';
 import '../mailbox/folder_list.dart';
 import '../mailbox/message_list.dart';
 import '../message_view/message_screen.dart';
@@ -12,8 +13,9 @@ import 'rail_header.dart';
 
 /// Three-pane (>= 1000 dp), two-pane (600-999) or stacked (< 600) mail shell.
 class AdaptiveScaffold extends ConsumerWidget {
-  const AdaptiveScaffold({super.key, required this.accountId, required this.folderPath, this.uid, this.messageFolder});
+  const AdaptiveScaffold({super.key, required this.accountId, required this.folderPath, this.uid, this.messageFolder, this.messageAccount});
 
+  /// A real account id, or [Routes.allAccounts] for the unified inbox.
   final String accountId;
   final String folderPath;
   final int? uid;
@@ -21,6 +23,11 @@ class AdaptiveScaffold extends ConsumerWidget {
   /// Folder of the open message when it differs from [folderPath] (a Sent
   /// reply opened from a thread in another folder).
   final String? messageFolder;
+
+  /// Account of the open message when the list is All inboxes.
+  final String? messageAccount;
+
+  bool get isAll => accountId == Routes.allAccounts;
 
   static const compactBreakpoint = 600.0;
   static const expandedBreakpoint = 1000.0;
@@ -30,7 +37,7 @@ class AdaptiveScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Keep the UI-only "current account" in sync with the route.
-    if (ref.read(selectedAccountIdProvider) != accountId) {
+    if (!isAll && ref.read(selectedAccountIdProvider) != accountId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) ref.read(selectedAccountIdProvider.notifier).state = accountId;
       });
@@ -49,17 +56,20 @@ class AdaptiveScaffold extends ConsumerWidget {
         folderPath: folderPath,
         selectedUid: uid,
         selectedFolder: messageFolder ?? folderPath,
+        selectedAccount: messageAccount ?? accountId,
         showMenuButton: showMenuButton,
       );
 
   Widget _view({required bool standalone}) => uid == null
       ? const _EmptyMessagePane()
       : MessageScreen(
-          key: ValueKey('msg:$accountId:${messageFolder ?? folderPath}:$uid'),
-          accountId: accountId,
+          key: ValueKey('msg:${messageAccount ?? accountId}:${messageFolder ?? folderPath}:$uid'),
+          accountId: messageAccount ?? accountId,
           folderPath: messageFolder ?? folderPath,
           uid: uid!,
           standalone: standalone,
+          listAccountId: accountId,
+          listFolder: folderPath,
         );
 
   Widget _threePane(BuildContext context) => Scaffold(
@@ -117,6 +127,30 @@ class FolderRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= AdaptiveScaffold.compactBreakpoint;
+    final accounts = ref.watch(accountsProvider).asData?.value ?? const <Account>[];
+    final isAll = accountId == Routes.allAccounts;
+    // New mail from the unified view goes out through the first account.
+    final composeAccount = isAll ? (accounts.firstOrNull?.id ?? accountId) : accountId;
+    void go(String route) {
+      if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) Navigator.of(context).pop();
+      context.go(route);
+    }
+
+    final allRow = accounts.length > 1
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ListTile(
+              key: const Key('allInboxes'),
+              dense: true,
+              selected: isAll,
+              selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              leading: const Icon(Icons.all_inbox_outlined, size: 20),
+              title: Text('All inboxes', style: TextStyle(fontWeight: isAll ? FontWeight.w600 : null)),
+              onTap: () => go(Routes.allInboxes),
+            ),
+          )
+        : null;
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: SafeArea(
@@ -127,28 +161,50 @@ class FolderRail extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 FilledButton.tonalIcon(
-                  onPressed: () => openCompose(context, ref, accountId: accountId),
+                  onPressed: () => openCompose(context, ref, accountId: composeAccount),
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Compose'),
                 ),
                 const SizedBox(height: 6),
                 FilledButton.tonalIcon(
                   key: const Key('blabberCompose'),
-                  onPressed: () => openCompose(context, ref, accountId: accountId, blabber: true),
+                  onPressed: () => openCompose(context, ref, accountId: composeAccount, blabber: true),
                   icon: const Icon(Icons.mic_none_outlined),
                   label: const Text('Blabber'),
                 ),
               ]),
             ),
           Expanded(
-            child: FolderList(
-              accountId: accountId,
-              selectedPath: selectedFolder,
-              onSelect: (path) {
-                if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) Navigator.of(context).pop();
-                context.go(Routes.mailbox(accountId, path));
-              },
-            ),
+            child: isAll
+                // Every account's folders, each under its name.
+                ? ListView(padding: const EdgeInsets.symmetric(vertical: 4), children: [
+                    ?allRow,
+                    for (final a in accounts) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 12, 16, 0),
+                        child: Text(a.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      ),
+                      FolderList(
+                        accountId: a.id,
+                        selectedPath: '',
+                        embedded: true,
+                        onSelect: (path) => go(Routes.mailbox(a.id, path)),
+                      ),
+                    ],
+                  ])
+                : Column(children: [
+                    ?allRow,
+                    Expanded(
+                      child: FolderList(
+                        accountId: accountId,
+                        selectedPath: selectedFolder,
+                        onSelect: (path) => go(Routes.mailbox(accountId, path)),
+                      ),
+                    ),
+                  ]),
           ),
           const Divider(height: 1),
           ListTile(

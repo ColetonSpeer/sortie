@@ -16,9 +16,14 @@ class RailHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accounts = ref.watch(accountsProvider).asData?.value ?? const <Account>[];
+    final isAll = accountId == Routes.allAccounts;
     final current = accounts.where((a) => a.id == accountId).firstOrNull;
-    final status = ref.watch(syncStatusProvider).asData?.value[accountId];
+    final statuses = ref.watch(syncStatusProvider).asData?.value ?? const <String, AccountSyncStatus>{};
+    // All inboxes: the worst state across accounts.
+    final status = isAll ? _aggregate(accounts, statuses) : statuses[accountId];
     final theme = Theme.of(context);
+    final title = isAll ? 'All inboxes' : (current?.displayName ?? 'Account');
+    final subtitle = isAll ? '${accounts.length} accounts' : (current?.email ?? '');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
@@ -32,11 +37,23 @@ class RailHeader extends ConsumerWidget {
                   context.push(Routes.accounts);
                 } else if (v == '__add') {
                   context.push(Routes.onboarding);
+                } else if (v == '__all') {
+                  context.go(Routes.allInboxes);
                 } else {
                   context.go(Routes.mailbox(v, 'INBOX'));
                 }
               },
               itemBuilder: (_) => [
+                if (accounts.length > 1)
+                  PopupMenuItem(
+                    value: '__all',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(isAll ? Icons.radio_button_checked : Icons.radio_button_off),
+                      title: const Text('All inboxes'),
+                    ),
+                  ),
                 for (final a in accounts)
                   PopupMenuItem(
                     value: a.id,
@@ -55,34 +72,53 @@ class RailHeader extends ConsumerWidget {
               child: Row(children: [
                 CircleAvatar(
                   radius: 16,
-                  child: Text(Fmt.initials(current?.displayName ?? '?')),
+                  child: isAll ? const Icon(Icons.all_inbox_outlined, size: 18) : Text(Fmt.initials(current?.displayName ?? '?')),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(current?.displayName ?? 'Account',
-                        style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(current?.email ?? '',
-                        style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(title, style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(subtitle, style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ]),
                 ),
                 const Icon(Icons.arrow_drop_down),
               ]),
             ),
           ),
-          SyncStatusIndicator(status: status, accountId: accountId),
+          SyncStatusIndicator(status: status, accountId: accountId, syncAll: isAll ? [for (final a in accounts) a.id] : null),
         ]),
-        const SizedBox(height: 8),
-        CoordinationBadge(accountId: accountId),
+        if (!isAll) ...[
+          const SizedBox(height: 8),
+          CoordinationBadge(accountId: accountId),
+        ],
       ]),
     );
+  }
+
+  static AccountSyncStatus? _aggregate(List<Account> accounts, Map<String, AccountSyncStatus> statuses) {
+    AccountSyncStatus? worst;
+    int rank(AccountSyncState s) => switch (s) {
+          AccountSyncState.authFailed || AccountSyncState.offline => 3,
+          AccountSyncState.syncing || AccountSyncState.connecting => 2,
+          AccountSyncState.idling => 1,
+          _ => 0,
+        };
+    for (final a in accounts) {
+      final s = statuses[a.id];
+      if (s == null) continue;
+      if (worst == null || rank(s.state) > rank(worst.state)) worst = s;
+    }
+    return worst;
   }
 }
 
 class SyncStatusIndicator extends ConsumerWidget {
-  const SyncStatusIndicator({super.key, required this.status, required this.accountId});
+  const SyncStatusIndicator({super.key, required this.status, required this.accountId, this.syncAll});
   final AccountSyncStatus? status;
   final String accountId;
+
+  /// When set, "sync now" refreshes these accounts instead of [accountId].
+  final List<String>? syncAll;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,7 +137,12 @@ class SyncStatusIndicator extends ConsumerWidget {
     ].join('\n');
     return IconButton(
       tooltip: '$tip\nClick to sync now',
-      onPressed: () => ref.read(mailSyncServiceProvider).syncNow(accountId),
+      onPressed: () {
+        final sync = ref.read(mailSyncServiceProvider);
+        for (final id in syncAll ?? [accountId]) {
+          sync.syncNow(id);
+        }
+      },
       icon: busy
           ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: color))
           : Icon(Fmt.syncIcon(state), color: color, size: 20),

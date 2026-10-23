@@ -74,6 +74,43 @@ void main() {
     expect(out.recipients, ['bob@example.org']);
   });
 
+  test('long Message-IDs in In-Reply-To and References are never folded inside the id', () {
+    const longId = '<IA3PR13MB9943422F9C9F110BF028AD7D1CB4652@IA3PR13MB994342.namprd13.prod.outlook.com>';
+    const otherId = '<MWHPR1301MB2160265CBB877CB093E1FEB7BB672@MWHPR1301MB2160.namprd13.prod.outlook.com>';
+    final longOriginal = utf8.encode('From: "Aaron" <aaron@innovsys.test>\r\n'
+        'To: coleton@example.com\r\n'
+        'Subject: RE: AXOS Plugin Changes: ONT Provisioning Logic, Voice Templates\r\n'
+        'Message-ID: $longId\r\n'
+        'References: $otherId\r\n'
+        ' <short@x.test>\r\n'
+        'Date: Tue, 15 Sep 2026 12:00:00 +0000\r\n'
+        'MIME-Version: 1.0\r\n'
+        'Content-Type: text/plain; charset=utf-8\r\n'
+        '\r\n'
+        'Hi\r\n');
+    final draft = composer.prepare(mode: ComposeMode.reply, original: longOriginal, identity: identity);
+    final raw = utf8.decode(composer.compose(draft.copyWith(text: 'Thanks.')).raw);
+    final head = raw.substring(0, raw.indexOf('\r\n\r\n'));
+    expect(raw, contains('In-Reply-To: $longId\r\n'), reason: 'one id, one line, however long');
+    expect(raw, contains('References: $otherId\r\n <short@x.test>\r\n $longId\r\n'), reason: 'folded only between ids');
+    expect(RegExp(r'^(In-Reply-To|References):', multiLine: true).allMatches(head).length, 2, reason: 'no duplicate headers left behind');
+    final m = em.MimeMessage.parseFromText(raw);
+    expect(m.getHeaderValue('in-reply-to'), longId);
+
+    // Ids that reach us already broken (our own older Sent mail) are cleaned.
+    final out = composer.compose(ComposeRequest(
+      identity: identity,
+      to: const ['aaron@innovsys.test'],
+      subject: 'Re: x',
+      text: 'y',
+      inReplyTo: longId.replaceFirst('namprd13', 'nampr d13'),
+      references: [otherId.replaceFirst('namprd13', 'namprd 13')],
+    ));
+    final text = utf8.decode(out.raw);
+    expect(text, contains('In-Reply-To: $longId\r\n'));
+    expect(text, contains('References: $otherId\r\n'));
+  });
+
   test('reply-all keeps other recipients but drops our own identities', () {
     const alias = Identity(id: 'i2', accountId: 'a', name: 'C', email: 'other@example.net');
     final draft = composer.prepare(mode: ComposeMode.replyAll, original: original, identity: identity, aliases: const [alias]);

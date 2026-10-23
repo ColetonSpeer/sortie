@@ -39,7 +39,7 @@ class MessageActions {
 
   Future<void> markRead(Iterable<MessageHeader> msgs, {bool read = true}) => _guard(() async {
         for (final g in _groupByFolder(msgs).entries) {
-          await _sync.setFlags(g.value.first.accountId, g.key, g.value.map((m) => m.uid).toList(),
+          await _sync.setFlags(g.value.first.accountId, _folderOf(g.key), g.value.map((m) => m.uid).toList(),
               add: read ? {r'\Seen'} : {}, remove: read ? {} : {r'\Seen'});
         }
       });
@@ -49,7 +49,7 @@ class MessageActions {
 
   Future<void> flag(Iterable<MessageHeader> msgs, {bool flagged = true}) => _guard(() async {
         for (final g in _groupByFolder(msgs).entries) {
-          await _sync.setFlags(g.value.first.accountId, g.key, g.value.map((m) => m.uid).toList(),
+          await _sync.setFlags(g.value.first.accountId, _folderOf(g.key), g.value.map((m) => m.uid).toList(),
               add: flagged ? {r'\Flagged'} : {}, remove: flagged ? {} : {r'\Flagged'});
         }
       });
@@ -57,30 +57,42 @@ class MessageActions {
   Future<void> archive(Iterable<MessageHeader> msgs) async {
     final list = msgs.toList();
     if (list.isEmpty) return;
-    final dest = await _specialFolder(list.first.accountId, SpecialUse.archive, 'Archive');
-    if (dest == null) return _snack('No Archive folder on this account.');
-    await moveTo(list, dest);
+    final byAccount = <String, List<MessageHeader>>{};
+    for (final m in list) {
+      byAccount.putIfAbsent(m.accountId, () => []).add(m);
+    }
+    for (final e in byAccount.entries) {
+      final dest = await _specialFolder(e.key, SpecialUse.archive, 'Archive');
+      if (dest == null) {
+        _snack('No Archive folder on this account.');
+        continue;
+      }
+      await moveTo(e.value, dest);
+    }
   }
 
   Future<void> delete(Iterable<MessageHeader> msgs) => _guard(() async {
         for (final g in _groupByFolder(msgs).entries) {
           final first = g.value.first;
+          final folder = _folderOf(g.key);
           final trash = await _specialFolder(first.accountId, SpecialUse.trash, 'Trash');
-          await _sync.delete(first.accountId, g.key, g.value.map((m) => m.uid).toList(),
-              permanent: trash == null || g.key == trash);
+          await _sync.delete(first.accountId, folder, g.value.map((m) => m.uid).toList(),
+              permanent: trash == null || folder == trash);
         }
       }, done: 'Deleted');
 
   Future<void> moveTo(Iterable<MessageHeader> msgs, String dest) => _guard(() async {
         for (final g in _groupByFolder(msgs).entries) {
-          if (g.key == dest) continue;
-          await _sync.move(g.value.first.accountId, g.key, g.value.map((m) => m.uid).toList(), dest);
+          final folder = _folderOf(g.key);
+          if (folder == dest) continue;
+          await _sync.move(g.value.first.accountId, folder, g.value.map((m) => m.uid).toList(), dest);
         }
       }, done: 'Moved to $dest');
 
   Future<void> movePrompt(Iterable<MessageHeader> msgs) async {
     final list = msgs.toList();
     if (list.isEmpty) return;
+    if (list.any((m) => m.accountId != list.first.accountId)) return _snack('Select messages from one account to move them.');
     final dest = await pickFolder(context, ref, list.first.accountId, exclude: {list.first.folderPath});
     if (dest != null) await moveTo(list, dest);
   }
@@ -104,13 +116,17 @@ class MessageActions {
   Future<void> undo(String accountId, String decisionId) =>
       _guard(() => _coord(accountId).undo(decisionId), done: 'Undone');
 
+  /// Groups by folder within an account (an All-inboxes selection can hold
+  /// the INBOX of several accounts); the key is the folder path.
   static Map<String, List<MessageHeader>> _groupByFolder(Iterable<MessageHeader> msgs) {
-    final out = <String, List<MessageHeader>>{};
+    final out = <({String accountId, String folderPath}), List<MessageHeader>>{};
     for (final m in msgs) {
-      out.putIfAbsent(m.folderPath, () => []).add(m);
+      out.putIfAbsent((accountId: m.accountId, folderPath: m.folderPath), () => []).add(m);
     }
-    return out;
+    return {for (final e in out.entries) '${e.key.accountId}\u0000${e.key.folderPath}': e.value};
   }
+
+  static String _folderOf(String groupKey) => groupKey.substring(groupKey.indexOf('\u0000') + 1);
 }
 
 /// Context menu for one message (long-press / right-click).

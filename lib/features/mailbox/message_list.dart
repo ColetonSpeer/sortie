@@ -11,10 +11,16 @@ import '../settings/settings_common.dart';
 import '../shell/adaptive_scaffold.dart';
 import 'message_actions.dart';
 import 'message_tile.dart';
+import 'swipe_actions.dart';
 import 'thread_tile.dart';
 import 'threading.dart';
 
 /// Middle pane: search, list of tiles, swipe actions, multi-select toolbar.
+///
+/// With [MessageListPane.accountId] set to [Routes.allAccounts] it shows the
+/// INBOX of every account in one list ("All inboxes"): rows carry the account
+/// name, conversations are built per account (two accounts receiving the same
+/// mail must not merge), and actions run per account.
 class MessageListPane extends ConsumerStatefulWidget {
   const MessageListPane({
     super.key,
@@ -23,6 +29,7 @@ class MessageListPane extends ConsumerStatefulWidget {
     required this.selectedUid,
     required this.showMenuButton,
     this.selectedFolder,
+    this.selectedAccount,
   });
   final String accountId;
   final String folderPath;
@@ -32,6 +39,9 @@ class MessageListPane extends ConsumerStatefulWidget {
   /// Folder of the selected message; defaults to [folderPath].
   final String? selectedFolder;
 
+  /// Account of the selected message; defaults to [accountId].
+  final String? selectedAccount;
+
   @override
   ConsumerState<MessageListPane> createState() => _MessageListPaneState();
 }
@@ -40,11 +50,20 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
   final _search = TextEditingController();
   bool _searching = false;
 
-  // buildThreads memo: the stream hands us a new list only when data changed.
-  List<MessageHeader>? _threadedFrom;
-  List<MessageHeader>? _threadedSent;
-  Set<String>? _threadedOwn;
-  List<MessageThread> _threads = const [];
+  // buildThreads memo per account: the stream hands us a new list only when
+  // data changed.
+  final _threadMemo = <String, _ThreadMemo>{};
+  List<MessageThread> _mergedThreads = const [];
+  List<List<MessageThread>>? _mergedFrom;
+
+  // Merged flat list memo (All inboxes).
+  List<List<MessageHeader>>? _flatFrom;
+  List<MessageHeader> _flat = const [];
+
+  bool get _isAll => widget.accountId == Routes.allAccounts;
+
+  /// The folder each row lives in: the route's folder, or INBOX for All inboxes.
+  String get _listFolder => _isAll ? 'INBOX' : widget.folderPath;
 
   @override
   void didUpdateWidget(covariant MessageListPane old) {
@@ -55,77 +74,135 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     }
   }
 
-  /// The user's own addresses (account + identities), lower-cased.
-  Set<String> _ownAddresses() {
-    final account = ref.watch(accountsProvider).asData?.value.where((a) => a.id == widget.accountId).firstOrNull;
-    final identities = ref.watch(identitiesProvider(widget.accountId)).asData?.value ?? const [];
-    return {
-      if (account != null) account.email.toLowerCase(),
-      for (final i in identities) i.email.toLowerCase(),
-    };
-  }
-
-  List<MessageThread> _threadsFor(List<MessageHeader> list, List<MessageHeader> sent, Set<String> own) {
-    if (!identical(list, _threadedFrom) || !identical(sent, _threadedSent) || !setEquals(_threadedOwn, own)) {
-      _threadedFrom = list;
-      _threadedSent = sent;
-      _threadedOwn = own;
-      _threads = buildThreadsWithSent(list, sent, ownAddresses: own);
-    }
-    return _threads;
-  }
-
-  void _select(Set<MessageKey> s) => ref.read(selectedMessagesProvider.notifier).state = s;
-
   @override
   void dispose() {
     _search.dispose();
     super.dispose();
   }
 
+  List<Account> _accounts() {
+    final all = ref.watch(accountsProvider).asData?.value ?? const <Account>[];
+    return _isAll ? all : all.where((a) => a.id == widget.accountId).toList();
+  }
+
+  /// The user's own addresses (accounts + identities), lower-cased.
+  Set<String> _ownAddresses(List<Account> accounts) => {
+        for (final a in accounts) a.email.toLowerCase(),
+        for (final a in accounts)
+          for (final i in ref.watch(identitiesProvider(a.id)).asData?.value ?? const <Identity>[]) i.email.toLowerCase(),
+      };
+
+  List<MessageThread> _threadsFor(String accountId, List<MessageHeader> list, List<MessageHeader> sent, Set<String> own) {
+    final m = _threadMemo[accountId];
+    if (m != null && identical(list, m.from) && identical(sent, m.sent) && setEquals(m.own, own)) return m.threads;
+    final threads = buildThreadsWithSent(list, sent, ownAddresses: own);
+    _threadMemo[accountId] = _ThreadMemo(list, sent, own, threads);
+    return threads;
+  }
+
+  List<MessageThread> _mergeThreads(List<List<MessageThread>> parts) {
+    final prev = _mergedFrom;
+    if (prev != null && prev.length == parts.length && [for (var i = 0; i < parts.length; i++) identical(prev[i], parts[i])].every((x) => x)) {
+      return _mergedThreads;
+    }
+    _mergedFrom = parts;
+    return _mergedThreads = [for (final p in parts) ...p]
+      ..sort((a, b) {
+        final c = b.lastDate.compareTo(a.lastDate);
+        return c != 0 ? c : a.id.compareTo(b.id);
+      });
+  }
+
+  List<MessageHeader> _mergeFlat(List<List<MessageHeader>> parts) {
+    final prev = _flatFrom;
+    if (prev != null && prev.length == parts.length && [for (var i = 0; i < parts.length; i++) identical(prev[i], parts[i])].every((x) => x)) {
+      return _flat;
+    }
+    _flatFrom = parts;
+    return _flat = [for (final p in parts) ...p]..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  void _select(Set<MessageKey> s) => ref.read(selectedMessagesProvider.notifier).state = s;
+
   @override
   Widget build(BuildContext context) {
-    final key = (accountId: widget.accountId, folderPath: widget.folderPath, search: _search.text.trim());
-    final messages = ref.watch(messagesProvider(key));
-    final badges = ref.watch(pendingBadgesProvider(widget.accountId)).asData?.value ?? const <MessageKey, PendingBadge>{};
+    final accounts = _accounts();
+    final ids = _isAll ? [for (final a in accounts) a.id] : [widget.accountId];
+    final search = _search.text.trim();
+    final lists = {for (final id in ids) id: ref.watch(messagesProvider((accountId: id, folderPath: _listFolder, search: search)))};
+    final badges = <MessageKey, PendingBadge>{
+      for (final id in ids) ...ref.watch(pendingBadgesProvider(id)).asData?.value ?? const <MessageKey, PendingBadge>{},
+    };
     final selection = ref.watch(selectedMessagesProvider);
-    final folder = ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.path == widget.folderPath).firstOrNull;
-    final title = folder == null ? widget.folderPath : (folder.isInbox ? 'Inbox' : folder.name);
+    final folder = _isAll ? null : ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.path == widget.folderPath).firstOrNull;
+    final title = _isAll ? 'All inboxes' : folder == null ? widget.folderPath : (folder.isInbox ? 'Inbox' : folder.name);
     final touch = MediaQuery.sizeOf(context).width < AdaptiveScaffold.compactBreakpoint;
     final threaded = ref.watch(deviceSettingsProvider).asData?.value.threadedView ?? true;
-    final own = threaded ? _ownAddresses() : const <String>{};
-    final isInbox = folder?.isInbox ?? widget.folderPath.toUpperCase() == 'INBOX';
+    final own = threaded ? _ownAddresses(accounts) : const <String>{};
+    final isInbox = _isAll || (folder?.isInbox ?? widget.folderPath.toUpperCase() == 'INBOX');
     // Your own replies live in Sent; fold them into the threads of ordinary
     // folders so a conversation reads whole.
-    final sentPath = ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.specialUse == SpecialUse.sent).firstOrNull?.path;
     final su = folder?.specialUse ?? SpecialUse.none;
-    final mergeSent = threaded &&
-        sentPath != null &&
-        sentPath != widget.folderPath &&
-        (isInbox || su == SpecialUse.none || su == SpecialUse.archive);
-    final sentList = mergeSent
-        ? ref.watch(messagesProvider((accountId: widget.accountId, folderPath: sentPath, search: ''))).asData?.value ?? const <MessageHeader>[]
-        : const <MessageHeader>[];
-    final suggestionCount = isInbox && !ref.watch(suggestionBannerDismissedProvider)
-        ? (ref.watch(pendingSuggestionsProvider(widget.accountId)).asData?.value.length ?? 0)
-        : 0;
+    final sentLists = <String, List<MessageHeader>>{};
+    if (threaded && (isInbox || su == SpecialUse.none || su == SpecialUse.archive)) {
+      for (final id in ids) {
+        final sentPath = ref.watch(foldersProvider(id)).asData?.value.where((f) => f.specialUse == SpecialUse.sent).firstOrNull?.path;
+        if (sentPath == null || sentPath == _listFolder) continue;
+        sentLists[id] = ref.watch(messagesProvider((accountId: id, folderPath: sentPath, search: ''))).asData?.value ?? const <MessageHeader>[];
+      }
+    }
+    var suggestionCount = 0;
+    if (isInbox && !ref.watch(suggestionBannerDismissedProvider)) {
+      for (final id in ids) {
+        suggestionCount += ref.watch(pendingSuggestionsProvider(id)).asData?.value.length ?? 0;
+      }
+    }
+    final labels = _isAll && accounts.length > 1 ? {for (final a in accounts) a.id: a.displayName} : const <String, String>{};
+    final actions = MessageActions(context, ref);
 
     Widget tile(MessageHeader h) {
       final t = MessageTile(
         header: h,
         badge: badges[h.key],
-        selected: h.uid == widget.selectedUid && h.folderPath == (widget.selectedFolder ?? widget.folderPath),
+        accountLabel: labels[h.accountId],
+        selected: h.uid == widget.selectedUid &&
+            h.folderPath == (widget.selectedFolder ?? widget.folderPath) &&
+            h.accountId == (widget.selectedAccount ?? widget.accountId),
         checked: selection.contains(h.key),
         selectionMode: selection.isNotEmpty,
-        onTap: () => context.go(Routes.messageIn(widget.accountId, widget.folderPath, h.folderPath, h.uid)),
+        onTap: () => context.go(Routes.messageIn(widget.accountId, widget.folderPath, h.folderPath, h.uid, account: h.accountId)),
         onToggleCheck: () {
           final s = Set<MessageKey>.of(selection);
           s.contains(h.key) ? s.remove(h.key) : s.add(h.key);
           _select(s);
         },
       );
-      return touch ? _Swipeable(header: h, child: t) : t;
+      return touch
+          ? SwipeToAct(
+              swipeKey: ValueKey('swipe:${h.accountId}:${h.messageIdHash}'),
+              onDelete: () => actions.delete([h]),
+              onArchive: () => actions.archive([h]),
+              child: t,
+            )
+          : t;
     }
+
+    // Combined load state: loading until something arrives, error only when
+    // nothing arrived at all.
+    final AsyncValue<List<MessageHeader>> messages;
+    final values = lists.values.toList();
+    if (values.every((v) => v.isLoading && !v.hasValue)) {
+      messages = const AsyncValue.loading();
+    } else if (values.every((v) => v.hasError && !v.hasValue)) {
+      messages = AsyncValue.error(values.first.error!, values.first.stackTrace ?? StackTrace.current);
+    } else if (!_isAll) {
+      messages = AsyncValue.data(values.first.asData?.value ?? const []);
+    } else {
+      messages = AsyncValue.data(_mergeFlat([for (final v in values) v.asData?.value ?? const <MessageHeader>[]]));
+    }
+    List<MessageThread> threads() => _mergeThreads([
+          for (final id in ids) _threadsFor(id, lists[id]!.asData?.value ?? const [], sentLists[id] ?? const [], own),
+        ]);
 
     return Scaffold(
       appBar: selection.isNotEmpty
@@ -144,7 +221,7 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                   ? TextField(
                       controller: _search,
                       autofocus: true,
-                      decoration: const InputDecoration(hintText: 'Search this folder', border: InputBorder.none),
+                      decoration: InputDecoration(hintText: _isAll ? 'Search all inboxes' : 'Search this folder', border: InputBorder.none),
                       onChanged: (_) => setState(() {}),
                     )
                   : Text(title),
@@ -160,7 +237,12 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                 IconButton(
                   tooltip: 'Sync now',
                   icon: const Icon(Icons.refresh),
-                  onPressed: () => ref.read(mailSyncServiceProvider).syncNow(widget.accountId, folderPath: widget.folderPath),
+                  onPressed: () {
+                    final sync = ref.read(mailSyncServiceProvider);
+                    for (final id in ids) {
+                      sync.syncNow(id, folderPath: _listFolder);
+                    }
+                  },
                 ),
                 PopupMenuButton<String>(
                   tooltip: 'More',
@@ -175,13 +257,22 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
             ),
       body: Column(children: [
         if (suggestionCount > 0) _SuggestionBanner(count: suggestionCount),
-        Expanded(child: _content(context, messages, sentList, threaded, own, selection, badges, tile)),
+        Expanded(child: _content(context, messages, threaded ? threads : null, own, selection, badges, labels, touch ? actions : null, tile)),
       ]),
     );
   }
 
-  Widget _content(BuildContext context, AsyncValue<List<MessageHeader>> messages, List<MessageHeader> sent, bool threaded, Set<String> own,
-      Set<MessageKey> selection, Map<MessageKey, PendingBadge> badges, Widget Function(MessageHeader) tile) =>
+  Widget _content(
+    BuildContext context,
+    AsyncValue<List<MessageHeader>> messages,
+    List<MessageThread> Function()? threads,
+    Set<String> own,
+    Set<MessageKey> selection,
+    Map<MessageKey, PendingBadge> badges,
+    Map<String, String> labels,
+    MessageActions? swipe,
+    Widget Function(MessageHeader) tile,
+  ) =>
       messages.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load messages: $e')),
@@ -192,24 +283,30 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.outline)),
             );
           }
-          if (threaded) {
-            final threads = _threadsFor(list, sent, own);
+          if (threads != null) {
+            final ts = threads();
             return ListView.separated(
               key: PageStorageKey('threads:${widget.accountId}:${widget.folderPath}'),
-              itemCount: threads.length,
+              itemCount: ts.length,
               separatorBuilder: (_, _) => const Divider(height: 1, indent: 58),
               itemBuilder: (context, i) {
-                final t = threads[i];
+                final t = ts[i];
                 final keys = t.messages.map((m) => m.key).toSet();
+                // Swiping a conversation acts on its messages in this folder;
+                // your own copies in Sent stay where they are.
+                List<MessageHeader> here() => [for (final m in t.messages) if (m.folderPath == _listFolder) m];
                 return ThreadTile(
-                  key: ValueKey('thread:${t.id}'),
+                  key: ValueKey('thread:${t.latest.accountId}:${t.id}'),
                   thread: t,
                   ownAddresses: own,
                   selection: selection,
                   badge: badges[t.latest.key],
+                  accountLabel: labels[t.latest.accountId],
                   buildMessageTile: tile,
                   onSelectAll: () => _select({...selection, ...keys}),
                   onToggleAll: () => _select(selection.containsAll(keys) ? selection.difference(keys) : {...selection, ...keys}),
+                  onDelete: swipe == null ? null : () => swipe.delete(here()),
+                  onArchive: swipe == null ? null : () => swipe.archive(here()),
                 );
               },
             );
@@ -222,6 +319,14 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
           );
         },
       );
+}
+
+class _ThreadMemo {
+  const _ThreadMemo(this.from, this.sent, this.own, this.threads);
+  final List<MessageHeader> from;
+  final List<MessageHeader> sent;
+  final Set<String> own;
+  final List<MessageThread> threads;
 }
 
 /// One-line "N suggested sorting rules — Review" strip above the inbox.
@@ -249,44 +354,6 @@ class _SuggestionBanner extends ConsumerWidget {
           ),
         ]),
       ),
-    );
-  }
-}
-
-/// Swipe right = archive, swipe left = delete (touch layouts only). Actions
-/// run optimistically; the list stream removes the row, so we never let
-/// Dismissible remove it itself.
-class _Swipeable extends ConsumerWidget {
-  const _Swipeable({required this.header, required this.child});
-  final MessageHeader header;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    Widget bg(Color c, IconData i, String t, Alignment a) => Container(
-          color: c,
-          alignment: a,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(i, color: cs.onPrimary),
-            Text(t, style: TextStyle(color: cs.onPrimary, fontSize: 12)),
-          ]),
-        );
-    return Dismissible(
-      key: ValueKey('swipe:${header.messageIdHash}'),
-      background: bg(cs.primary, Icons.archive_outlined, 'Archive', Alignment.centerLeft),
-      secondaryBackground: bg(cs.error, Icons.delete_outline, 'Delete', Alignment.centerRight),
-      confirmDismiss: (dir) async {
-        final a = MessageActions(context, ref);
-        if (dir == DismissDirection.startToEnd) {
-          await a.archive([header]);
-        } else {
-          await a.delete([header]);
-        }
-        return false;
-      },
-      child: child,
     );
   }
 }

@@ -63,11 +63,20 @@ abstract final class MimeMapper {
     return t.isEmpty ? null : t;
   }
 
-  static String? messageId(em.MimeMessage m) => header(m, 'message-id') ?? m.envelope?.messageId?.trim();
+  static String? messageId(em.MimeMessage m) => cleanMessageId(header(m, 'message-id') ?? m.envelope?.messageId?.trim());
+
+  /// A Message-ID holds no whitespace; a client that folded the header in
+  /// the middle of the id (enough_mail < 2.1.8 did, Outlook ids are long)
+  /// leaves a stray space after unfolding. Drop it so ids match again.
+  static String? cleanMessageId(String? raw) {
+    if (raw == null) return null;
+    final s = raw.replaceAll(RegExp(r'\s+'), '');
+    return s.isEmpty ? null : s;
+  }
 
   static List<String> references(String? raw) {
     if (raw == null) return const [];
-    return RegExp(r'<[^>]+>').allMatches(raw).map((x) => x.group(0)!).toList();
+    return RegExp(r'<[^<>]+>').allMatches(raw).map((x) => cleanMessageId(x.group(0))!).toList();
   }
 
   static String? listId(String? raw) {
@@ -131,7 +140,7 @@ abstract final class MimeMapper {
       date: date,
       internalDate: idate,
       listId: listId(header(m, 'list-id')),
-      inReplyTo: header(m, 'in-reply-to') ?? env?.inReplyTo,
+      inReplyTo: cleanMessageId(header(m, 'in-reply-to') ?? env?.inReplyTo),
       references: refs,
       precedence: header(m, 'precedence'),
       autoSubmitted: header(m, 'auto-submitted'),

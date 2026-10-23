@@ -28,10 +28,17 @@ class MessageScreen extends ConsumerStatefulWidget {
     required this.folderPath,
     required this.uid,
     required this.standalone,
+    this.listAccountId,
+    this.listFolder,
   });
   final String accountId;
   final String folderPath;
   final int uid;
+
+  /// The list this message was opened from (All inboxes, or a thread shown
+  /// in another folder), so back and sibling navigation stay there.
+  final String? listAccountId;
+  final String? listFolder;
 
   /// True on narrow layouts where this screen is its own page.
   final bool standalone;
@@ -41,6 +48,8 @@ class MessageScreen extends ConsumerStatefulWidget {
 }
 
 class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindingObserver {
+  String get _listRoute => Routes.mailbox(widget.listAccountId ?? widget.accountId, widget.listFolder ?? widget.folderPath);
+
   MessageHeader? _header;
   MessageKey? _key;
   Future<MessageBody>? _body;
@@ -173,7 +182,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     return Scaffold(
       appBar: AppBar(
         leading: widget.standalone
-            ? BackButton(onPressed: () => context.canPop() ? context.pop() : context.go(Routes.mailbox(widget.accountId, widget.folderPath)))
+            ? BackButton(onPressed: () => context.canPop() ? context.pop() : context.go(_listRoute))
             : null,
         automaticallyImplyLeading: false,
         title: h == null ? const SizedBox.shrink() : Text(h.folderPath, style: Theme.of(context).textTheme.titleSmall),
@@ -196,7 +205,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () async {
                     await actions.delete([h]);
-                    if (context.mounted && widget.standalone) context.go(Routes.mailbox(widget.accountId, widget.folderPath));
+                    if (context.mounted && widget.standalone) context.go(_listRoute);
                   },
                 ),
                 PopupMenuButton<String>(
@@ -234,7 +243,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                     _ConversationBar(
                       thread: thread,
                       current: h,
-                      onOpen: (m) => context.go(Routes.message(widget.accountId, widget.folderPath, m.uid)),
+                      onOpen: (m) => context.go(Routes.messageIn(widget.listAccountId ?? widget.accountId, widget.listFolder ?? widget.folderPath, m.folderPath, m.uid, account: m.accountId)),
                     ),
                   if (badge != null) _PendingBanner(badge: badge, onMoveNow: () => actions.badgeMoveNow(key!), onKeep: () => actions.badgeKeep(key!)),
                   if (_blockedImages > 0 && !allowRemote)

@@ -270,13 +270,27 @@ class MessageComposer {
     if (replyTo != null && replyTo.isNotEmpty) b.setHeader('Reply-To', replyTo);
     b.setHeader('User-Agent', 'Sortie');
     final original = r.original;
+    String? inReplyTo;
+    var references = <String>[];
     if (original != null && (r.mode == ComposeMode.reply || r.mode == ComposeMode.replyAll)) {
-      b.originalMessage = em.MimeMessage.parseFromData(Uint8List.fromList(original));
+      final om = em.MimeMessage.parseFromData(Uint8List.fromList(original));
+      b.originalMessage = om;
+      // RFC 5322 §3.6.4: References = original References (or its
+      // In-Reply-To when it has none) + original Message-ID.
+      final omId = _cleanId(om.getHeaderValue('message-id'));
+      inReplyTo = omId;
+      references = [
+        ..._idsIn(om.getHeaderValue('references') ?? om.getHeaderValue('in-reply-to') ?? ''),
+        ?omId,
+      ];
     } else {
-      final irt = r.inReplyTo?.trim();
-      if (irt != null && irt.isNotEmpty) b.setHeader('In-Reply-To', irt);
-      if (r.references.isNotEmpty) b.setHeader('References', r.references.join(' '));
+      inReplyTo = _cleanId(r.inReplyTo);
+      references = [for (final x in r.references) ..._idsIn(x)];
     }
+    // Set as headers for enough_mail's own bookkeeping; the rendered text is
+    // re-folded below because enough_mail breaks long values mid-token.
+    if (inReplyTo != null) b.setHeader('In-Reply-To', inReplyTo);
+    if (references.isNotEmpty) b.setHeader('References', references.join(' '));
 
     final text = _assembleText(r);
     final html = r.html ?? _assembleHtml(r, text);
@@ -317,7 +331,7 @@ class MessageComposer {
     b.messageId ??= _newMessageId(id.email);
     b.setHeader('Message-ID', b.messageId!);
     final mime = b.buildMimeMessage();
-    final rendered = mime.renderMessage();
+    final rendered = foldThreadHeaders(mime.renderMessage(), inReplyTo: inReplyTo, references: references);
     final recipients = <String>[];
     final seen = <String>{};
     for (final a in [...?b.to, ...?b.cc, ...?b.bcc]) {
@@ -372,4 +386,48 @@ class MessageComposer {
     }
     return out;
   }
+}
+
+/// Whitespace-free `<id>` or null.
+String? _cleanId(String? raw) {
+  if (raw == null) return null;
+  var s = raw.replaceAll(RegExp(r'\s+'), '');
+  if (s.isEmpty) return null;
+  if (!s.startsWith('<')) s = '<$s';
+  if (!s.endsWith('>')) s = '$s>';
+  return s.length > 2 ? s : null;
+}
+
+/// The `<...>` ids in a References value, whitespace inside each dropped
+/// (a fold that landed in the middle of an id).
+List<String> _idsIn(String raw) {
+  final angles = RegExp(r'<[^<>]*>').allMatches(raw).map((m) => _cleanId(m.group(0))).whereType<String>().toList();
+  if (angles.isNotEmpty) return angles;
+  return raw.split(RegExp(r'\s+')).map(_cleanId).whereType<String>().toList();
+}
+
+final _threadHeader = RegExp(r'^(In-Reply-To|References):[^\r\n]*(\r\n[ \t][^\r\n]*)*\r\n', caseSensitive: false, multiLine: true);
+
+/// enough_mail folds any header longer than 76 columns and, finding no space
+/// in a long Message-ID, splits the id itself: the receiving client then
+/// sees `...nampr d13...` and cannot thread the reply (nor can Sortie when
+/// it reads the Sent copy back). Rewrites In-Reply-To and References in the
+/// rendered message so folds fall only between ids; a single id stays on
+/// one line however long (RFC 5322 allows 998 characters).
+String foldThreadHeaders(String rendered, {String? inReplyTo, List<String> references = const []}) {
+  final split = rendered.indexOf('\r\n\r\n');
+  if (split < 0) return rendered;
+  var head = '${rendered.substring(0, split)}\r\n';
+  final body = rendered.substring(split + 2);
+  head = head.replaceAll(_threadHeader, '');
+  final extra = StringBuffer();
+  if (inReplyTo != null) extra.write('In-Reply-To: $inReplyTo\r\n');
+  if (references.isNotEmpty) {
+    extra.write('References: ${references.first}');
+    for (final id in references.skip(1)) {
+      extra.write('\r\n $id');
+    }
+    extra.write('\r\n');
+  }
+  return '$head$extra$body';
 }

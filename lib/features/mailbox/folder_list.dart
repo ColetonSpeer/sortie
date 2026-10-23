@@ -8,10 +8,13 @@ import 'folder_picker.dart';
 
 /// Folder tree built from paths + delimiter, special-use first, collapsible.
 class FolderList extends ConsumerStatefulWidget {
-  const FolderList({super.key, required this.accountId, required this.selectedPath, required this.onSelect});
+  const FolderList({super.key, required this.accountId, required this.selectedPath, required this.onSelect, this.embedded = false});
   final String accountId;
   final String selectedPath;
   final ValueChanged<String> onSelect;
+
+  /// Inside another scroll view (the All-inboxes rail): size to content.
+  final bool embedded;
 
   @override
   ConsumerState<FolderList> createState() => _FolderListState();
@@ -24,7 +27,7 @@ class _FolderListState extends ConsumerState<FolderList> {
   Widget build(BuildContext context) {
     final async = ref.watch(foldersProvider(widget.accountId));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => widget.embedded ? const SizedBox.shrink() : const Center(child: CircularProgressIndicator()),
       error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('Folders unavailable: $e')),
       data: (all) {
         final folders = visibleFolders(all);
@@ -53,7 +56,12 @@ class _FolderListState extends ConsumerState<FolderList> {
             onTap: () => widget.onSelect(f.path),
           ));
         }
-        return ListView(padding: const EdgeInsets.symmetric(vertical: 4), children: rows);
+        return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          shrinkWrap: widget.embedded,
+          physics: widget.embedded ? const NeverScrollableScrollPhysics() : null,
+          children: rows,
+        );
       },
     );
   }

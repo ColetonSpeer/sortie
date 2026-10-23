@@ -181,6 +181,24 @@ it in, leaving the signature and quote untouched, and can also apply a
 better subject. It needs an AI backend under Settings → AI backend, honours
 the pause switch and spend caps, and is counted in the usage meter.
 
+### All inboxes and swiping conversations
+
+With more than one account, the folder rail gets an "All inboxes" entry (and
+the app opens there): every account's INBOX in one list, each row tagged with
+its account, conversations built per account so the same mail arriving in two
+accounts never merges, and each account's folders listed under its name in
+the rail. Actions work as usual; moving mail asks you to pick messages from
+one account at a time. On phones, swiping a row right deletes it and left
+archives it, and swiping a collapsed conversation header does the same for
+the whole conversation (your own copies in Sent stay).
+
+Reply headers: enough_mail folds any header longer than 76 columns and, with
+no space inside a long Outlook Message-ID, used to split the id itself, so
+our replies did not thread for the recipient and a fragment such as
+`d13.prod.outlook.com` could join two unrelated tickets in Sortie. The
+composer now re-folds In-Reply-To and References only between ids, and the
+parser and the threading code drop whitespace inside an id.
+
 ### Blabber: say it, Sortie writes it
 
 Blabber turns rough thoughts into a finished email. On a phone, tap the
