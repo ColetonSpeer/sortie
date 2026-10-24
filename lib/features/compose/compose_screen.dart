@@ -268,7 +268,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
     final outcome = await showReviewSheet(
       context,
       currentSubject: _subject.text,
-      run: (instruction) async {
+      run: (instruction, depth) async {
         final conversation = src == null ? const <ConversationTurn>[] : await gatherConversation(_backend, src);
         return _backend.reviewDraft(DraftReviewRequest(
           subject: _subject.text,
@@ -276,7 +276,9 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
           recipients: [for (final a in [..._to, ..._cc]) a.toString()],
           instruction: instruction,
           senderName: _identity?.name ?? '',
+          senderContext: _identity?.signature ?? '',
           conversation: conversation,
+          depth: depth,
         ));
       },
     );

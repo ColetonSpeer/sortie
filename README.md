@@ -173,7 +173,12 @@ advisor never proposes a rule that deletes.
 The compose window has a "Review with AI" button (the wand). It sends the
 text you wrote, not your signature or the quoted message, to the configured
 AI backend with an optional instruction ("shorter", "more formal", ...) and
-shows the suggested revision with a list of changes. For a reply, the message
+shows the suggested revision with a list of changes. Pick the depth:
+Proofread (spelling and grammar only), Improve (the default: also clarity,
+structure, tone, an explicit ask, and anything the reader will need; gaps
+the model cannot fill become `[placeholders]` and "Needs your input" notes,
+never guesses) or Rewrite (the best version of the email from what you meant
+to say). Your signature goes along as context about who you are. For a reply, the message
 being answered and up to three earlier messages of the thread (from the local
 cache, their own quoted tails stripped) go along as context, so the revision
 answers what was asked and keeps names and dates straight; "Use revision" swaps

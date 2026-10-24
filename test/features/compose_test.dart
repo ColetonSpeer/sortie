@@ -201,9 +201,11 @@ void main() {
     final h = DemoData.messages[0];
     var asked = '';
     var conversation = const <ConversationTurn>[];
+    ReviewDepth? depth;
     final reviewer = _StubReviewer((r) async {
       asked = '${r.instruction}|${r.body}';
       conversation = r.conversation;
+      depth = r.depth;
       return const DraftReview(revisedBody: 'Thanks, that works for me.', revisedSubject: 'Re: Invoice confirmed', notes: ['Tightened wording.'], modelId: 'stub');
     });
     await tester.pumpWidget(f.app(
@@ -220,10 +222,13 @@ void main() {
 
     await tester.tap(find.byKey(const Key('reviewDraft')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Rewrite'));
+    await tester.pump();
     await tester.enterText(find.byKey(const Key('reviewInstruction')), 'friendlier');
     await tester.tap(find.byKey(const Key('runReview')));
     await tester.pumpAndSettle();
     expect(asked, 'friendlier|$typed');
+    expect(depth, ReviewDepth.rewrite);
     expect(conversation.map((t) => t.text).join(' '), contains(h.snippet.split(' ').first), reason: 'the replied-to message rides along for context');
     expect(find.text('Tightened wording.'), findsOneWidget);
     expect(find.byKey(const Key('revisedBody')), findsOneWidget);

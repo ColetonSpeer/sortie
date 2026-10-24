@@ -28,9 +28,12 @@ class ReviewOutcome {
 
 /// Asks for an optional instruction, runs the review, shows notes and the
 /// revised text, and returns what to apply (null = keep the draft as is).
+/// Remembered for the session so the user does not re-pick it every time.
+ReviewDepth _lastDepth = ReviewDepth.improve;
+
 Future<ReviewOutcome?> showReviewSheet(
   BuildContext context, {
-  required Future<DraftReview> Function(String instruction) run,
+  required Future<DraftReview> Function(String instruction, ReviewDepth depth) run,
   required String currentSubject,
 }) =>
     showDialog<ReviewOutcome>(
@@ -41,7 +44,7 @@ Future<ReviewOutcome?> showReviewSheet(
 
 class _ReviewDialog extends StatefulWidget {
   const _ReviewDialog({required this.run, required this.currentSubject});
-  final Future<DraftReview> Function(String instruction) run;
+  final Future<DraftReview> Function(String instruction, ReviewDepth depth) run;
   final String currentSubject;
 
   @override
@@ -53,6 +56,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   DraftReview? _review;
   bool _busy = false;
   bool _applySubject = true;
+  ReviewDepth _depth = _lastDepth;
   String? _error;
 
   @override
@@ -67,7 +71,8 @@ class _ReviewDialogState extends State<_ReviewDialog> {
       _error = null;
     });
     try {
-      final r = await widget.run(_instruction.text);
+      _lastDepth = _depth;
+      final r = await widget.run(_instruction.text, _depth);
       if (mounted) setState(() => _review = r);
     } catch (e) {
       if (mounted) setState(() => _error = e is DraftReviewException ? e.message : 'Review failed: $e');
@@ -112,7 +117,28 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   }
 
   Widget _ask(ThemeData theme) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('The text you wrote is sent to your AI backend for proofreading. Your signature and any quoted message stay as they are.'),
+        const Text('The text you wrote (and, for a reply, the conversation) is sent to your AI backend. Your signature and any quoted message stay as they are.'),
+        const SizedBox(height: 12),
+        SegmentedButton<ReviewDepth>(
+          key: const Key('reviewDepth'),
+          segments: const [
+            ButtonSegment(value: ReviewDepth.proofread, label: Text('Proofread'), icon: Icon(Icons.spellcheck)),
+            ButtonSegment(value: ReviewDepth.improve, label: Text('Improve'), icon: Icon(Icons.auto_fix_high_outlined)),
+            ButtonSegment(value: ReviewDepth.rewrite, label: Text('Rewrite'), icon: Icon(Icons.edit_note_outlined)),
+          ],
+          selected: {_depth},
+          showSelectedIcon: false,
+          onSelectionChanged: _busy ? null : (v) => setState(() => _depth = v.single),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          switch (_depth) {
+            ReviewDepth.proofread => 'Spelling, grammar and clumsy phrasing only.',
+            ReviewDepth.improve => 'Also clarity, structure, tone, a clear ask, and anything the reader will need. Gaps become [placeholders] for you to fill.',
+            ReviewDepth.rewrite => 'The best version of this email from what you meant to say; it may be restructured freely.',
+          },
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 12),
         TextField(
           key: const Key('reviewInstruction'),
@@ -120,7 +146,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
           enabled: !_busy,
           decoration: const InputDecoration(
             labelText: 'Anything in particular? (optional)',
-            hintText: 'e.g. shorter, more formal, friendlier, fix the tone',
+            hintText: 'e.g. shorter, more formal, push back politely, add a deadline',
             border: OutlineInputBorder(),
           ),
           onSubmitted: (_) => _busy ? null : _go(),
@@ -134,7 +160,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (r.notes.isNotEmpty) ...[
-              Text('Changes', style: theme.textTheme.titleSmall),
+              Text('Changes and suggestions', style: theme.textTheme.titleSmall),
               const SizedBox(height: 4),
               for (final n in r.notes)
                 Padding(
