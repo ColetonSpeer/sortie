@@ -67,6 +67,32 @@ void main() {
       expect(fake.lastRequest.user, isNot(contains('About the sender')));
     });
 
+    test('now and earlier corrections ride along so timing and fixes stick', () async {
+      final fake = FakeAiProvider()..script = (req) => {'revised_subject': 'x', 'revised_body': 'ok', 'notes': <String>[]};
+      final r = AiDraftReviewer(provider: () => fake, settings: FakeSettingsRepository());
+      await r.review(DraftReviewRequest(
+        subject: 's',
+        body: 'b',
+        now: DateTime(2026, 10, 24, 13, 5),
+        history: const [
+          ReviewTurn(revisedBody: 'Before our call I will fix the templates.', correction: 'The call already happened this morning.'),
+          ReviewTurn(revisedBody: 'As we discussed on our call, I will fix the templates.', correction: 'Say by Monday.'),
+        ],
+      ));
+      final user = fake.lastRequest.user;
+      expect(user, contains('Now: Saturday 2026-10-24 13:05 (local time, UTC'));
+      expect(user, contains('<corrections>'));
+      expect(user.indexOf('</draft>'), lessThan(user.indexOf('<corrections>')));
+      expect(user, contains('<round n="1">'));
+      expect(user, contains('<user_says>\nThe call already happened this morning.\n</user_says>'));
+      expect(user, contains('<round n="2">'));
+      expect(fake.lastRequest.system.single.text, contains('has already happened'));
+      expect(fake.lastRequest.system.single.text, contains('Apply every correction'));
+      await r.review(const DraftReviewRequest(subject: 's', body: 'b'));
+      expect(fake.lastRequest.user, isNot(contains('Now:')));
+      expect(fake.lastRequest.user, isNot(contains('<corrections>')));
+    });
+
     test('an unchanged subject is reported as null; a missing body is an error', () async {
       final fake = FakeAiProvider()..script = (req) => {'revised_subject': 'Same', 'revised_body': 'ok', 'notes': <String>[]};
       final r = AiDraftReviewer(provider: () => fake, settings: FakeSettingsRepository());

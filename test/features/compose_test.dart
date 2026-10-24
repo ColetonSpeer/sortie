@@ -242,6 +242,41 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(const Key('composeSubject'))).controller!.text, 'Re: Invoice confirmed');
   });
 
+  testWidgets('the review can be corrected back and forth before it is applied', (tester) async {
+    final f = UiFakes();
+    final seen = <List<ReviewTurn>>[];
+    var round = 0;
+    final reviewer = _StubReviewer((r) async {
+      seen.add(r.history);
+      round++;
+      return DraftReview(revisedBody: round == 1 ? 'Before our call I will fix it.' : 'As we discussed on the call, I will fix it by Monday.', notes: ['Round $round'], modelId: 'stub');
+    });
+    await tester.pumpWidget(f.app(const ComposeScreen(accountId: DemoData.accountId), extra: [draftReviewerProvider.overrideWithValue(reviewer)]));
+    await tester.pumpAndSettle();
+    tester.widget<TextField>(find.byKey(const Key('composeBody'))).controller!.text = 'will fix it before call';
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('reviewDraft')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('runReview')));
+    await tester.pumpAndSettle();
+    expect(find.text('Before our call I will fix it.'), findsOneWidget);
+    expect(seen.single, isEmpty);
+
+    await tester.enterText(find.byKey(const Key('reviewCorrection')), 'The call already happened.');
+    await tester.tap(find.byKey(const Key('reviseReview')));
+    await tester.pumpAndSettle();
+    expect(seen, hasLength(2));
+    expect(seen.last.single.revisedBody, 'Before our call I will fix it.');
+    expect(seen.last.single.correction, 'The call already happened.');
+    expect(find.text('Revision 2'), findsOneWidget);
+    expect(find.text('As we discussed on the call, I will fix it by Monday.'), findsOneWidget);
+    expect(find.text('The call already happened.'), findsOneWidget, reason: 'the exchange stays visible');
+
+    await tester.tap(find.byKey(const Key('applyReview')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byKey(const Key('composeBody'))).controller!.text, startsWith('As we discussed on the call'));
+  });
+
   testWidgets('without an AI backend the review button explains instead of failing', (tester) async {
     final f = UiFakes();
     final reviewer = _StubReviewer((r) async => throw StateError('unreachable'), unavailable: 'No AI backend is configured.');

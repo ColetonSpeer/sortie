@@ -33,7 +33,7 @@ ReviewDepth _lastDepth = ReviewDepth.improve;
 
 Future<ReviewOutcome?> showReviewSheet(
   BuildContext context, {
-  required Future<DraftReview> Function(String instruction, ReviewDepth depth) run,
+  required Future<DraftReview> Function(String instruction, ReviewDepth depth, List<ReviewTurn> history) run,
   required String currentSubject,
 }) =>
     showDialog<ReviewOutcome>(
@@ -44,7 +44,7 @@ Future<ReviewOutcome?> showReviewSheet(
 
 class _ReviewDialog extends StatefulWidget {
   const _ReviewDialog({required this.run, required this.currentSubject});
-  final Future<DraftReview> Function(String instruction, ReviewDepth depth) run;
+  final Future<DraftReview> Function(String instruction, ReviewDepth depth, List<ReviewTurn> history) run;
   final String currentSubject;
 
   @override
@@ -53,7 +53,9 @@ class _ReviewDialog extends StatefulWidget {
 
 class _ReviewDialogState extends State<_ReviewDialog> {
   final _instruction = TextEditingController();
+  final _correction = TextEditingController();
   DraftReview? _review;
+  final _history = <ReviewTurn>[];
   bool _busy = false;
   bool _applySubject = true;
   ReviewDepth _depth = _lastDepth;
@@ -62,6 +64,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   @override
   void dispose() {
     _instruction.dispose();
+    _correction.dispose();
     super.dispose();
   }
 
@@ -72,7 +75,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
     });
     try {
       _lastDepth = _depth;
-      final r = await widget.run(_instruction.text, _depth);
+      final r = await widget.run(_instruction.text, _depth, List.unmodifiable(_history));
       if (mounted) setState(() => _review = r);
     } catch (e) {
       if (mounted) setState(() => _error = e is DraftReviewException ? e.message : 'Review failed: $e');
@@ -80,6 +83,23 @@ class _ReviewDialogState extends State<_ReviewDialog> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// The user says what the last revision got wrong; the model revises
+  /// again with every earlier correction still in force.
+  Future<void> _revise() async {
+    final r = _review;
+    final text = _correction.text.trim();
+    if (r == null || text.isEmpty) return;
+    _history.add(ReviewTurn(revisedBody: r.revisedBody, correction: text));
+    _correction.clear();
+    await _go();
+  }
+
+  void _startOver() => setState(() {
+        _review = null;
+        _history.clear();
+        _error = null;
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +110,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
       title: Row(children: [
         const Icon(Icons.auto_fix_high_outlined),
         const SizedBox(width: 8),
-        Text(r == null ? 'Review with AI' : 'Suggested revision'),
+        Text(r == null ? 'Review with AI' : _history.isEmpty ? 'Suggested revision' : 'Revision ${_history.length + 1}'),
       ]),
       content: SizedBox(
         width: width,
@@ -102,11 +122,13 @@ class _ReviewDialogState extends State<_ReviewDialog> {
               FilledButton(key: const Key('runReview'), onPressed: _busy ? null : _go, child: const Text('Review')),
             ]
           : [
-              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Keep mine')),
-              TextButton(key: const Key('reviewAgain'), onPressed: () => setState(() => _review = null), child: const Text('Try again')),
+              TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(), child: const Text('Keep mine')),
+              TextButton(key: const Key('reviewAgain'), onPressed: _busy ? null : _startOver, child: const Text('Start over')),
               FilledButton(
                 key: const Key('applyReview'),
-                onPressed: () => Navigator.of(context).pop(ReviewOutcome(
+                onPressed: _busy
+                    ? null
+                    : () => Navigator.of(context).pop(ReviewOutcome(
                   body: r.revisedBody,
                   subject: _applySubject ? r.revisedSubject : null,
                 )),
@@ -198,6 +220,42 @@ class _ReviewDialogState extends State<_ReviewDialog> {
               '${r.modelId}${r.costUsd > 0 ? ' · \$${r.costUsd.toStringAsFixed(4)}' : ''}',
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
+            const SizedBox(height: 16),
+            Text('Not quite right?', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            if (_history.isNotEmpty) ...[
+              for (final t in _history)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.person_outline, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(t.correction, style: theme.textTheme.bodySmall)),
+                  ]),
+                ),
+              const SizedBox(height: 4),
+            ],
+            TextField(
+              key: const Key('reviewCorrection'),
+              controller: _correction,
+              enabled: !_busy,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Tell it what to fix, e.g. "the call already happened" or "we agreed on Friday, not Thursday"',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  key: const Key('reviseReview'),
+                  tooltip: 'Revise',
+                  icon: const Icon(Icons.send_outlined),
+                  onPressed: _busy ? null : _revise,
+                ),
+              ),
+              onSubmitted: (_) => _busy ? null : _revise(),
+            ),
+            if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
+            if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: TextStyle(color: theme.colorScheme.error))),
           ]),
         ),
       );

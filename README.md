@@ -178,7 +178,13 @@ Proofread (spelling and grammar only), Improve (the default: also clarity,
 structure, tone, an explicit ask, and anything the reader will need; gaps
 the model cannot fill become `[placeholders]` and "Needs your input" notes,
 never guesses) or Rewrite (the best version of the email from what you meant
-to say). Your signature goes along as context about who you are. For a reply, the message
+to say). Your signature goes along as context about who you are, and so
+does the current date and time, so a call dated yesterday is written up as
+something that happened rather than something coming up. Under the revision
+there is a "Not quite right?" box: tell it what it got wrong ("the call
+already happened", "we agreed on Friday") and it revises again with every
+earlier correction still in force; the exchange stays visible until you use
+the revision or start over. For a reply, the message
 being answered and up to three earlier messages of the thread (from the local
 cache, their own quoted tails stripped) go along as context, so the revision
 answers what was asked and keeps names and dates straight; "Use revision" swaps
