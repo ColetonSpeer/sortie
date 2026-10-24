@@ -107,16 +107,19 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
       _identity = Quote.pickIdentity(_identities, src);
       if (src != null) {
         final body = await _backend.body(src.accountId, src.folderPath, src.uid);
+        // Cached bodies keep the wire's CRLF; the editor and every marker
+        // Sortie looks for (signature, quote header) work in LF.
+        final text = body.text.replaceAll('\r\n', '\n');
         if (widget.draftUid != null) {
           _to = List.of(src.to);
           _cc = List.of(src.cc);
           _showCcBcc = _cc.isNotEmpty;
           _subject.text = src.subject;
-          _body.text = body.text;
+          _body.text = text;
           _draftMessageId = src.messageId;
         } else if (widget.forwardUid != null) {
           _subject.text = Quote.forwardSubject(src.subject);
-          _body.text = _sig() + Quote.forward(src, body.text);
+          _body.text = _sig() + Quote.forward(src, text);
           await _carryAttachments(src, body);
         } else {
           final (to, cc) = Quote.replyRecipients(src, _identities, all: widget.replyAllUid != null);
@@ -124,7 +127,7 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
           _cc = cc;
           _showCcBcc = cc.isNotEmpty;
           _subject.text = Quote.replySubject(src.subject);
-          _body.text = _sig() + Quote.reply(src, body.text);
+          _body.text = _sig() + Quote.reply(src, text);
         }
       } else {
         _body.text = _sig();
@@ -285,10 +288,12 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
       },
     );
     if (outcome == null || !mounted) return;
-    // Re-split: the tail may have changed while the dialog was open.
+    // Re-split: the tail may have changed while the dialog was open. Never
+    // lose a tail we had when the review started.
     final now = splitOwnText(_body.text, signature: _sig());
+    final tail = now.tail.isNotEmpty ? now.tail : parts.tail;
     final body = outcome.body.trimRight();
-    _body.value = TextEditingValue(text: '$body${now.tail}', selection: TextSelection.collapsed(offset: body.length));
+    _body.value = TextEditingValue(text: '$body$tail', selection: TextSelection.collapsed(offset: body.length));
     if (outcome.subject != null) _subject.text = outcome.subject!;
     _touch();
     setState(() {});
@@ -329,8 +334,9 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
     );
     if (outcome == null || !mounted) return;
     final now = splitOwnText(_body.text, signature: _sig());
+    final tail = now.tail.isNotEmpty ? now.tail : parts.tail;
     final body = outcome.body.trimRight();
-    _body.value = TextEditingValue(text: '$body${now.tail}', selection: TextSelection.collapsed(offset: body.length));
+    _body.value = TextEditingValue(text: '$body$tail', selection: TextSelection.collapsed(offset: body.length));
     if (outcome.applySubject && outcome.subject.trim().isNotEmpty) _subject.text = outcome.subject.trim();
     _touch();
     setState(() {});

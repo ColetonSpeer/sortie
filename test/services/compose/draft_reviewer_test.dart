@@ -112,6 +112,29 @@ void main() {
   });
 
   group('splitOwnText', () {
+    test('a reopened draft with CRLF line endings keeps its signature and quoted replies out of the review', () {
+      // Exactly what the cache hands back for an autosaved draft.
+      const sig = 'Coleton Speer\nHickory Telephone Company\nColetonSpeer@hky.com';
+      const body = 'Hey Aaron,\r\n\r\nAfter the meeting is fine.\r\n\r\n-- \r\nColeton Speer\r\nHickory Telephone Company\r\nColetonSpeer@hky.com\r\n\r\n'
+          'On Oct 22, 2026 12:25\u202fPM, "SDP Support" <sdpsupport@innovsys.com> wrote:\r\n> Hey Coleton are you available\r\n> for a teams meeting?\r\n';
+      final p = splitOwnText(body, signature: sig);
+      expect(p.own, 'Hey Aaron,\n\nAfter the meeting is fine.');
+      expect(p.tail, startsWith('\n\n-- \nColeton Speer'));
+      expect(p.tail, contains('wrote:\n> Hey Coleton'));
+      expect(p.tail, isNot(contains('\r')));
+    });
+
+    test('falls back to the separator line, a long quote header, or the first quoted block', () {
+      expect(splitOwnText('Thanks.\n-- \nSig').own, 'Thanks.');
+      final longHeader = 'On ${'x' * 300} wrote:\n> q';
+      expect(splitOwnText('Thanks.\n\n$longHeader').own, 'Thanks.');
+      expect(splitOwnText('Thanks.\nSomeone said:\n> quoted line\n> more').own, 'Thanks.');
+      expect(splitOwnText('Thanks.\n> quoted line').own, 'Thanks.');
+      expect(splitOwnText('Thanks.\n> quoted line').tail, '\n> quoted line');
+      expect(splitOwnText('> all quoted').own, '');
+      expect(splitOwnText('no markers at all').tail, '');
+    });
+
     test('keeps signature and quoted reply out of the reviewed text', () {
       const sig = '\n\n-- \nColeton Speer\nHKY';
       const body = 'Thanks, sounds good.$sig\n\nOn Mon, Brian wrote:\n> can we meet?\n';

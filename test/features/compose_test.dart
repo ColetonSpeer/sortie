@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/features/compose/compose_screen.dart';
 import 'package:sortie/services/compose/draft_reviewer.dart';
 import 'package:sortie/app/providers.dart';
@@ -275,6 +276,34 @@ void main() {
     await tester.tap(find.byKey(const Key('applyReview')));
     await tester.pumpAndSettle();
     expect(tester.widget<TextField>(find.byKey(const Key('composeBody'))).controller!.text, startsWith('As we discussed on the call'));
+  });
+
+  testWidgets('reviewing a reopened draft (CRLF from the cache) keeps the signature and the quoted replies', (tester) async {
+    final f = UiFakes();
+    final draft = DemoData.messages.singleWhere((m) => m.folderPath == 'Drafts');
+    f.sync.bodiesByHash[draft.messageIdHash] = const MessageBody(
+        text: 'hello aaron after the meeting is fine\r\n\r\n-- \r\nDemo User (this is fake data)\r\n\r\nOn Oct 22, 2026 12:25\u202fPM, "SDP Support" <sdp@innovsys.test> wrote:\r\n> are you available?\r\n');
+    String? reviewed;
+    final reviewer = _StubReviewer((r) async {
+      reviewed = r.body;
+      return const DraftReview(revisedBody: 'Hello Aaron,\n\nAfter the meeting is fine.', modelId: 'stub');
+    });
+    await tester.pumpWidget(f.app(
+      ComposeScreen(accountId: draft.accountId, draftUid: draft.uid, sourceFolder: draft.folderPath),
+      extra: [draftReviewerProvider.overrideWithValue(reviewer)],
+    ));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const Key('composeBody'));
+    expect(tester.widget<TextField>(field).controller!.text, isNot(contains('\r')), reason: 'the editor works in LF');
+    await tester.tap(find.byKey(const Key('reviewDraft')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('runReview')));
+    await tester.pumpAndSettle();
+    expect(reviewed, 'hello aaron after the meeting is fine', reason: 'signature and quote never reach the model');
+    await tester.tap(find.byKey(const Key('applyReview')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text,
+        'Hello Aaron,\n\nAfter the meeting is fine.\n\n-- \nDemo User (this is fake data)\n\nOn Oct 22, 2026 12:25\u202fPM, "SDP Support" <sdp@innovsys.test> wrote:\n> are you available?\n');
   });
 
   testWidgets('without an AI backend the review button explains instead of failing', (tester) async {

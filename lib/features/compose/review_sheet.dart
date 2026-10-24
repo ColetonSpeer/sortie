@@ -5,17 +5,51 @@ import '../../services/compose/draft_reviewer.dart';
 /// Splits a compose body into what the user wrote and the tail Sortie added
 /// (signature, quoted reply, forwarded message), so only the former is
 /// reviewed and the tail survives untouched.
+///
+/// Line endings are normalised to `\n` first (bodies read back from the
+/// cache, such as a reopened draft, arrive with `\r\n`); both parts are
+/// returned normalised. The cut is the earliest of: the identity's
+/// signature, a `-- ` separator line, an "On … wrote:" header, a forwarded
+/// message banner, or, failing all of those, the first quoted (`> `) block
+/// with the header line right above it.
 ({String own, String tail}) splitOwnText(String body, {String signature = ''}) {
+  body = body.replaceAll('\r\n', '\n');
+  signature = signature.replaceAll('\r\n', '\n');
   var cut = -1;
+  void consider(int i) {
+    if (i >= 0 && (cut < 0 || i < cut)) cut = i;
+  }
+
   if (signature.trim().isNotEmpty) {
     final i = body.indexOf(signature);
-    if (i >= 0) cut = i;
+    if (i >= 0) {
+      // Take the blank line(s) before the signature along with it.
+      var start = i;
+      while (start > 0 && body[start - 1] == '\n') {
+        start--;
+      }
+      consider(start);
+    }
   }
-  for (final marker in [RegExp(r'\n\n-- \n'), RegExp(r'\n\nOn .{0,200}? wrote:\n', dotAll: true), RegExp(r'\n\n-------- Forwarded message --------\n')]) {
+  for (final marker in [
+    RegExp(r'\n-- ?\n'),
+    RegExp(r'\n+On .{0,400}? wrote:\n', dotAll: true),
+    RegExp(r'\n+-{3,} ?Forwarded message ?-{3,}\n'),
+  ]) {
     final m = marker.firstMatch(body);
-    if (m != null && (cut < 0 || m.start < cut)) cut = m.start;
+    if (m != null) consider(m.start);
+  }
+  if (cut < 0) {
+    // No recognised header: the first quoted block, with the line above it
+    // when that line introduces it ("… wrote:" / ends with a colon).
+    final q = RegExp(r'(^|\n)(?:[^\n]*:[ \t]*\n)?> ', multiLine: false).firstMatch(body);
+    if (q != null) consider(q.start);
   }
   if (cut < 0) return (own: body, tail: '');
+  // The blank line(s) before the tail belong to the tail.
+  while (cut > 0 && body[cut - 1] == '\n') {
+    cut--;
+  }
   return (own: body.substring(0, cut), tail: body.substring(cut));
 }
 
