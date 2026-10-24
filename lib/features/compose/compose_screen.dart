@@ -382,6 +382,8 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
 
   ComposeDraft _draft() {
     final src = widget.draftUid == null ? _source : null;
+    // Editing a saved draft: keep the threading headers it was saved with.
+    final saved = widget.draftUid != null ? _source : null;
     return ComposeDraft(
       accountId: widget.accountId,
       identity: _identity!,
@@ -390,8 +392,12 @@ class ComposeScreenState extends ConsumerState<ComposeScreen> with WidgetsBindin
       bcc: _bcc,
       subject: _subject.text.trim(),
       bodyText: _body.text,
-      inReplyTo: widget.forwardUid == null ? src?.messageId : null,
-      references: widget.forwardUid == null && src != null ? [...src.references, if (src.messageId != null) src.messageId!] : const [],
+      inReplyTo: widget.forwardUid == null ? (src?.messageId ?? saved?.inReplyTo) : null,
+      references: widget.forwardUid != null
+          ? const []
+          : src != null
+              ? [...src.references, ?src.messageId]
+              : (saved?.references ?? const []),
       attachments: _attachments,
       draftUid: widget.draftUid,
     );

@@ -306,6 +306,37 @@ void main() {
         'Hello Aaron,\n\nAfter the meeting is fine.\n\n-- \nDemo User (this is fake data)\n\nOn Oct 22, 2026 12:25\u202fPM, "SDP Support" <sdp@innovsys.test> wrote:\n> are you available?\n');
   });
 
+  testWidgets('re-saving or sending an edited draft keeps the In-Reply-To and References it was saved with', (tester) async {
+    final f = UiFakes();
+    const irt = '<orig@example.invalid>';
+    await f.messages.upsertHeaders([
+      MessageHeader(
+        accountId: DemoData.accountId,
+        folderPath: 'Drafts',
+        uid: 9001,
+        uidValidity: 1,
+        messageIdHash: 'draft-9001',
+        messageId: '<draft-9001@example.invalid>',
+        subject: 'Re: Threaded',
+        from: const MailAddress('demo@example.invalid', 'Demo User'),
+        to: const [MailAddress('bob@example.invalid', 'Bob')],
+        date: DateTime(2026, 10, 24, 9),
+        inReplyTo: irt,
+        references: const ['<older@example.invalid>', irt],
+        flags: const {r'\Draft'},
+        size: 10,
+      ),
+    ]);
+    f.sync.bodiesByHash['draft-9001'] = const MessageBody(text: 'Hi Bob\r\n');
+    await tester.pumpWidget(f.app(const ComposeScreen(accountId: DemoData.accountId, draftUid: 9001, sourceFolder: 'Drafts')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(f.composedDrafts, isNotEmpty);
+    expect(f.composedDrafts.last.inReplyTo, irt);
+    expect(f.composedDrafts.last.references, ['<older@example.invalid>', irt]);
+  });
+
   testWidgets('without an AI backend the review button explains instead of failing', (tester) async {
     final f = UiFakes();
     final reviewer = _StubReviewer((r) async => throw StateError('unreachable'), unavailable: 'No AI backend is configured.');
