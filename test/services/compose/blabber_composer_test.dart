@@ -70,6 +70,15 @@ void main() {
       expect(fake.requests.length, 3, reason: 'an empty transcript never reaches the model');
     });
 
+    test('dashes in the model answer are scrubbed', () async {
+      final fake = FakeAiProvider()..script = (req) => {'subject': 'Visit — Thursday', 'body': 'I can come Thursday — afternoon works best.', 'notes': <String>[]};
+      final c = AiBlabberComposer(provider: () => fake, settings: FakeSettingsRepository());
+      final out = await c.compose(const BlabberRequest(transcript: 'thursday'));
+      expect(out.subject, 'Visit, Thursday');
+      expect(out.body, 'I can come Thursday, afternoon works best.');
+      expect(fake.lastRequest.system.single.text, contains('never use em dashes'));
+    });
+
     test('explains why Blabber cannot run', () async {
       final settings = FakeSettingsRepository();
       expect(await AiBlabberComposer(provider: () => null, settings: settings).unavailableReason(), contains('No AI backend'));
