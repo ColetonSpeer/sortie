@@ -85,7 +85,11 @@ class SortieServices {
   String _aiProviderKey = '';
   final _subs = <StreamSubscription<void>>[];
 
-  static Future<SortieServices> build() async {
+  /// [forBackgroundCycle] builds the graph for one bounded cycle in a
+  /// background isolate (iOS BGAppRefresh / BGProcessing, Android
+  /// WorkManager): accounts are loaded but no coordinator or sync session
+  /// starts; [runBackgroundCycle] does the one-shot work.
+  static Future<SortieServices> build({bool forBackgroundCycle = false}) async {
     final s = SortieServices._();
     final support = await getApplicationSupportDirectory();
 
@@ -155,7 +159,14 @@ class SortieServices {
     await s._refreshAiProvider(await s.settings.ai());
     s._subs.add(s.settings.watchAi().listen(s._refreshAiProvider));
     s._subs.add(s.settings.watchDevice().listen((d) => s._deviceSettings = d));
-    s._subs.add(s.accounts.watchAll().listen(s._onAccounts));
+    if (forBackgroundCycle) {
+      for (final a in await s.accounts.all()) {
+        s._accountCache[a.id] = a;
+      }
+      await s.sync.primeAccounts();
+    } else {
+      s._subs.add(s.accounts.watchAll().listen(s._onAccounts));
+    }
 
     backgroundCycle = s.runBackgroundCycle;
     return s;
@@ -231,12 +242,30 @@ class SortieServices {
     return c;
   }
 
-  /// One bounded cycle per account for WorkManager / BGAppRefresh.
-  Future<void> runBackgroundCycle() async {
+  /// One bounded cycle per account for WorkManager / BGAppRefresh: refresh
+  /// the inbox (the sorter reads the local cache, which nothing else fills
+  /// while no session runs), then connect to the control folder, claim if
+  /// allowed, sort one batch, release. [budget] covers every account; iOS
+  /// grants about 30 s.
+  Future<void> runBackgroundCycle({Duration budget = const Duration(seconds: 27)}) async {
+    final deadline = clock.now().add(budget);
     for (final a in await accounts.all()) {
       if (!a.enabled) continue;
+      _accountCache[a.id] = a;
+      final left = deadline.difference(clock.now());
+      if (left < const Duration(seconds: 5)) {
+        _log.info('background cycle: out of time before ${a.id}');
+        break;
+      }
       try {
-        await coordinator(a.id).runForegroundCycle();
+        if (!sync.isRunning(a.id)) {
+          final n = await sync.syncOnce(a.id).timeout(left ~/ 2);
+          _log.info('background cycle: ${a.id}: $n new inbox message(s)');
+        }
+        final remaining = deadline.difference(clock.now());
+        if (remaining < const Duration(seconds: 3)) break;
+        // Not coordinator(): that would start the long-running service.
+        await _ensureCoordinator(a.id).runForegroundCycle(budget: remaining);
       } catch (e, st) {
         _log.warning('background cycle failed for ${a.id}', e, st);
       }

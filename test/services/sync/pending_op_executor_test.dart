@@ -210,6 +210,42 @@ void main() {
     expect(smtp.sent.length, 1);
   });
 
+  test('submitPending sends over SMTP with no IMAP connection; drain then only appends the Sent copy', () async {
+    final raw = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: lane\r\nMessage-ID: <lane@example.com>\r\n\r\nbody');
+    files['/spool/l.eml'] = raw;
+    await t.pendingOps.enqueue(SendOp(id: 'l1', accountId: testAccountId, createdAt: t.clock.now(), identityId: 'id1', rawMessagePath: '/spool/l.eml', recipients: const ['bob@example.com']));
+    expect(await exec.submitPending(testAccountId), 1);
+    expect(smtp.sent.length, 1);
+    expect((await t.pendingOps.pending(testAccountId)).single, isA<SendOp>().having((o) => o.smtpAccepted, 'smtpAccepted', true));
+    expect(await exec.submitPending(testAccountId), 0, reason: 'already accepted');
+
+    expect(await exec.drain(testAccountId, gw), 1);
+    expect(smtp.sent.length, 1, reason: 'drain does not send again');
+    expect(server.mailboxes['Sent']!.messages.length, 1);
+    expect(await t.pendingOps.pending(testAccountId), isEmpty);
+  });
+
+  test('a send reached by the SMTP lane and a drain at the same time goes out once', () async {
+    final raw = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: race\r\nMessage-ID: <race@example.com>\r\n\r\nbody');
+    files['/spool/r.eml'] = raw;
+    await t.pendingOps.enqueue(SendOp(id: 'r1', accountId: testAccountId, createdAt: t.clock.now(), identityId: 'id1', rawMessagePath: '/spool/r.eml', recipients: const ['bob@example.com']));
+    await Future.wait([exec.submitPending(testAccountId), exec.drain(testAccountId, gw)]);
+    expect(smtp.sent.length, 1);
+    expect(server.mailboxes['Sent']!.messages.length, 1);
+    expect(await t.pendingOps.pending(testAccountId), isEmpty);
+  });
+
+  test('submitPending defers an SMTP failure and leaves other ops alone', () async {
+    files['/spool/d.eml'] = utf8.encode('From: a@b\r\nTo: c@d\r\nSubject: x\r\nMessage-ID: <d@b>\r\n\r\nz');
+    await t.pendingOps.enqueue(SendOp(id: 'd1', accountId: testAccountId, createdAt: t.clock.now(), identityId: 'id1', rawMessagePath: '/spool/d.eml', recipients: const ['c@d']));
+    smtp.fail = true;
+    expect(await exec.submitPending(testAccountId), 0);
+    expect(await t.pendingOps.pending(testAccountId), isEmpty, reason: 'in retry cool-down');
+    t.clock.advance(const Duration(minutes: 5));
+    smtp.fail = false;
+    expect(await exec.submitPending(testAccountId), 1);
+  });
+
   test('drain executes FIFO and continues past a bad op', () async {
     final h = makeHeader();
     final uid = server.deliver('INBOX', h);

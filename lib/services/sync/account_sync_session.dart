@@ -82,6 +82,7 @@ class AccountSyncSession {
   final _requests = <_Request>[];
   Completer<void> _wake = Completer<void>();
   Future<void> _cmdChain = Future.value();
+  Future<void> _sendChain = Future.value();
   Future<void>? _runDone;
   bool _stopped = true;
   bool _degraded = false;
@@ -141,11 +142,31 @@ class AccountSyncSession {
   Future<void> createFolder(String path) => _enqueue(_Request('createFolder', path));
 
   /// Drain the offline queue now.
-  Future<void> drainPendingOps() => _enqueue(_Request('drain'));
+  Future<void> drainPendingOps() {
+    _submitQueued();
+    return _enqueue(_Request('drain'));
+  }
 
   void requestDrain() {
+    _submitQueued();
     _requests.add(_Request('drain'));
     _poke();
+  }
+
+  /// Sends queued mail over SMTP right away, off the IMAP command chain.
+  /// The chain can be busy for a long time (a large folder's first sync, a
+  /// command the server is slow to answer) and a message the user pressed
+  /// Send on must not wait behind it. Only the Sent copy needs IMAP; that
+  /// follows through the normal drain, which the poke wakes.
+  void _submitQueued() {
+    _sendChain = _sendChain.then((_) async {
+      try {
+        final n = await executor.submitPending(account.id);
+        if (n > 0) _poke();
+      } catch (e, s) {
+        _log.warning('submitting queued mail failed', e, s);
+      }
+    });
   }
 
   Future<void> _enqueue(_Request r) {
@@ -196,6 +217,9 @@ class AccountSyncSession {
     while (!_stopped) {
       ImapGateway? idleConn;
       ImapGateway? cmdConn;
+      // Mail queued while offline leaves as soon as we are back, whether or
+      // not the IMAP login below succeeds.
+      _submitQueued();
       try {
         _set(AccountSyncState.connecting);
         final pw = await _password();
@@ -347,9 +371,14 @@ class AccountSyncSession {
 
   // ---------------------------------------------------------------- work
 
-  Future<void> _handleRequests() async {
-    while (_requests.isNotEmpty && !_stopped) {
-      final r = _requests.removeAt(0);
+  /// Runs queued requests FIFO. [nested] is the call from inside the
+  /// other-folders pass between two folders: it serves the user's requests
+  /// but leaves `others` in the queue (that pass is already running).
+  Future<void> _handleRequests({bool nested = false}) async {
+    while (!_stopped) {
+      final i = nested ? _requests.indexWhere((r) => r.kind != 'others') : (_requests.isEmpty ? -1 : 0);
+      if (i < 0) break;
+      final r = _requests.removeAt(i);
       try {
         switch (r.kind) {
           case 'sync':
@@ -388,8 +417,25 @@ class AccountSyncSession {
     }
   }
 
+  /// A folder sync past this is logged: an hour-long one once held a send
+  /// behind it with nothing in the log to say what the connection was doing.
+  static const slowSync = Duration(seconds: 60);
+
   Future<FolderSyncResult> _syncFolder(String path) async {
-    final r = await withCommand((gw) => folderSync.sync(gw, path));
+    final queued = Stopwatch()..start();
+    final r = await withCommand((gw) async {
+      final wait = queued.elapsed;
+      if (wait >= slowSync) _log.info('sync of $path waited ${wait.inSeconds}s for the command connection');
+      final sw = Stopwatch()..start();
+      final slow = Timer(slowSync, () => _log.info('sync of $path still running after ${slowSync.inSeconds}s'));
+      try {
+        final r = await folderSync.sync(gw, path);
+        if (sw.elapsed >= slowSync) _log.info('sync of $path took ${sw.elapsed.inSeconds}s: ${r.newMessages.length} new, ${r.flagChanges.length} flag change(s)');
+        return r;
+      } finally {
+        slow.cancel();
+      }
+    });
     if (path == 'INBOX' && r.newMessages.isNotEmpty && !_newInbox.isClosed) _newInbox.add(r.newMessages);
     if (path == 'INBOX' && r.newMessages.isNotEmpty && !r.initial && !r.uidValidityChanged && !_arrivals.isClosed) _arrivals.add(r.newMessages);
     if (r.flagChanges.isNotEmpty && !_flags.isClosed) {
@@ -412,6 +458,9 @@ class AccountSyncSession {
         if (e.isConnectionLost || e.isAuthFailure) rethrow;
         _log.fine('sync of ${f.path} failed: ${e.message}');
       }
+      // A user action (open a message, send, move) must not wait for the
+      // rest of this pass.
+      if (_requests.any((r) => r.kind != 'others')) await _handleRequests(nested: true);
     }
   }
 

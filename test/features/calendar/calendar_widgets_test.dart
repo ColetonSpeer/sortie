@@ -46,7 +46,9 @@ void main() {
   final mid = DateTime(now.year, now.month, 15, 10);
 
   testWidgets('month view renders demo events with calendar colours and switches to agenda on day tap', (tester) async {
-    tester.view.physicalSize = const Size(1200, 800);
+    // Tall enough for a six-row month (e.g. November 2026) to still show a
+    // chip per cell instead of only "+1 more".
+    tester.view.physicalSize = const Size(1200, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     final events = [
@@ -62,7 +64,7 @@ void main() {
       ),
     ];
     final h = _Harness(events: events);
-    await tester.pumpWidget(h.app(const CalendarScreen()));
+    await tester.pumpWidget(h.app(const CalendarScreen(), size: const Size(1200, 1000)));
     await tester.pumpAndSettle();
 
     expect(find.text(CalFmt.month(now)), findsOneWidget);

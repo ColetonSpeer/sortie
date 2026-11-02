@@ -50,8 +50,8 @@ class _WeekViewState extends ConsumerState<WeekView> {
     final today = dateOnly(DateTime.now());
     final sources = ref.watch(calendarSourcesProvider).asData?.value ?? const <CalendarSource>[];
     final colorOf = {for (final s in sources) s.id: Color(s.color)};
-    final days = [for (var i = 0; i < 7; i++) first.add(Duration(days: i))];
-    final grouped = byDay(occurrences, first, first.add(const Duration(days: 7)));
+    final days = [for (var i = 0; i < 7; i++) addDays(first, i)];
+    final grouped = byDay(occurrences, first, addDays(first, 7));
     final allDay = {for (final d in days) d: (grouped[d] ?? const <EventOccurrence>[]).where(_spansDay).toList()};
     final timed = {for (final d in days) d: (grouped[d] ?? const <EventOccurrence>[]).where((o) => !_spansDay(o)).toList()};
     final allDayRows = allDay.values.fold<int>(0, (m, l) => l.length > m ? l.length : m);
@@ -178,7 +178,7 @@ class _DayColumn extends StatelessWidget {
   /// Greedy column packing for overlapping events.
   static List<_Placed> _layout(List<EventOccurrence> items, DateTime day) {
     final dayStart = day;
-    final dayEnd = day.add(const Duration(days: 1));
+    final dayEnd = addDays(day, 1);
     final list = <_Placed>[];
     for (final o in items) {
       var (s, e) = localSpan(o);

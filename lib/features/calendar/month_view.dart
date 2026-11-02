@@ -28,7 +28,7 @@ class MonthView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final grouped = byDay(occurrences, first, first.add(const Duration(days: 42)));
+    final grouped = byDay(occurrences, first, addDays(first, 42));
     final today = dateOnly(DateTime.now());
     final sources = ref.watch(calendarSourcesProvider).asData?.value ?? const <CalendarSource>[];
     final colorOf = {for (final s in sources) s.id: Color(s.color)};
@@ -40,7 +40,7 @@ class MonthView extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
-                DateFormat.E().format(first.add(Duration(days: i))),
+                DateFormat.E().format(addDays(first, i)),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
@@ -59,10 +59,10 @@ class MonthView extends ConsumerWidget {
                   for (var d = 0; d < 7; d++)
                     Expanded(
                       child: _DayCell(
-                        day: first.add(Duration(days: w * 7 + d)),
-                        inMonth: first.add(Duration(days: w * 7 + d)).month == anchor.month,
-                        isToday: first.add(Duration(days: w * 7 + d)) == today,
-                        items: grouped[first.add(Duration(days: w * 7 + d))] ?? const [],
+                        day: addDays(first, w * 7 + d),
+                        inMonth: addDays(first, w * 7 + d).month == anchor.month,
+                        isToday: addDays(first, w * 7 + d) == today,
+                        items: grouped[addDays(first, w * 7 + d)] ?? const [],
                         maxChips: maxChips,
                         colorOf: colorOf,
                         onTap: onDayTap,

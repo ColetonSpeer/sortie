@@ -43,6 +43,9 @@ abstract final class BackgroundKeepAlive {
   static Future<void> resumeAfterDictation() async {
     if (!supported || !_pausedWasOn) return;
     _pausedWasOn = false;
+    // The speech plugin deactivates the shared audio session a moment after
+    // it stops; reactivating before that lands would be undone by it.
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
     _last = null;
     await set(enabled: true);
   }

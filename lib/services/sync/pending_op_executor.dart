@@ -136,6 +136,71 @@ class PendingOpExecutor {
     return all.where((f) => f.specialUse == use).firstOrNull;
   }
 
+  // ---------------------------------------------------------------- smtp lane
+
+  /// Ops whose SMTP submission succeeded in this process. The DB flag can
+  /// lag behind an op object that a drain loaded before the submission
+  /// finished; this set closes that window so nothing is ever sent twice.
+  final _smtpAccepted = <String>{};
+  final _smtpInFlight = <String, Future<void>>{};
+
+  /// Submits every queued message over SMTP. Needs no IMAP connection, so
+  /// the session runs it off the command chain: a long folder sync or a
+  /// stuck command never holds a message the user pressed Send on. The Sent
+  /// copy and the draft cleanup follow in [drain]. Returns how many the
+  /// server accepted.
+  Future<int> submitPending(String accountId) async {
+    var n = 0;
+    for (final op in await ops.pending(accountId)) {
+      if (op is! SendOp || op.smtpAccepted || _smtpAccepted.contains(op.id) || _smtpInFlight.containsKey(op.id)) continue;
+      try {
+        await _submit(op);
+        n++;
+      } on PendingOpRetry catch (e) {
+        _log.info('send ${op.id} deferred: ${e.message}');
+        await ops.markFailed(op.id, e.message);
+      } catch (e, s) {
+        _log.warning('send ${op.id} failed: $e', e, s);
+        await ops.markFailed(op.id, e.toString());
+      }
+    }
+    return n;
+  }
+
+  /// One SMTP submission per op, even when the send lane and a drain reach
+  /// the same op at the same time.
+  Future<void> _submit(SendOp o) {
+    final running = _smtpInFlight[o.id];
+    if (running != null) return running;
+    // Block body on purpose: an expression body would hand whenComplete the
+    // removed future (this one), and it would wait for itself.
+    final f = _submitNow(o).whenComplete(() {
+      _smtpInFlight.remove(o.id);
+    });
+    _smtpInFlight[o.id] = f;
+    return f;
+  }
+
+  Future<void> _submitNow(SendOp o) async {
+    final raw = await _readFile(o.rawMessagePath);
+    final account = await accounts.byId(o.accountId);
+    if (account == null) throw StateError('account ${o.accountId} gone');
+    final identity = (await accounts.identities(o.accountId)).where((i) => i.id == o.identityId).firstOrNull ??
+        Identity(id: o.identityId, accountId: o.accountId, name: account.displayName, email: account.email);
+    final password = await credentials.read(CredentialStore.accountPassword(o.accountId));
+    if (password == null) throw const PendingOpRetry('no password stored');
+    try {
+      final r = await smtp.send(account, password, identity, o.recipients, raw);
+      if (!r.accepted) throw PendingOpRetry('SMTP did not accept: ${r.response}');
+    } on SmtpGatewayException catch (e) {
+      if (e.isAuthFailure) throw PendingOpRetry('SMTP auth failed: ${e.message}');
+      throw PendingOpRetry(e.message);
+    }
+    // From here on the message is out; never resend.
+    _smtpAccepted.add(o.id);
+    await ops.markSmtpAccepted(o.id);
+  }
+
   // ---------------------------------------------------------------- ops
 
   Future<void> _setFlags(SetFlagsOp o, ImapGateway gw) async {
@@ -237,24 +302,8 @@ class PendingOpExecutor {
   }
 
   Future<void> _send(SendOp o, ImapGateway gw) async {
+    if (!o.smtpAccepted && !_smtpAccepted.contains(o.id)) await _submit(o);
     final raw = await _readFile(o.rawMessagePath);
-    final account = await accounts.byId(o.accountId);
-    if (account == null) throw StateError('account ${o.accountId} gone');
-    final identity = (await accounts.identities(o.accountId)).where((i) => i.id == o.identityId).firstOrNull ??
-        Identity(id: o.identityId, accountId: o.accountId, name: account.displayName, email: account.email);
-    if (!o.smtpAccepted) {
-      final password = await credentials.read(CredentialStore.accountPassword(o.accountId));
-      if (password == null) throw const PendingOpRetry('no password stored');
-      try {
-        final r = await smtp.send(account, password, identity, o.recipients, raw);
-        if (!r.accepted) throw PendingOpRetry('SMTP did not accept: ${r.response}');
-      } on SmtpGatewayException catch (e) {
-        if (e.isAuthFailure) throw PendingOpRetry('SMTP auth failed: ${e.message}');
-        throw PendingOpRetry(e.message);
-      }
-      // From here on the message is out; never resend.
-      await ops.markSmtpAccepted(o.id);
-    }
     final sent = await _special(o.accountId, SpecialUse.sent);
     if (sent == null) {
       _log.info('no Sent folder known; skipping Sent copy for ${o.id}');

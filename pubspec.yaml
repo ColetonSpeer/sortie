@@ -44,6 +44,11 @@ dependencies:
   workmanager: ^0.10.10
   xml: ^6.6.1
 
+dependency_overrides:
+  # Vendored copy with a socket-leak fix; see third_party/enough_mail/README.md.
+  enough_mail:
+    path: third_party/enough_mail
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

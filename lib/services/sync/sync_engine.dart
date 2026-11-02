@@ -191,6 +191,42 @@ class SyncEngine implements MailSyncService {
   @override
   Future<void> syncNow(String accountId, {String? folderPath}) => _session(accountId).syncNow(folderPath: folderPath);
 
+  /// True while a session (connections, IDLE) runs for [accountId].
+  bool isRunning(String accountId) => _sessions.containsKey(accountId);
+
+  /// Loads the accounts without starting any session, so [gatewayFactory]
+  /// and [password] work for the bounded background cycle on phones.
+  Future<void> primeAccounts() async {
+    for (final a in await accounts.all()) {
+      _accounts[a.id] = a;
+    }
+  }
+
+  /// Connect, sync [folderPath] once, disconnect: the inbox refresh of the
+  /// bounded background cycle (iOS BGAppRefresh, Android WorkManager), where
+  /// no session is running. With a running session it defers to [syncNow].
+  /// Returns the number of new messages.
+  Future<int> syncOnce(String accountId, {String folderPath = 'INBOX'}) async {
+    if (_sessions.containsKey(accountId)) {
+      await syncNow(accountId, folderPath: folderPath);
+      return 0;
+    }
+    final account = _accounts[accountId] ?? await accounts.byId(accountId);
+    if (account == null) throw StateError('unknown account $accountId');
+    _accounts[accountId] = account;
+    final gw = _gatewayFactory(account)();
+    try {
+      await gw.connect(account, await password(accountId));
+      final r = await FolderSynchronizer(accountId: accountId, messages: messages, folders: folders, clock: clock).sync(gw, folderPath);
+      if (r.newMessages.isNotEmpty) _inboxCtrl(accountId).add(r.newMessages);
+      return r.newMessages.length;
+    } finally {
+      try {
+        await gw.disconnect().timeout(const Duration(seconds: 5));
+      } catch (_) {}
+    }
+  }
+
   /// After the machine wakes from sleep: sync every account's INBOX now. A
   /// socket that died while asleep fails fast here and reconnects instead of
   /// waiting for the next keepalive to notice.

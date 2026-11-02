@@ -21,6 +21,12 @@ class CalendarViewState {
 
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// [n] calendar days after local midnight [d]. Not `d.add(Duration(days:
+/// n))`: that is 24 h steps, which from the DST change on lands at 23:00 or
+/// 01:00 and no longer matches the [dateOnly] keys of [byDay] (November
+/// 2026 showed a month view with no events after the 1st).
+DateTime addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
+
 final calendarViewProvider = StateProvider<CalendarViewState>(
     (_) => CalendarViewState(mode: CalendarViewMode.month, anchor: dateOnly(DateTime.now())));
 
@@ -42,12 +48,12 @@ final occurrencesProvider = StreamProvider.family<List<EventOccurrence>, Occurre
   switch (v.mode) {
     case CalendarViewMode.month:
       final first = startOfWeek(DateTime(v.anchor.year, v.anchor.month, 1), weekStart);
-      return (first: first, last: first.add(const Duration(days: 42)));
+      return (first: first, last: addDays(first, 42));
     case CalendarViewMode.week:
       final first = startOfWeek(v.anchor, weekStart);
-      return (first: first, last: first.add(const Duration(days: 7)));
+      return (first: first, last: addDays(first, 7));
     case CalendarViewMode.agenda:
-      return (first: v.anchor, last: v.anchor.add(const Duration(days: 30)));
+      return (first: v.anchor, last: addDays(v.anchor, 30));
   }
 }
 
@@ -68,7 +74,7 @@ Map<DateTime, List<EventOccurrence>> byDay(List<EventOccurrence> occ, DateTime f
     final endDay = dateOnly(e.subtract(const Duration(microseconds: 1)));
     while (!d.isAfter(endDay)) {
       if (!d.isBefore(first) && d.isBefore(last)) out.putIfAbsent(d, () => []).add(o);
-      d = d.add(const Duration(days: 1));
+      d = addDays(d, 1);
     }
   }
   return out;
@@ -79,7 +85,7 @@ Map<DateTime, List<EventOccurrence>> byDay(List<EventOccurrence> occ, DateTime f
   if (o.isAllDay) {
     final s = DateTime(o.start.year, o.start.month, o.start.day);
     final e = DateTime(o.end.year, o.end.month, o.end.day);
-    return (s, e.isAfter(s) ? e : s.add(const Duration(days: 1)));
+    return (s, e.isAfter(s) ? e : addDays(s, 1));
   }
   final s = o.start.toLocal();
   final e = o.end.toLocal();
@@ -97,7 +103,7 @@ abstract final class CalFmt {
   static String fullDay(DateTime d) => _full.format(d);
   static String time(DateTime d) => _time.format(d);
   static String weekLabel(DateTime first) {
-    final last = first.add(const Duration(days: 6));
+    final last = addDays(first, 6);
     return first.month == last.month
         ? '${DateFormat.MMMd().format(first)} – ${DateFormat.d().format(last)}, ${last.year}'
         : '${DateFormat.MMMd().format(first)} – ${DateFormat.MMMd().format(last)}, ${last.year}';
@@ -107,7 +113,7 @@ abstract final class CalFmt {
     final (s, e) = localSpan(o);
     if (o.isAllDay) {
       final days = e.difference(s).inDays;
-      return days <= 1 ? 'All day, ${fullDay(s)}' : '${fullDay(s)} – ${fullDay(e.subtract(const Duration(days: 1)))}';
+      return days <= 1 ? 'All day, ${fullDay(s)}' : '${fullDay(s)} – ${fullDay(addDays(e, -1))}';
     }
     if (dateOnly(s) == dateOnly(e)) return '${fullDay(s)}, ${time(s)} – ${time(e)}';
     return '${fullDay(s)} ${time(s)} – ${fullDay(e)} ${time(e)}';

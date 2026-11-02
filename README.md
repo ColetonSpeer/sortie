@@ -118,9 +118,36 @@ default):
   services does not apply) that keeps the IMAP IDLE connections up.
 - **iOS** has no such service. Sortie holds a silent audio session
   (`audio` background mode, mixes with whatever is playing) so iOS does not
-  freeze the process; this costs some battery. With it off, the phone sorts
-  only while on screen, for about 30 s after you leave, and in the short
-  background-refresh windows iOS grants.
+  freeze the process; this costs some battery. The session is re-asserted
+  whenever the app changes state and by a 15 s watchdog, because a phone
+  call, Siri or a Blabber dictation can leave it inactive, and an inactive
+  session means iOS freezes the app within seconds of leaving it. With the
+  option off, the phone sorts only while on screen, for about 30 s after
+  you leave, and in the background-refresh windows below.
+- **Background refresh (both phones).** Independently of the above, iOS
+  BGAppRefresh/BGProcessing and Android WorkManager wake Sortie in a fresh
+  isolate every so often (iOS decides when; roughly every 15 min to a few
+  hours for an app that is used daily). That isolate builds the services
+  for one bounded cycle: refresh the inbox, connect to the control folder,
+  claim the lease if no higher-priority device is present, sort one batch,
+  release, and exit within the ~30 s the OS grants. Its lines are tagged
+  `[bg]` in `sortie.log`.
+
+Honest limits: nothing a third-party iOS app can do keeps an IMAP IDLE
+connection up as reliably as Apple Mail's system daemon. If the phone has to
+sort on its own for long stretches, the robust design is a push relay (a
+server that holds the IDLE connection and sends APNs pushes that wake the
+app); that is not built.
+
+### Sending
+
+Pressing Send spools the message and queues it. The SMTP submission runs on
+its own lane, independent of the IMAP command connection, so a long folder
+sync or a command the server is slow to answer never delays a message you
+pressed Send on. Only the copy into Sent (and the removal of the autosaved
+draft) needs IMAP; those follow through the normal queue, which also runs
+between folders during the periodic other-folders pass instead of after it.
+A folder sync that runs past 60 s is logged with its duration and counts.
 
 ### Dark mode for HTML mail
 

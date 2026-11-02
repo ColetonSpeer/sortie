@@ -18,6 +18,12 @@ import workmanager_apple
     // lib/platform/background/ios_bg_refresh_runner.dart.
     WorkmanagerPlugin.registerBGProcessingTask(withIdentifier: "com.sortie.sortie.processing")
     WorkmanagerPlugin.registerPeriodicTask(withIdentifier: "com.sortie.sortie.refresh", frequency: NSNumber(value: 15 * 60))
+    // Background tasks run in their own Flutter engine; without this the
+    // plugins (path_provider, secure storage, sqlite) are missing there and
+    // the cycle cannot even open the database.
+    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
     // Leaving the app: ask for the ~30 s of background time iOS grants so a
     // sort cycle that is under way can finish before the process is frozen.
     NotificationCenter.default.addObserver(self, selector: #selector(enteredBackground), name: UIScene.didEnterBackgroundNotification, object: nil)
@@ -45,6 +51,7 @@ import workmanager_apple
   }
 
   @objc private func enteredBackground() {
+    BackgroundKeepAlive.shared.reassert()
     endSettleTask()
     settleTask = UIApplication.shared.beginBackgroundTask(withName: "sortie-settle") { [weak self] in self?.endSettleTask() }
     DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in self?.endSettleTask() }
@@ -52,6 +59,8 @@ import workmanager_apple
 
   @objc private func enteredForeground() {
     endSettleTask()
+    // Dictation, a phone call or Siri may have left the session inactive.
+    BackgroundKeepAlive.shared.reassert()
   }
 
   private func endSettleTask() {
@@ -72,6 +81,7 @@ final class BackgroundKeepAlive: NSObject {
   private var player: AVAudioPlayer?
   private var wanted = false
   private var observing = false
+  private var watchdog: Timer?
 
   func start() {
     wanted = true
@@ -86,24 +96,51 @@ final class BackgroundKeepAlive: NSObject {
         player = p
       }
       player?.play()
-      if !observing {
-        observing = true
-        NotificationCenter.default.addObserver(self, selector: #selector(interrupted(_:)), name: AVAudioSession.interruptionNotification, object: nil)
-      }
     } catch {
+      // Typically the dictation plugin still owns the session; the watchdog
+      // tries again shortly.
       NSLog("Sortie keep-alive failed: \(error)")
+    }
+    if !observing {
+      observing = true
+      let nc = NotificationCenter.default
+      nc.addObserver(self, selector: #selector(interrupted(_:)), name: AVAudioSession.interruptionNotification, object: nil)
+      nc.addObserver(self, selector: #selector(mediaReset), name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+    }
+    if watchdog == nil {
+      // The player can stop without an interruption notification (another
+      // app's session change, dictation deactivating the shared session);
+      // a stopped player means iOS freezes the process within seconds of
+      // leaving the app. While the process is alive, keep it playing.
+      watchdog = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in self?.reassert() }
     }
   }
 
   func stop() {
     wanted = false
+    watchdog?.invalidate()
+    watchdog = nil
     player?.stop()
     player = nil
     if observing {
       observing = false
-      NotificationCenter.default.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
+      let nc = NotificationCenter.default
+      nc.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
+      nc.removeObserver(self, name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
     }
     try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+  }
+
+  /// Restarts the silence when it should be playing and is not.
+  func reassert() {
+    guard wanted else { return }
+    if player?.isPlaying != true { start() }
+  }
+
+  /// The media server crashed: every player and session is gone.
+  @objc private func mediaReset() {
+    player = nil
+    if wanted { start() }
   }
 
   /// A phone call or another app's audio ended: resume the silence.

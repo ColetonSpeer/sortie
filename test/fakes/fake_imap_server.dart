@@ -79,6 +79,10 @@ class FakeImapServer {
   bool refuseAuth = false;
   int dropNextAppendResponses = 0;
   int commandsUntilDisconnect = -1;
+
+  /// When set, every body fetch waits for it first: a stand-in for a
+  /// command connection that is busy for a long time.
+  Future<void>? bodyGate;
   final commandLog = <String>[];
   final connections = <FakeImapGateway>{};
 
@@ -336,6 +340,8 @@ class FakeImapGateway implements ImapGateway {
   @override
   Future<MessageBody> fetchBody(int uid) async {
     _cmd('UID FETCH $uid BODY');
+    final gate = server.bodyGate;
+    if (gate != null) await gate;
     final m = _mb.messages[uid];
     if (m == null) throw ImapGatewayException('no uid $uid');
     return m.body ?? MessageBody(text: m.textBody);

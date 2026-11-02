@@ -23,7 +23,7 @@ class AgendaView extends ConsumerWidget {
     final today = dateOnly(DateTime.now());
     if (days.isEmpty) {
       return Center(
-        child: Text('No events between ${CalFmt.day(first)} and ${CalFmt.day(last.subtract(const Duration(days: 1)))}',
+        child: Text('No events between ${CalFmt.day(first)} and ${CalFmt.day(addDays(last, -1))}',
             style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
       );
     }

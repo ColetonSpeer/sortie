@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -110,6 +112,55 @@ void main() {
     await eventually(() => server.mailboxes['Archive']!.messages.length == 1);
     await eventually(() async => (await t.pendingOps.pending(testAccountId)).isEmpty);
     await eventually(() async => (await t.messages.byMessageIdHash(testAccountId, h.messageIdHash))?.uid == server.mailboxes['Archive']!.uids.single);
+  });
+
+  test('a send leaves over SMTP while the command connection is busy; the Sent copy follows', () async {
+    server.createMailbox('Sent', specialUse: SpecialUse.sent);
+    final uid = server.deliver('INBOX', makeHeader(subject: 'slow body'));
+    final smtp = RecordingSmtpGateway();
+    engine = SyncEngine(
+      accounts: t.accounts,
+      folders: t.folders,
+      messages: t.messages,
+      pendingOps: t.pendingOps,
+      credentials: creds,
+      gatewayFactory: (a) => () => FakeImapGateway(server, name: 'c${server.connections.length}'),
+      smtp: smtp,
+      clock: t.clock,
+      spoolDir: spool,
+      tuning: tuning,
+    );
+    await engine.startAccount(testAccountId);
+    await eventually(() async => (await engine.watchStatus(testAccountId).first).state == AccountSyncState.idling);
+
+    // Occupy the command chain with a body fetch that does not return.
+    final gate = Completer<void>();
+    server.bodyGate = gate.future;
+    final body = engine.body(testAccountId, 'INBOX', uid);
+    await eventually(() => server.commandLog.any((c) => c.contains('UID FETCH $uid BODY')));
+
+    final raw = utf8.encode('From: test@example.com\r\nTo: bob@example.com\r\nSubject: urgent\r\nMessage-ID: <urgent@example.com>\r\n\r\nnow');
+    await engine.send(testAccountId, 'id1', ['bob@example.com'], raw);
+    await eventually(() => smtp.sent.length == 1, reason: 'SMTP must not wait for the IMAP command chain');
+    expect(server.mailboxes['Sent']!.messages, isEmpty, reason: 'the Sent copy needs IMAP, which is still busy');
+    final queued = await t.pendingOps.pending(testAccountId);
+    expect(queued.single, isA<SendOp>().having((o) => o.smtpAccepted, 'smtpAccepted', true));
+
+    gate.complete();
+    await body;
+    await eventually(() => server.mailboxes['Sent']!.messages.length == 1);
+    await eventually(() async => (await t.pendingOps.pending(testAccountId)).isEmpty);
+    expect(smtp.sent.length, 1, reason: 'never re-sent');
+  });
+
+  test('syncOnce refreshes the inbox without a running session and disconnects', () async {
+    server.deliver('INBOX', makeHeader(subject: 'while frozen'));
+    expect(engine.isRunning(testAccountId), isFalse);
+    await engine.primeAccounts();
+    expect(await engine.syncOnce(testAccountId), 1);
+    expect((await t.messages.knownUids(testAccountId, 'INBOX')).length, 1);
+    expect(server.connections, isEmpty, reason: 'one-shot: nothing left open');
+    expect(engine.isRunning(testAccountId), isFalse);
   });
 
   test('auth failure is reported and connection loss reconnects with backoff', () async {

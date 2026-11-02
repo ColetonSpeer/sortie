@@ -119,8 +119,8 @@ class CalendarScreen extends ConsumerWidget {
     final a = v.anchor;
     final next = switch (v.mode) {
       CalendarViewMode.month => DateTime(a.year, a.month + dir, 1),
-      CalendarViewMode.week => a.add(Duration(days: 7 * dir)),
-      CalendarViewMode.agenda => a.add(Duration(days: 30 * dir)),
+      CalendarViewMode.week => addDays(a, 7 * dir),
+      CalendarViewMode.agenda => addDays(a, 30 * dir),
     };
     ref.read(calendarViewProvider.notifier).state = v.copyWith(anchor: next);
   }
