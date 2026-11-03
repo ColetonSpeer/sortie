@@ -43,7 +43,7 @@ toolchain and an `Xcode.xip`:
 
 ```sh
 xcross setup
-xcross sdk install ~/Downloads/Xcode_26_Universal.xip
+xcross sdk install ~/Downloads/Xcode_27.1_Universal.xip   # 27.1 or newer: the fold bridge needs its SDK
 xcross auth --apple-id you@example.com
 xcross doctor
 sudo xcross tunnel        # in a second terminal, iOS 17+ device over USB
@@ -138,6 +138,46 @@ connection up as reliably as Apple Mail's system daemon. If the phone has to
 sort on its own for long stretches, the robust design is a push relay (a
 server that holds the IDLE connection and sends APNs pushes that wake the
 app); that is not built.
+
+### iPhone Duo (folding iPhone)
+
+Sortie treats opening and closing the phone as a resize, which is what Apple
+asks for: the outer display gets the stacked phone layout, the inner display
+is wide enough for the two-pane layout, and nothing is tied to an
+orientation or a fixed screen size. What is specific to the Duo:
+
+- **The panes follow the fold.** On the inner display the list sits left of
+  the crease and the message right of it. Flat, the divider lies on the
+  seam; partially folded (book pose) the whole reserved strip stays empty.
+  Folded upright like a laptop, the message reads on the raised half and the
+  list scrolls on the flat half.
+- **Dialogs, menus and sheets stay on one side** of a partially folded
+  screen. Flutter leaves `MediaQuery.displayFeatures` empty on iOS, so
+  `FoldReporter` (ios/Runner/AppDelegate.swift) reads UIKit's iOS 27.1
+  reserved regions from inside Flutter's view and streams the fold to
+  `FoldAware` (lib/platform/fold/fold_geometry.dart), which publishes active
+  folds as display features and the full geometry through `FoldScope`.
+- **Nothing is lost when you fold.** The open message, its scroll position
+  and its read-guard hold survive the switch between the stacked and the
+  two-pane layout (the reader is keyed per message), so a message you are
+  reading keeps its "do not move while open" protection through a fold.
+- **Narrow panes.** The reader's toolbar collapses Flag, Move and Delete
+  into its menu below 420 pt, and the list takes at most 45 % of a two-pane
+  window, so the inner display held upright is not cramped.
+- **Swipe actions work on every phone layout**, not only below 600 pt.
+- The status bar and camera strip along one edge of the inner display is
+  an ordinary asymmetric safe-area inset; `SafeArea` handles it and no
+  layout assumes opposite insets are equal.
+- Landscape stays enabled on iPhone (tent mode), orientation is never
+  locked at run time (the inner display ignores that anyway), and
+  `UIRequiresFullScreen` is not set, so Split View works.
+
+All of this needs the iOS 27.1 SDK: an app built with an older SDK is
+letterboxed on the inner display. `release-ios.yml` therefore runs on the
+`xcode-27` GitHub image (Xcode 27.1); an xcross dev build needs the
+`Xcode_27.1` xip for the same reason. The fold bridge was written against
+Apple's reserved-regions documentation and has only run on the iPhone Duo
+simulator in other people's reports, not yet on this project's hardware.
 
 ### Sending
 

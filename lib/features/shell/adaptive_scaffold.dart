@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
+import '../../platform/fold/fold_geometry.dart';
 import '../../router/app_router.dart';
 import '../compose/open_compose.dart';
 import '../mailbox/folder_list.dart';
@@ -12,6 +15,12 @@ import '../message_view/message_screen.dart';
 import 'rail_header.dart';
 
 /// Three-pane (>= 1000 dp), two-pane (600-999) or stacked (< 600) mail shell.
+///
+/// On a folding phone (iPhone Duo) the inner display is two-pane wide and
+/// the panes follow the fold: list left of it, message right of it, and in
+/// the laptop pose the message above it and the list below. Opening or
+/// closing the device is only a resize; the open message, its scroll
+/// position and its read-guard hold survive the layout change.
 class AdaptiveScaffold extends ConsumerWidget {
   const AdaptiveScaffold({super.key, required this.accountId, required this.folderPath, this.uid, this.messageFolder, this.messageAccount});
 
@@ -33,6 +42,21 @@ class AdaptiveScaffold extends ConsumerWidget {
   static const expandedBreakpoint = 1000.0;
   static const railWidth = 260.0;
   static const listWidth = 400.0;
+
+  /// The list pane's width in the two-pane layout when no fold dictates it.
+  static const twoPaneListWidth = 340.0;
+
+  /// Keyed per open message so the reader keeps its State (body, scroll
+  /// position, view choices, read-guard hold) when a fold or a window resize
+  /// moves it between the stacked and the two-pane layout.
+  static final _messageKeys = <String, GlobalKey>{};
+  static GlobalKey _messageKey(String id) {
+    final k = _messageKeys.putIfAbsent(id, () => GlobalKey(debugLabel: id));
+    while (_messageKeys.length > 16) {
+      _messageKeys.remove(_messageKeys.keys.first);
+    }
+    return k;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,7 +87,7 @@ class AdaptiveScaffold extends ConsumerWidget {
   Widget _view({required bool standalone}) => uid == null
       ? const _EmptyMessagePane()
       : MessageScreen(
-          key: ValueKey('msg:${messageAccount ?? accountId}:${messageFolder ?? folderPath}:$uid'),
+          key: _messageKey('msg:$accountId:$folderPath|${messageAccount ?? accountId}:${messageFolder ?? folderPath}:$uid'),
           accountId: messageAccount ?? accountId,
           folderPath: messageFolder ?? folderPath,
           uid: uid!,
@@ -82,14 +106,42 @@ class AdaptiveScaffold extends ConsumerWidget {
         ]),
       );
 
-  Widget _twoPane(BuildContext context) => Scaffold(
+  Widget _twoPane(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final folds = FoldScope.of(context);
+    final laptop = folds.activeHorizontalFoldIn(size);
+    if (laptop != null) {
+      // Laptop pose: read on the raised half, pick from the list on the
+      // flat half; the crease itself stays empty.
+      final top = laptop.bounds.top.clamp(160.0, size.height - 160.0);
+      return Scaffold(
         drawer: Drawer(child: _rail()),
-        body: Row(children: [
-          SizedBox(width: 340, child: _list(showMenuButton: true)),
-          const VerticalDivider(width: 1),
-          Expanded(child: _view(standalone: false)),
+        body: Column(children: [
+          SizedBox(height: top, child: _view(standalone: false)),
+          SizedBox(height: (laptop.bounds.bottom - top).clamp(0.0, size.height - top)),
+          Expanded(child: _list(showMenuButton: true)),
         ]),
       );
+    }
+    final book = folds.verticalFoldIn(size);
+    // Without a fold the list takes its usual width, less on a window only
+    // just wide enough for two panes (the inner display held upright), so
+    // the reader keeps room for its toolbar. A flat crease is only a seam:
+    // the divider goes on it. A partially folded one is kept clear across
+    // its whole reserved width.
+    final listWidth = book == null
+        ? math.min(twoPaneListWidth, size.width * 0.45)
+        : (book.active ? book.bounds.left : book.bounds.center.dx).clamp(220.0, size.width - 220.0);
+    final gap = book != null && book.active ? (book.bounds.right - listWidth).clamp(0.0, size.width - listWidth) : 0.0;
+    return Scaffold(
+      drawer: Drawer(child: _rail()),
+      body: Row(children: [
+        SizedBox(width: listWidth, child: _list(showMenuButton: true)),
+        if (gap > 0) SizedBox(width: gap) else const VerticalDivider(width: 1),
+        Expanded(child: _view(standalone: false)),
+      ]),
+    );
+  }
 
   Widget _stacked(BuildContext context) {
     if (uid != null) return _view(standalone: true);

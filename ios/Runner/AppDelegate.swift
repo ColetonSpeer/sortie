@@ -28,6 +28,9 @@ import workmanager_apple
     // sort cycle that is under way can finish before the process is frozen.
     NotificationCenter.default.addObserver(self, selector: #selector(enteredBackground), name: UIScene.didEnterBackgroundNotification, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(enteredForeground), name: UIScene.willEnterForegroundNotification, object: nil)
+    // iPhone Duo: once the scene is on screen, watch the fold from inside
+    // Flutter's view (reserved regions are per view).
+    NotificationCenter.default.addObserver(self, selector: #selector(sceneActivated(_:)), name: UIScene.didActivateNotification, object: nil)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -48,6 +51,13 @@ import workmanager_apple
         result(FlutterMethodNotImplemented)
       }
     }
+    FoldReporter.shared.register(with: registrar.messenger())
+  }
+
+  @objc private func sceneActivated(_ n: Notification) {
+    guard let scene = n.object as? UIWindowScene,
+          let root = (scene.keyWindow ?? scene.windows.first)?.rootViewController?.view else { return }
+    FoldReporter.shared.attach(to: root)
   }
 
   @objc private func enteredBackground() {
@@ -178,5 +188,110 @@ final class BackgroundKeepAlive: NSObject {
     u32(dataSize)
     d.append(Data(count: Int(dataSize)))
     return d
+  }
+}
+
+/// iPhone Duo (iOS 27.1+): tells Dart where the fold is, as
+/// `{folds: [{x, y, w, h, active}]}` in Flutter's logical coordinates, over
+/// the `com.sortie.sortie/fold` event channel. UIKit describes the fold as a
+/// "division" reserved region: absent on the outer display, inactive while
+/// the device lies fully open (the crease is only a seam), active while it
+/// is partially folded. Flutter leaves `MediaQuery.displayFeatures` empty
+/// on iOS, so without this bridge dialogs would open across the crease and
+/// the mail panes could not line up with it. Needs the iOS 27.1 SDK
+/// (Xcode 27.1) to compile.
+final class FoldReporter: NSObject, FlutterStreamHandler {
+  static let shared = FoldReporter()
+
+  private var sink: FlutterEventSink?
+  private var last: [String: Any] = ["folds": [[String: Any]]()]
+  private var probe: UIView?
+
+  func register(with messenger: FlutterBinaryMessenger) {
+    FlutterEventChannel(name: "com.sortie.sortie/fold", binaryMessenger: messenger).setStreamHandler(self)
+  }
+
+  /// Adds the (invisible, non-interactive) probe view to Flutter's view once.
+  func attach(to root: UIView) {
+    guard probe == nil else { return }
+    if #available(iOS 27.1, *) {
+      let p = FoldProbeView(frame: root.bounds)
+      p.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+      p.onChange = { [weak self] folds in self?.publish(folds) }
+      root.addSubview(p)
+      probe = p
+    }
+  }
+
+  private func publish(_ folds: [[String: Any]]) {
+    last = ["folds": folds]
+    sink?(last)
+  }
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    sink = events
+    events(last)
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    sink = nil
+    return nil
+  }
+}
+
+/// Fills Flutter's view, draws nothing and takes no touches; it exists so
+/// that `reservedRegions` can be read in the same coordinate space Flutter
+/// lays out in. UIKit re-runs `updateConstraints()` whenever the regions
+/// read there change (fold, unfold, rotate, Split View).
+@available(iOS 27.1, *)
+final class FoldProbeView: UIView {
+  var onChange: (([[String: Any]]) -> Void)?
+  private var signature = ""
+
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    isUserInteractionEnabled = false
+    isAccessibilityElement = false
+    backgroundColor = .clear
+    isOpaque = false
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+  override class var requiresConstraintBasedLayout: Bool { true }
+
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    setNeedsUpdateConstraints()
+    report()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    report()
+  }
+
+  override func updateConstraints() {
+    report()
+    super.updateConstraints()
+  }
+
+  private func report() {
+    guard window != nil else { return }
+    let regions = reservedRegions(kind: .division, options: .includeInactive)
+    let folds: [[String: Any]] = regions.map { r in
+      [
+        "x": Double(r.frame.origin.x),
+        "y": Double(r.frame.origin.y),
+        "w": Double(r.frame.width),
+        "h": Double(r.frame.height),
+        "active": r.isActive,
+      ]
+    }
+    let sig = regions.map { r in "\(r.frame.origin.x),\(r.frame.origin.y),\(r.frame.width),\(r.frame.height),\(r.isActive)" }.joined(separator: ";")
+    if sig == signature { return }
+    signature = sig
+    onChange?(folds)
   }
 }

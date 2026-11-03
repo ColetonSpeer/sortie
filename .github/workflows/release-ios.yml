@@ -10,7 +10,11 @@ on:
 # Without them the job still produces an unsigned .ipa for manual sideloading.
 jobs:
   ios:
-    runs-on: macos-26
+    # The xcode-27 image carries Xcode 27.1 (iOS 27.1 SDK). That SDK is what
+    # lets the app use the whole inner display of the iPhone Duo and what
+    # FoldReporter in ios/Runner/AppDelegate.swift compiles against; the
+    # macos-26 image tops out at Xcode 26.
+    runs-on: xcode-27
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -20,6 +24,11 @@ jobs:
       APPLE_DEV_CERT_PASSWORD: ${{ secrets.APPLE_DEV_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4

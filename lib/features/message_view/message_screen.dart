@@ -179,7 +179,12 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
     final actions = MessageActions(context, ref);
     final thread = h == null || !settings.threadedView ? null : _threadOf(h);
 
-    return Scaffold(
+    // A narrow pane (the iPhone Duo's inner display held upright gives the
+    // reader about 370 pt beside the list) folds the rarer actions into the
+    // menu instead of overflowing the toolbar.
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 420;
+      return Scaffold(
       appBar: AppBar(
         leading: widget.standalone
             ? BackButton(onPressed: () => context.canPop() ? context.pop() : context.go(_listRoute))
@@ -194,22 +199,20 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                 IconButton(tooltip: 'Reply', icon: const Icon(Icons.reply), onPressed: () => _compose(reply: h)),
                 IconButton(tooltip: 'Reply all', icon: const Icon(Icons.reply_all), onPressed: () => _compose(replyAll: h)),
                 IconButton(tooltip: 'Forward', icon: const Icon(Icons.forward), onPressed: () => _compose(forward: h)),
-                IconButton(
-                  tooltip: h.isFlagged ? 'Unflag' : 'Flag',
-                  icon: Icon(h.isFlagged ? Icons.star : Icons.star_outline),
-                  onPressed: () => actions.toggleFlag(h),
-                ),
-                IconButton(tooltip: 'Move to…', icon: const Icon(Icons.drive_file_move_outline), onPressed: () => actions.movePrompt([h])),
-                IconButton(
-                  tooltip: 'Delete',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    await actions.delete([h]);
-                    if (context.mounted && widget.standalone) context.go(_listRoute);
-                  },
-                ),
+                if (!compact) ...[
+                  IconButton(
+                    tooltip: h.isFlagged ? 'Unflag' : 'Flag',
+                    icon: Icon(h.isFlagged ? Icons.star : Icons.star_outline),
+                    onPressed: () => actions.toggleFlag(h),
+                  ),
+                  IconButton(tooltip: 'Move to…', icon: const Icon(Icons.drive_file_move_outline), onPressed: () => actions.movePrompt([h])),
+                  IconButton(tooltip: 'Delete', icon: const Icon(Icons.delete_outline), onPressed: () => _delete(h, actions)),
+                ],
                 PopupMenuButton<String>(
                   onSelected: (v) {
+                    if (v == 'flag') actions.toggleFlag(h);
+                    if (v == 'move') actions.movePrompt([h]);
+                    if (v == 'delete') _delete(h, actions);
                     if (v == 'unread') actions.markRead([h], read: false);
                     if (v == 'archive') actions.archive([h]);
                     if (v == 'plain') setState(() => _plainText = !plainText);
@@ -218,6 +221,12 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                     if (v == 'calendar') _addToCalendar(h);
                   },
                   itemBuilder: (_) => [
+                    if (compact) ...[
+                      PopupMenuItem(value: 'flag', child: Text(h.isFlagged ? 'Unflag' : 'Flag')),
+                      const PopupMenuItem(value: 'move', child: Text('Move to…')),
+                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      const PopupMenuDivider(),
+                    ],
                     const PopupMenuItem(value: 'unread', child: Text('Mark unread')),
                     const PopupMenuItem(value: 'archive', child: Text('Archive')),
                     const PopupMenuDivider(),
@@ -284,7 +293,13 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                     ),
                   ),
                 ]),
-    );
+      );
+    });
+  }
+
+  Future<void> _delete(MessageHeader h, MessageActions actions) async {
+    await actions.delete([h]);
+    if (mounted && widget.standalone) context.go(_listRoute);
   }
 
   /// The conversation [h] belongs to within the folder this screen was opened

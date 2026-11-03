@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/providers.dart';
+import 'platform/fold/fold_geometry.dart';
 import 'router/app_router.dart';
 
 /// Root widget: Material 3, indigo seed, theme mode from DeviceSettings.
@@ -33,6 +34,8 @@ class SortieApp extends ConsumerWidget {
       darkTheme: theme(Brightness.dark),
       themeMode: modeFrom(mode),
       routerConfig: router,
+      // iPhone Duo: dialogs and the mail panes keep clear of the fold.
+      builder: (context, child) => FoldAware(child: child!),
     );
   }
 }

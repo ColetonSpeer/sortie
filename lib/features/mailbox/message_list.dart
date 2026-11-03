@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/services/services.dart';
+import '../../platform/device_info.dart' show isDesktop;
 import '../../router/app_router.dart';
 import '../settings/settings_common.dart';
 import '../shell/adaptive_scaffold.dart';
@@ -136,7 +137,10 @@ class _MessageListPaneState extends ConsumerState<MessageListPane> {
     final selection = ref.watch(selectedMessagesProvider);
     final folder = _isAll ? null : ref.watch(foldersProvider(widget.accountId)).asData?.value.where((f) => f.path == widget.folderPath).firstOrNull;
     final title = _isAll ? 'All inboxes' : folder == null ? widget.folderPath : (folder.isInbox ? 'Inbox' : folder.name);
-    final touch = MediaQuery.sizeOf(context).width < AdaptiveScaffold.compactBreakpoint;
+    // Swipe actions on every phone layout (the iPhone Duo's inner display is
+    // wide enough for two panes and still a touch screen), and on narrow
+    // desktop windows.
+    final touch = !isDesktop || MediaQuery.sizeOf(context).width < AdaptiveScaffold.compactBreakpoint;
     final threaded = ref.watch(deviceSettingsProvider).asData?.value.threadedView ?? true;
     final own = threaded ? _ownAddresses(accounts) : const <String>{};
     final isInbox = _isAll || (folder?.isInbox ?? widget.folderPath.toUpperCase() == 'INBOX');
