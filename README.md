@@ -175,9 +175,28 @@ orientation or a fixed screen size. What is specific to the Duo:
 All of this needs the iOS 27.1 SDK: an app built with an older SDK is
 letterboxed on the inner display. `release-ios.yml` therefore runs on the
 `xcode-27` GitHub image (Xcode 27.1); an xcross dev build needs the
-`Xcode_27.1` xip for the same reason. The fold bridge was written against
-Apple's reserved-regions documentation and has only run on the iPhone Duo
-simulator in other people's reports, not yet on this project's hardware.
+`Xcode_27.1` xip for the same reason.
+
+Found on the real phone (2026-11-06) and fixed since:
+
+- **Closing the phone went black** although `sortie.log` showed frames being
+  built for the outer display within milliseconds. Flutter's own
+  `FlutterMetalLayer` does not follow the window to the other panel;
+  `FLTUseFlutterMetalLayer = false` in Info.plist (the system `CAMetalLayer`)
+  fixed it. Two belt-and-braces measures stay in: the engine's display link
+  is recreated at start-up and on demand when no frame follows a screen
+  change (flutter/flutter issue 195401), and the root view controller keeps
+  Flutter's view pixel aligned (issue 195954).
+- **Unfolding with a message open blanked the reader.** The mail route used
+  a different page type below and above 600 pt, so the resize replaced the
+  route and the reader's key was in two routes at once. One page type now;
+  only the transition depends on the width.
+- The inner display's status bar and camera strip is an 84 pt inset on one
+  side; Scaffold bodies are not inset horizontally by themselves.
+- A phone restored from a backup keeps its accounts but not their keychain
+  passwords (`first_unlock_this_device`): Accounts → Sign in.
+- `pymobiledevice3 apps install` hangs forever once an earlier install was
+  interrupted; `pymobiledevice3 diagnostics restart`, unlock, install again.
 
 ### Sending
 

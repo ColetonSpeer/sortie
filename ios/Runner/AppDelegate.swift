@@ -433,6 +433,7 @@ enum NativeLog {
   private static let formatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    f.timeZone = TimeZone.current // Dart's lines are local time too
     return f
   }()
 
