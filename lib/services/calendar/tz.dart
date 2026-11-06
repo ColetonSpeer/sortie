@@ -53,9 +53,13 @@ class IanaZone extends Zone {
     return id;
   }
 
+  // A plain DateTime, not the package's TZDateTime: TZDateTime.toLocal()
+  // keeps its own location instead of moving to the device zone, so an
+  // invitation would print the UTC clock (6:30 pm for a 1:30 pm meeting).
   @override
-  DateTime toUtc(DateTime wall) =>
-      tz.TZDateTime(_loc, wall.year, wall.month, wall.day, wall.hour, wall.minute, wall.second).toUtc();
+  DateTime toUtc(DateTime wall) => DateTime.fromMillisecondsSinceEpoch(
+      tz.TZDateTime(_loc, wall.year, wall.month, wall.day, wall.hour, wall.minute, wall.second).millisecondsSinceEpoch,
+      isUtc: true);
 
   @override
   DateTime toWall(DateTime utc) {

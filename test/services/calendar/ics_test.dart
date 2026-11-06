@@ -70,6 +70,11 @@ void main() {
       final e = _one('BEGIN:VEVENT\nUID:tz1\nDTSTART;TZID=America/New_York:20260115T090000\nDTEND;TZID=America/New_York:20260115T100000\nSUMMARY:Meet\nEND:VEVENT');
       expect(e.start, DateTime.utc(2026, 1, 15, 14)); // EST = UTC-5
       expect(e.tzid, 'America/New_York');
+      // The instant must behave like a plain DateTime: toLocal() moves to the
+      // device zone (the timezone package's TZDateTime would stay in UTC).
+      final local = DateTime.fromMillisecondsSinceEpoch(e.start.millisecondsSinceEpoch);
+      expect(e.start.toLocal().hour, local.hour);
+      expect(e.start.toLocal().isUtc, local.isUtc);
       final out = icsFromEvents([e]);
       expect(out, contains('DTSTART;TZID=America/New_York:20260115T090000'));
       final back = _roundTrip(e);

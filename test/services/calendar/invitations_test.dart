@@ -27,6 +27,40 @@ END:VEVENT
 END:VCALENDAR
 ''';
 
+/// Exchange invite as received 2026-11-06: 12:30 Central, shown as 6:30 pm
+/// (the UTC clock) until the zone converter returned a plain DateTime.
+const exchangeRequest = '''BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:Microsoft Exchange Server 2010
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Central Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0600
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0500
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ORGANIZER;CN=Aaron:mailto:aaron@vendor.test
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=Coleton Speer:mailto:coleton@hky.test
+SUMMARY;LANGUAGE=en-US:AXOS and Cloud Changes
+DTSTART;TZID=Central Standard Time:20261106T123000
+DTEND;TZID=Central Standard Time:20261106T133000
+UID:040000008200E00074C5B7101A82E00800000000
+DTSTAMP:20261106T173141Z
+SEQUENCE:1
+END:VEVENT
+END:VCALENDAR
+''';
+
 const me = Identity(id: 'i1', accountId: 'acct', name: 'Coleton Speer', email: 'coleton@hky.test', isDefault: true);
 
 void main() {
@@ -160,5 +194,14 @@ void main() {
     expect(updated.single.attendees.firstWhere((a) => a.email == me.email).status, AttendeeStatus.accepted);
     await svc.rememberCalendar('google-1');
     expect(await svc.preferredCalendar(), 'google-1');
+  });
+
+  test('Exchange TZID invite is the right instant and shows in device time', () {
+    final inv = MeetingInvitation.parse(exchangeRequest)!;
+    expect(inv.event.start, DateTime.utc(2026, 11, 6, 18, 30)); // 12:30 CST
+    expect(inv.event.end, DateTime.utc(2026, 11, 6, 19, 30));
+    final local = DateTime.fromMillisecondsSinceEpoch(inv.event.start.millisecondsSinceEpoch);
+    expect(inv.event.start.toLocal().hour, local.hour);
+    expect(inv.event.start.toLocal().isUtc, isFalse);
   });
 }
