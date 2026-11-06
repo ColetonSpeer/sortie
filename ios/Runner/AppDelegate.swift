@@ -31,6 +31,7 @@ import workmanager_apple
     // iPhone Duo: once the scene is on screen, watch the fold from inside
     // Flutter's view (reserved regions are per view).
     NotificationCenter.default.addObserver(self, selector: #selector(sceneActivated(_:)), name: UIScene.didActivateNotification, object: nil)
+    DuoVsyncLinkWorkaround.installIfNeeded()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -293,5 +294,79 @@ final class FoldProbeView: UIView {
     if sig == signature { return }
     signature = sig
     onChange?(folds)
+  }
+}
+
+/// iPhone Duo: Flutter's engine creates its CADisplayLink bound to
+/// `UIScreen.main` (always the outer panel) and schedules it later; iOS only
+/// retargets display links that are already scheduled when the app moves
+/// between the two displays, so the engine can end up waiting for a vsync
+/// from a panel that is off and the screen stays black (flutter/flutter
+/// issue 195401, where this workaround comes from). On the first `-await`
+/// the engine's link is replaced by one that is created and scheduled in
+/// the same call, which iOS then keeps on the right display. Only on the
+/// Duo and only when the engine's internals look as expected.
+enum DuoVsyncLinkWorkaround {
+  private static var swappedKey = 0
+
+  static func installIfNeeded() {
+    guard #available(iOS 27.0, *), isDuo else { return }
+    guard let cls = NSClassFromString("FlutterVSyncClient") ?? NSClassFromString("VSyncClient"),
+          let method = class_getInstanceMethod(cls, NSSelectorFromString("await")) else {
+      NSLog("Sortie: vsync workaround not installed (engine class not found)")
+      return
+    }
+    typealias AwaitFn = @convention(c) (AnyObject, Selector) -> Void
+    let original = unsafeBitCast(method_getImplementation(method), to: AwaitFn.self)
+    let awaitSelector = NSSelectorFromString("await")
+    let replacement: @convention(block) (AnyObject) -> Void = { client in
+      recreateScheduledLinkIfNeeded(client)
+      original(client, awaitSelector)
+    }
+    method_setImplementation(method, imp_implementationWithBlock(replacement))
+    NSLog("Sortie: vsync workaround installed")
+  }
+
+  private static var isDuo: Bool {
+    var size = 0
+    sysctlbyname("hw.machine", nil, &size, nil, 0)
+    var chars = [CChar](repeating: 0, count: size)
+    sysctlbyname("hw.machine", &chars, &size, nil, 0)
+    let machine = String(cString: chars)
+    return machine.hasPrefix("iPhone19,")
+  }
+
+  private static func recreateScheduledLinkIfNeeded(_ client: AnyObject) {
+    guard Thread.isMainThread,
+          objc_getAssociatedObject(client, &swappedKey) == nil,
+          let obj = client as? NSObject,
+          obj.responds(to: NSSelectorFromString("displayLink")),
+          obj.responds(to: NSSelectorFromString("onDisplayLink:")),
+          let old = obj.value(forKey: "displayLink") as? CADisplayLink
+    else { return }
+    let link = CADisplayLink(target: client, selector: NSSelectorFromString("onDisplayLink:"))
+    link.preferredFrameRateRange = old.preferredFrameRateRange
+    link.isPaused = true
+    obj.setValue(link, forKey: "displayLink")
+    old.invalidate()
+    link.add(to: .main, forMode: .common) // scheduled in the same call that creates it
+    objc_setAssociatedObject(client, &swappedKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    NSLog("Sortie: engine display link recreated")
+  }
+}
+
+/// Root view controller (Main.storyboard). Keeps Flutter's view pixel
+/// aligned: when a window's size times its scale is fractional (iPhone Duo
+/// top/bottom Split View) the engine discards every frame and the view
+/// freezes (flutter/flutter issue 195954).
+class SortieViewController: FlutterViewController {
+  override func viewWillLayoutSubviews() {
+    if let container = view.superview ?? view.window {
+      let scale = view.traitCollection.displayScale
+      let b = container.bounds
+      let aligned = CGRect(x: 0, y: 0, width: floor(b.width * scale) / scale, height: floor(b.height * scale) / scale)
+      if view.frame != aligned { view.frame = aligned }
+    }
+    super.viewWillLayoutSubviews()
   }
 }

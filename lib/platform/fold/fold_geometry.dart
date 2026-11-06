@@ -120,13 +120,15 @@ class FoldAware extends StatefulWidget {
   State<FoldAware> createState() => _FoldAwareState();
 }
 
-class _FoldAwareState extends State<FoldAware> {
+class _FoldAwareState extends State<FoldAware> with WidgetsBindingObserver {
   StreamSubscription<FoldGeometry>? _sub;
   FoldGeometry _geometry = FoldGeometry.none;
+  String _metrics = '';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _sub = (widget.folds ?? FoldReporter.stream()).listen((g) {
       if (g == _geometry || !mounted) return;
       // One line per change: the proof, in sortie.log, that the phone
@@ -138,8 +140,27 @@ class _FoldAwareState extends State<FoldAware> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
+  }
+
+  /// Folding, unfolding, rotating and Split View all arrive here as a new
+  /// window size. Logged once per change, with the first frame drawn at it,
+  /// so a display that stays black can be told apart from a layout that
+  /// never ran (iPhone Duo, Flutter engine issue 195401).
+  @override
+  void didChangeMetrics() {
+    if (!FoldReporter.supported) return;
+    final v = WidgetsBinding.instance.platformDispatcher.implicitView;
+    if (v == null) return;
+    final size = v.physicalSize / v.devicePixelRatio;
+    final pad = v.padding;
+    final m = '${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)} padding l${pad.left / v.devicePixelRatio} t${pad.top / v.devicePixelRatio} r${pad.right / v.devicePixelRatio} b${pad.bottom / v.devicePixelRatio}';
+    if (m == _metrics) return;
+    _metrics = m;
+    FoldReporter.log.info('window $m');
+    WidgetsBinding.instance.addPostFrameCallback((_) => FoldReporter.log.info('frame built for $m'));
   }
 
   @override
