@@ -394,6 +394,28 @@ enum DuoVsyncLinkWorkaround {
 /// top/bottom Split View) the engine discards every frame and the view
 /// freezes (flutter/flutter issue 195954).
 class SortieViewController: FlutterViewController {
+  private var lastGeometry = ""
+
+  /// One line per change of where and how big Flutter's view is, in
+  /// sortie.log next to the Dart lines, so a display that stays black can be
+  /// matched against the view, window, screen and layer at that moment.
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let layer = view.layer
+    var drawable = "n/a"
+    if layer.responds(to: NSSelectorFromString("drawableSize")), let d = layer.value(forKey: "drawableSize") as? CGSize {
+      drawable = "\(Int(d.width))x\(Int(d.height))"
+    }
+    let screen = view.window?.windowScene?.screen
+    let g = "view \(Int(view.frame.width))x\(Int(view.frame.height)) window \(Int(view.window?.bounds.width ?? 0))x\(Int(view.window?.bounds.height ?? 0)) "
+      + "screen \(Int(screen?.bounds.width ?? 0))x\(Int(screen?.bounds.height ?? 0))@\(screen?.scale ?? 0) main \(Int(UIScreen.main.bounds.width))x\(Int(UIScreen.main.bounds.height)) "
+      + "layer \(type(of: layer)) \(Int(layer.bounds.width))x\(Int(layer.bounds.height)) scale \(layer.contentsScale) drawable \(drawable) hidden \(view.isHidden)/\(view.window?.isHidden ?? true)"
+    if g != lastGeometry {
+      lastGeometry = g
+      NativeLog.write("native: " + g)
+    }
+  }
+
   override func viewWillLayoutSubviews() {
     if let container = view.superview ?? view.window {
       let scale = view.traitCollection.displayScale
@@ -402,5 +424,29 @@ class SortieViewController: FlutterViewController {
       if view.frame != aligned { view.frame = aligned }
     }
     super.viewWillLayoutSubviews()
+  }
+}
+
+/// Appends to the same sortie.log Dart writes (Library/Application Support),
+/// in the same line format, for the few native facts worth having there.
+enum NativeLog {
+  private static let formatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+  }()
+
+  static func write(_ message: String) {
+    guard let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+    let url = dir.appendingPathComponent("sortie.log")
+    let line = "\(formatter.string(from: Date())) INFO \(message)\n"
+    guard let data = line.data(using: .utf8) else { return }
+    if let h = try? FileHandle(forWritingTo: url) {
+      defer { try? h.close() }
+      _ = try? h.seekToEnd()
+      try? h.write(contentsOf: data)
+    } else {
+      try? data.write(to: url)
+    }
   }
 }

@@ -159,6 +159,47 @@ void main() {
     expect(MediaQuery.paddingOf(tester.element(find.byType(MessageScreen))).right, 0);
   });
 
+  testWidgets('with the real router, unfolding with a message open keeps the reader (no page-type swap)', (tester) async {
+    setView(tester, outer);
+    addTearDown(tester.view.reset);
+    final f = UiFakes();
+    final h = DemoData.messages.first;
+    late GoRouter router;
+    await tester.pumpWidget(ProviderScope(
+      overrides: f.overrides(),
+      child: Consumer(builder: (context, ref, _) {
+        router = ref.watch(appRouterProvider);
+        return MaterialApp.router(
+          routerConfig: router,
+          builder: (context, child) => FoldAware(folds: folds.stream, child: child!),
+        );
+      }),
+    ));
+    await tester.pumpAndSettle();
+    router.go(Routes.message(h.accountId, h.folderPath, h.uid));
+    await tester.pumpAndSettle();
+    expect(find.byType(MessageScreen), findsOneWidget);
+    expect(find.text(h.subject), findsWidgets);
+
+    // Unfold: the route must be updated in place, not replaced by a page of
+    // another type (which would put the reader's GlobalKey in two routes).
+    setView(tester, innerBook);
+    folds.add(bookFold(active: false));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(MessageListPane), findsOneWidget);
+    expect(find.byType(MessageScreen), findsOneWidget);
+    expect(find.text(h.subject), findsWidgets, reason: 'the reader still shows the message');
+
+    // And back.
+    setView(tester, outer);
+    folds.add(FoldGeometry.none);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(MessageListPane), findsNothing);
+    expect(find.text(h.subject), findsWidgets);
+  });
+
   testWidgets('a dialog opened while partially folded stays on one side of the fold', (tester) async {
     setView(tester, innerBook);
     addTearDown(tester.view.reset);

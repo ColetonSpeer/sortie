@@ -4,6 +4,11 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- iPhone Duo experiment: frames are built after folding but the outer
+	     display stays black; the system CAMetalLayer follows a window between
+	     displays, Flutter's own layer may not. -->
+	<key>FLTUseFlutterMetalLayer</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

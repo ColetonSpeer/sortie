@@ -163,9 +163,24 @@ Page<void> _mailPage(BuildContext context, GoRouterState s, {required int? uid})
   final folder = Uri.decodeComponent(s.pathParameters['folder']!);
   final child = AdaptiveScaffold(
       accountId: accountId, folderPath: folder, uid: uid, messageFolder: s.uri.queryParameters['in'], messageAccount: s.uri.queryParameters['acct']);
-  final wide = MediaQuery.sizeOf(context).width >= AdaptiveScaffold.compactBreakpoint;
-  // Wide layouts keep the shell on screen; only the panes change, so no slide.
-  return wide ? NoTransitionPage(key: s.pageKey, child: child) : MaterialPage(key: s.pageKey, child: child);
+  // One page type for every width. Picking MaterialPage or NoTransitionPage
+  // by width made a resize (folding the iPhone Duo) replace the route with a
+  // new one of the other type; both were on screen during the transition,
+  // the open message's GlobalKey appeared twice and the reader went blank.
+  // The transition itself still depends on the width at the time it runs:
+  // a slide on the phone, none in wide layouts where only the panes change.
+  return CustomTransitionPage<void>(
+    key: s.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.sizeOf(context).width >= AdaptiveScaffold.compactBreakpoint) return child;
+      final route = ModalRoute.of(context);
+      if (route is PageRoute<void>) {
+        return Theme.of(context).pageTransitionsTheme.buildTransitions<void>(route, context, animation, secondaryAnimation, child);
+      }
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
 }
 
 class _Splash extends StatelessWidget {

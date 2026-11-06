@@ -29,6 +29,18 @@ Future<void> main(List<String> args) async {
     if (kDebugMode) debugPrint(line);
   });
   final log = Logger('main');
+  // Framework and unhandled errors belong in the file too: a release build
+  // on a phone has no console, and a build error (a widget that failed to
+  // build, a GlobalKey used twice) shows only as a blank area on screen.
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    Logger('flutter').severe(details.exceptionAsString(), details.exception, details.stack);
+    previousOnError?.call(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    Logger('flutter').severe('unhandled: $error', error, stack);
+    return true;
+  };
 
   if (isDesktop) {
     if (!await WindowService.instance.acquireSingleInstance(args)) {

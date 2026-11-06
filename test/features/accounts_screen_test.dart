@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sortie/domain/entities/entities.dart';
 import 'package:sortie/domain/repositories/repositories.dart';
 import 'package:sortie/domain/services/services.dart';
 import 'package:sortie/features/accounts/accounts_screen.dart';
