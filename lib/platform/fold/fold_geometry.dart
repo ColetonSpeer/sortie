@@ -91,7 +91,7 @@ class FoldGeometry {
 /// ios/Runner/AppDelegate.swift (iOS 27.1 reserved regions). Flutter itself
 /// leaves `MediaQuery.displayFeatures` empty on iOS, so the app bridges it.
 abstract final class FoldReporter {
-  static final _log = Logger('fold');
+  static final log = Logger('fold');
   static const _channel = EventChannel('com.sortie.sortie/fold');
 
   static bool get supported => !kIsWeb && Platform.isIOS;
@@ -100,7 +100,7 @@ abstract final class FoldReporter {
     if (!supported) return const Stream.empty();
     return _channel.receiveBroadcastStream().map(FoldGeometry.parse).handleError((Object e) {
       // An older iOS without the bridge: nothing to report.
-      _log.fine('fold channel unavailable: $e');
+      log.fine('fold channel unavailable: $e');
     });
   }
 }
@@ -128,7 +128,11 @@ class _FoldAwareState extends State<FoldAware> {
   void initState() {
     super.initState();
     _sub = (widget.folds ?? FoldReporter.stream()).listen((g) {
-      if (g != _geometry && mounted) setState(() => _geometry = g);
+      if (g == _geometry || !mounted) return;
+      // One line per change: the proof, in sortie.log, that the phone
+      // reports its fold (fold, unfold, rotate, Split View).
+      FoldReporter.log.info('fold geometry: ${g.folds.isEmpty ? 'none' : g.folds.join(', ')}');
+      setState(() => _geometry = g);
     });
   }
 
