@@ -35,7 +35,8 @@ class FoldRegion {
   int get hashCode => Object.hash(bounds, active);
 
   @override
-  String toString() => 'FoldRegion($bounds, active: $active)';
+  String toString() =>
+      'FoldRegion(${bounds.left.toStringAsFixed(1)},${bounds.top.toStringAsFixed(1)} ${bounds.width.toStringAsFixed(1)}x${bounds.height.toStringAsFixed(1)}, active: $active)';
 }
 
 /// Everything the platform told us about folds; empty on ordinary screens.
@@ -121,9 +122,13 @@ class FoldAware extends StatefulWidget {
 }
 
 class _FoldAwareState extends State<FoldAware> with WidgetsBindingObserver {
+  static const _display = MethodChannel('com.sortie.sortie/display');
   StreamSubscription<FoldGeometry>? _sub;
   FoldGeometry _geometry = FoldGeometry.none;
   String _metrics = '';
+  Timer? _watchdog;
+  int _watchdogRounds = 0;
+  bool _frameSeen = true;
 
   @override
   void initState() {
@@ -141,6 +146,7 @@ class _FoldAwareState extends State<FoldAware> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _watchdog?.cancel();
     _sub?.cancel();
     super.dispose();
   }
@@ -148,19 +154,50 @@ class _FoldAwareState extends State<FoldAware> with WidgetsBindingObserver {
   /// Folding, unfolding, rotating and Split View all arrive here as a new
   /// window size. Logged once per change, with the first frame drawn at it,
   /// so a display that stays black can be told apart from a layout that
-  /// never ran (iPhone Duo, Flutter engine issue 195401).
+  /// never ran (iPhone Duo, Flutter engine issue 195401). The keyboard only
+  /// moves the bottom inset and is not a screen change, so it is ignored.
   @override
   void didChangeMetrics() {
     if (!FoldReporter.supported) return;
     final v = WidgetsBinding.instance.platformDispatcher.implicitView;
     if (v == null) return;
-    final size = v.physicalSize / v.devicePixelRatio;
+    final dpr = v.devicePixelRatio;
+    final size = v.physicalSize / dpr;
     final pad = v.padding;
-    final m = '${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)} padding l${pad.left / v.devicePixelRatio} t${pad.top / v.devicePixelRatio} r${pad.right / v.devicePixelRatio} b${pad.bottom / v.devicePixelRatio}';
+    final m = '${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)} inset l${pad.left / dpr} t${pad.top / dpr} r${pad.right / dpr}';
     if (m == _metrics) return;
     _metrics = m;
     FoldReporter.log.info('window $m');
-    WidgetsBinding.instance.addPostFrameCallback((_) => FoldReporter.log.info('frame built for $m'));
+    _frameSeen = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _frameSeen = true;
+      FoldReporter.log.info('frame built for $m');
+    });
+    WidgetsBinding.instance.scheduleFrame();
+    _watchdogRounds = 0;
+    _armWatchdog();
+  }
+
+  /// On the iPhone Duo the engine's frame timer can be left on the display
+  /// that just switched off, after which frames are requested but never
+  /// drawn (black screen). When no frame has followed a screen change, the
+  /// native side is asked to recreate the timer on the display that is on;
+  /// a few rounds, since the change may still be settling.
+  void _armWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer(const Duration(milliseconds: 700), () async {
+      if (_frameSeen || !mounted) return;
+      _watchdogRounds++;
+      bool ok = false;
+      try {
+        ok = await _display.invokeMethod<bool>('recreateDisplayLink') ?? false;
+      } catch (e) {
+        FoldReporter.log.fine('display channel: $e');
+      }
+      FoldReporter.log.warning('no frame after the window changed (round $_watchdogRounds); frame timer recreated: $ok');
+      WidgetsBinding.instance.scheduleFrame();
+      if (_watchdogRounds < 6 && mounted) _armWatchdog();
+    });
   }
 
   @override

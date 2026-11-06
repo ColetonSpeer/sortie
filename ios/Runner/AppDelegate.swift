@@ -53,6 +53,15 @@ import workmanager_apple
       }
     }
     FoldReporter.shared.register(with: registrar.messenger())
+    let display = FlutterMethodChannel(name: "com.sortie.sortie/display", binaryMessenger: registrar.messenger())
+    display.setMethodCallHandler { call, result in
+      switch call.method {
+      case "recreateDisplayLink":
+        result(DuoVsyncLinkWorkaround.recreateNow())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   @objc private func sceneActivated(_ n: Notification) {
@@ -308,6 +317,9 @@ final class FoldProbeView: UIView {
 /// Duo and only when the engine's internals look as expected.
 enum DuoVsyncLinkWorkaround {
   private static var swappedKey = 0
+  /// The engine's VSyncClient, remembered from its last `-await`, so the
+  /// link can be recreated later when a display change leaves it dead.
+  private static weak var client: NSObject?
 
   static func installIfNeeded() {
     guard #available(iOS 27.0, *), isDuo else { return }
@@ -320,6 +332,7 @@ enum DuoVsyncLinkWorkaround {
     let original = unsafeBitCast(method_getImplementation(method), to: AwaitFn.self)
     let awaitSelector = NSSelectorFromString("await")
     let replacement: @convention(block) (AnyObject) -> Void = { client in
+      DuoVsyncLinkWorkaround.client = client as? NSObject
       recreateScheduledLinkIfNeeded(client)
       original(client, awaitSelector)
     }
@@ -334,6 +347,27 @@ enum DuoVsyncLinkWorkaround {
     sysctlbyname("hw.machine", &chars, &size, nil, 0)
     let machine = String(cString: chars)
     return machine.hasPrefix("iPhone19,")
+  }
+
+  /// Dart calls this when a frame was requested after a screen change and
+  /// none arrived: a link created now binds to the display that is on. The
+  /// paused state is carried over, so a link the engine was waiting on
+  /// fires at once and one it was not waiting on stays quiet.
+  static func recreateNow() -> Bool {
+    guard Thread.isMainThread,
+          let obj = client,
+          obj.responds(to: NSSelectorFromString("displayLink")),
+          obj.responds(to: NSSelectorFromString("onDisplayLink:")),
+          let old = obj.value(forKey: "displayLink") as? CADisplayLink
+    else { return false }
+    let link = CADisplayLink(target: obj, selector: NSSelectorFromString("onDisplayLink:"))
+    link.preferredFrameRateRange = old.preferredFrameRateRange
+    link.isPaused = old.isPaused
+    obj.setValue(link, forKey: "displayLink")
+    old.invalidate()
+    link.add(to: .main, forMode: .common)
+    NSLog("Sortie: engine display link recreated on demand (paused=\(link.isPaused))")
+    return true
   }
 
   private static func recreateScheduledLinkIfNeeded(_ client: AnyObject) {
