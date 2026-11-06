@@ -243,7 +243,11 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                 ),
               ],
       ),
-      body: _error != null
+      // Keeps the text out of a notch in landscape and out of the iPhone
+      // Duo's status-bar strip; the AppBar insets itself, the body does not.
+      body: SafeArea(
+        top: false,
+        child: _error != null
           ? Center(child: Text('$_error'))
           : h == null
               ? const Center(child: CircularProgressIndicator())
@@ -293,6 +297,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> with WidgetsBindi
                     ),
                   ),
                 ]),
+      ),
       );
     });
   }

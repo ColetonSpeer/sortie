@@ -97,49 +97,63 @@ class AdaptiveScaffold extends ConsumerWidget {
         );
 
   Widget _threePane(BuildContext context) => Scaffold(
-        body: Row(children: [
+        body: SafeArea(
+            top: false,
+            bottom: false,
+            child: Row(children: [
           SizedBox(width: railWidth, child: _rail()),
           const VerticalDivider(width: 1),
           SizedBox(width: listWidth, child: _list(showMenuButton: false)),
           const VerticalDivider(width: 1),
           Expanded(child: _view(standalone: false)),
-        ]),
+        ])),
       );
 
   Widget _twoPane(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    // The iPhone Duo's inner display carries its status bar and camera in a
+    // strip along one edge, reported as a left or right safe-area inset.
+    // Scaffold does not keep its body out of horizontal insets, so the
+    // panes are placed inside them here (once; the panes' own bars then
+    // see no inset). Fold positions arrive in window coordinates, hence
+    // the correction by the inset the row starts after.
+    final pad = MediaQuery.paddingOf(context);
     final folds = FoldScope.of(context);
     final laptop = folds.activeHorizontalFoldIn(size);
+    Widget inset(Widget child) => SafeArea(top: false, bottom: false, child: child);
     if (laptop != null) {
       // Laptop pose: read on the raised half, pick from the list on the
       // flat half; the crease itself stays empty.
       final top = laptop.bounds.top.clamp(160.0, size.height - 160.0);
       return Scaffold(
         drawer: Drawer(child: _rail()),
-        body: Column(children: [
+        body: inset(Column(children: [
           SizedBox(height: top, child: _view(standalone: false)),
           SizedBox(height: (laptop.bounds.bottom - top).clamp(0.0, size.height - top)),
           Expanded(child: _list(showMenuButton: true)),
-        ]),
+        ])),
+        floatingActionButton: _fabs(),
       );
     }
     final book = folds.verticalFoldIn(size);
+    final usable = size.width - pad.left - pad.right;
     // Without a fold the list takes its usual width, less on a window only
     // just wide enough for two panes (the inner display held upright), so
     // the reader keeps room for its toolbar. A flat crease is only a seam:
     // the divider goes on it. A partially folded one is kept clear across
     // its whole reserved width.
     final listWidth = book == null
-        ? math.min(twoPaneListWidth, size.width * 0.45)
-        : (book.active ? book.bounds.left : book.bounds.center.dx).clamp(220.0, size.width - 220.0);
-    final gap = book != null && book.active ? (book.bounds.right - listWidth).clamp(0.0, size.width - listWidth) : 0.0;
+        ? math.min(twoPaneListWidth, usable * 0.45)
+        : ((book.active ? book.bounds.left : book.bounds.center.dx) - pad.left).clamp(220.0, usable - 220.0);
+    final gap = book != null && book.active ? (book.bounds.right - pad.left - listWidth).clamp(0.0, usable - listWidth) : 0.0;
     return Scaffold(
       drawer: Drawer(child: _rail()),
-      body: Row(children: [
+      body: inset(Row(children: [
         SizedBox(width: listWidth, child: _list(showMenuButton: true)),
         if (gap > 0) SizedBox(width: gap) else const VerticalDivider(width: 1),
         Expanded(child: _view(standalone: false)),
-      ]),
+      ])),
+      floatingActionButton: _fabs(),
     );
   }
 
@@ -148,7 +162,13 @@ class AdaptiveScaffold extends ConsumerWidget {
     return Scaffold(
       drawer: Drawer(child: _rail()),
       body: _list(showMenuButton: true),
-      floatingActionButton: Consumer(
+      floatingActionButton: _fabs(),
+    );
+  }
+
+  /// Compose and Blabber buttons for the layouts whose rail is a drawer
+  /// (stacked and two-pane); the three-pane rail has them inline.
+  Widget _fabs() => Consumer(
         builder: (context, ref, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
           FloatingActionButton.small(
             key: const Key('blabberFab'),
@@ -159,15 +179,14 @@ class AdaptiveScaffold extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
+            key: const Key('composeFab'),
             heroTag: 'compose',
             tooltip: 'Compose',
             onPressed: () => openCompose(context, ref, accountId: accountId),
             child: const Icon(Icons.edit_outlined),
           ),
         ]),
-      ),
-    );
-  }
+      );
 }
 
 /// Left pane: header (account, sync, coordination) + folder tree + nav links.

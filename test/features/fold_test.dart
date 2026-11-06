@@ -137,6 +137,28 @@ void main() {
     expect(f.coordinator.closed, isEmpty);
   });
 
+  testWidgets('the inner display keeps Compose and Blabber and keeps the reader out of the status strip', (tester) async {
+    setView(tester, innerBook);
+    // iOS 27.1 reports the status bar + camera strip as a right inset.
+    tester.view.padding = const FakeViewPadding(right: 80);
+    addTearDown(tester.view.reset);
+    final f = UiFakes();
+    final h = DemoData.messages.first;
+    await tester.pumpWidget(shell(f, Routes.message(h.accountId, h.folderPath, h.uid), folds.stream));
+    folds.add(bookFold(active: false));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('composeFab')), findsOneWidget, reason: 'the rail is a drawer here, so the buttons must float');
+    expect(find.byKey(const Key('blabberFab')), findsOneWidget);
+    expect(tester.getRect(find.byKey(const Key('composeFab'))).right, lessThanOrEqualTo(951 - 80));
+    // Panes still split on the seam, and the reader stops before the strip.
+    expect(tester.getSize(find.byType(MessageListPane)).width, 475.5);
+    final reader = tester.getRect(find.byType(MessageScreen));
+    expect(reader.left, 476.5);
+    expect(reader.right, 951 - 80);
+    // Nothing inside the reader sees the inset twice.
+    expect(MediaQuery.paddingOf(tester.element(find.byType(MessageScreen))).right, 0);
+  });
+
   testWidgets('a dialog opened while partially folded stays on one side of the fold', (tester) async {
     setView(tester, innerBook);
     addTearDown(tester.view.reset);
