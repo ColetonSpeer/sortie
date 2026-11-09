@@ -236,7 +236,11 @@ invitations show who answered what. The answer is remembered per device,
 per occurrence and per SEQUENCE: two moved instances of one recurring
 meeting (same UID, different RECURRENCE-ID) each ask on their own, and an
 update with a higher SEQUENCE asks again and moves the stored event to the
-new time.
+new time. A moved occurrence of a series the calendar already syncs joins
+that series' resource rather than becoming a lone event (Google refuses a
+RECURRENCE-ID on its own), and Google's "this and following" split, which
+mails under `<uid>_R<date>@google.com` while the organizer's calendar keeps
+the original UID, is matched as one meeting.
 Mail with no calendar part at all (a Teams block pasted into a message, a
 date in the text) has "Add to calendar" in the message menu: it opens the
 event editor pre-filled with the subject, the text, the meeting link and the

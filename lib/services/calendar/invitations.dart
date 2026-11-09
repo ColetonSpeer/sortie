@@ -156,6 +156,25 @@ class InvitationService {
 
   static const _preferredKey = 'invite.calendar';
 
+  static final _googleSplit = RegExp(r'^(.+)_R\d{8}T\d{6}(@google\.com)$');
+
+  /// Google's "this and following" edit gives the new series the UID
+  /// `<base>_R<date>@google.com` and mails invitations under it, while the
+  /// organizer's own calendar still serves those occurrences under `<base>`.
+  /// Both UIDs are the same meeting here.
+  static String? googleSplitBase(String uid) {
+    final m = _googleSplit.firstMatch(uid);
+    return m == null ? null : '${m[1]}${m[2]}';
+  }
+
+  /// Rows of [calendarId] that belong to the invitation's meeting.
+  Future<List<CalendarEvent>> _siblings(CalendarRepository cal, String calendarId, String uid) async {
+    final rows = await cal.eventsByUid(calendarId, uid);
+    final base = googleSplitBase(uid);
+    if (base != null) rows.addAll(await cal.eventsByUid(calendarId, base));
+    return rows;
+  }
+
   /// The calendar picked last time, if it still exists and is writable.
   Future<String?> preferredCalendar() async {
     final id = await _settings.getString(_preferredKey);
@@ -248,7 +267,7 @@ class InvitationService {
     final cal = _calendar;
     if (cal == null) return false;
     for (final src in await cal.sources()) {
-      final rows = await cal.eventsByUid(src.id, invitation.event.uid);
+      final rows = await _siblings(cal, src.id, invitation.event.uid);
       if (rows.any((e) => e.recurrenceId == invitation.event.recurrenceId)) return true;
     }
     return false;
@@ -281,7 +300,7 @@ class InvitationService {
         // No choice made: a synced calendar that already has it wins, else
         // the local Invitations calendar.
         for (final src in await cal.sources()) {
-          if (src.id != localCalendarId && (await cal.eventsByUid(src.id, uid)).isNotEmpty) {
+          if (src.id != localCalendarId && (await _siblings(cal, src.id, uid)).isNotEmpty) {
             target = src.id;
             break;
           }
@@ -295,7 +314,7 @@ class InvitationService {
         for (final a in inv.event.attendees)
           me != null && a.email.toLowerCase() == me.email.toLowerCase() ? Attendee(email: a.email, name: a.name, status: status) : a,
       ];
-      final siblings = await cal.eventsByUid(target, uid);
+      final siblings = await _siblings(cal, target, uid);
       final existing = siblings.where((e) => e.recurrenceId == inv.event.recurrenceId).firstOrNull;
       final now = _now().toUtc();
       if (existing != null) {
@@ -336,7 +355,8 @@ class InvitationService {
       // its own (Google: 404). Join that resource and push it whole.
       final series = inv.event.recurrenceId == null ? null : siblings.where((e) => e.href != null).firstOrNull;
       if (series != null) {
-        final joined = draft.copyWith(href: series.href, etag: series.etag);
+        // Under the UID the resource already uses, so it stays one series.
+        final joined = draft.copyWith(id: calendarEventId(target, series.uid, inv.event.recurrenceId), uid: series.uid, href: series.href, etag: series.etag);
         if (_updateEvent != null) {
           await _updateEvent(joined);
         } else {

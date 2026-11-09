@@ -325,4 +325,61 @@ void main() {
     expect((await calendar.eventsByUid('g', nov.event.uid)).length, 2);
     expect(await svc.isInCalendar(nov), isTrue);
   });
+
+  test("a split-series invite matches the organizer's calendar, which keeps the original UID", () async {
+    expect(InvitationService.googleSplitBase('64mrdt8f_R20261030T150000@google.com'), '64mrdt8f@google.com');
+    expect(InvitationService.googleSplitBase('64mrdt8f@google.com'), isNull);
+    expect(InvitationService.googleSplitBase('abc_R20261030T150000@example.com'), isNull);
+
+    final calendar = FakeCalendarRepository();
+    await calendar.upsertSource(const CalendarSource(id: 'g', name: 'HTC', kind: CalendarKind.caldav, url: 'https://dav.test/cal/', username: 'me', authKind: CalendarAuthKind.basic));
+    final nov = MeetingInvitation.parse(movedOccurrence(recurrenceId: '20261127T110000', start: '20261124T110000', end: '20261124T120000'))!;
+    final dec = MeetingInvitation.parse(movedOccurrence(recurrenceId: '20261225T110000', start: '20261222T110000', end: '20261222T120000'))!;
+    const base = '64mrdt8f@google.com';
+    final master = CalendarEvent(
+      id: 'g|$base', calendarId: 'g', uid: base, href: '/cal/base.ics', etag: '"b1"',
+      start: DateTime.utc(2026, 8, 28, 15), end: DateTime.utc(2026, 8, 28, 16), summary: 'HTC Quorum Sync', rrule: 'FREQ=MONTHLY;BYDAY=-1FR', updatedAt: DateTime.utc(2026, 11, 1),
+    );
+    // Google already synced the November move as an override of the original UID.
+    final novSynced = master.copyWith(id: 'g|$base|${DateTime.utc(2026, 11, 27, 16).millisecondsSinceEpoch}', recurrenceId: DateTime.utc(2026, 11, 27, 16),
+        start: DateTime.utc(2026, 11, 24, 16), end: DateTime.utc(2026, 11, 24, 17), clearRrule: true);
+    await calendar.upsertEvents([master, novSynced]);
+    final created = <CalendarEvent>[];
+    final updated = <CalendarEvent>[];
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) async {},
+      identities: (_) async => [me],
+      settings: FakeSettingsRepository(),
+      calendar: calendar,
+      createEvent: (d) async {
+        created.add(d);
+        await calendar.upsertEvents([d]);
+        return d;
+      },
+      updateEvent: (e) async {
+        updated.add(e);
+        await calendar.upsertEvents([e]);
+      },
+      now: () => DateTime.utc(2026, 11, 9, 12),
+    );
+    expect(await svc.isInCalendar(nov), isTrue);
+    expect(await svc.isInCalendar(dec), isFalse);
+
+    await svc.respond(accountId: 'acct', invitation: nov, status: AttendeeStatus.accepted, calendarId: 'g');
+    expect(created, isEmpty);
+    expect(updated.single.id, novSynced.id);
+    expect(updated.single.uid, base);
+    expect(updated.single.attendees.firstWhere((a) => a.email == me.email).status, AttendeeStatus.accepted);
+
+    await svc.respond(accountId: 'acct', invitation: dec, status: AttendeeStatus.accepted, calendarId: 'g');
+    expect(created, isEmpty);
+    final joined = updated.last;
+    expect(joined.uid, base);
+    expect(joined.href, '/cal/base.ics');
+    expect(joined.recurrenceId, DateTime.utc(2026, 12, 25, 16));
+    expect(joined.start, DateTime.utc(2026, 12, 22, 16));
+    expect((await calendar.eventsByUid('g', base)).length, 3);
+    expect(await svc.isInCalendar(dec), isTrue);
+  });
 }
