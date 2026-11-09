@@ -147,7 +147,13 @@ class InvitationService {
   final Future<void> Function(CalendarEvent event)? _updateEvent;
   final DateTime Function() _now;
 
-  static String _key(String accountId, String uid) => 'invite.$accountId.$uid';
+  /// One answer per occurrence: a recurring meeting's moved instances share
+  /// the UID and differ only in RECURRENCE-ID, and each asks on its own.
+  static String _key(String accountId, MeetingInvitation inv) {
+    final r = inv.event.recurrenceId;
+    return 'invite.$accountId.${inv.event.uid}${r == null ? '' : '|${r.millisecondsSinceEpoch}'}';
+  }
+
   static const _preferredKey = 'invite.calendar';
 
   /// The calendar picked last time, if it still exists and is writable.
@@ -161,12 +167,19 @@ class InvitationService {
 
   Future<void> rememberCalendar(String calendarId) => _settings.setString(_preferredKey, calendarId);
 
-  /// What was answered for this event earlier on this device, if anything.
+  /// What was answered for this occurrence earlier on this device, if
+  /// anything. An answer given to an older SEQUENCE does not count: the
+  /// organizer changed the meeting since, so it has to be answered again.
   Future<AttendeeStatus?> responseOf(String accountId, MeetingInvitation inv) async {
-    final v = await _settings.getString(_key(accountId, inv.event.uid));
+    final v = await _settings.getString(_key(accountId, inv));
     if (v == null) return null;
+    final at = v.indexOf('@');
+    final name = at < 0 ? v : v.substring(0, at);
+    // Answers stored before the sequence was kept ("accepted") stay valid.
+    final seq = at < 0 ? inv.sequence : int.tryParse(v.substring(at + 1)) ?? 0;
+    if (seq < inv.sequence) return null;
     for (final s in AttendeeStatus.values) {
-      if (s.name == v) return s;
+      if (s.name == name) return s;
     }
     return null;
   }
@@ -220,7 +233,7 @@ class InvitationService {
     } else {
       _log.info('invitation without organizer: nothing to send');
     }
-    await _settings.setString(_key(accountId, invitation.event.uid), status.name);
+    await _settings.setString(_key(accountId, invitation), '${status.name}@${invitation.sequence}');
     await _recordInCalendar(invitation, me, status, calendarId);
   }
 
@@ -230,19 +243,20 @@ class InvitationService {
     await _recordInCalendar(invitation, me, AttendeeStatus.needsAction, calendarId);
   }
 
-  /// True when some calendar already holds this event.
+  /// True when some calendar already holds this occurrence.
   Future<bool> isInCalendar(MeetingInvitation invitation) async {
     final cal = _calendar;
     if (cal == null) return false;
     for (final src in await cal.sources()) {
-      if ((await cal.eventsByUid(src.id, invitation.event.uid)).isNotEmpty) return true;
+      final rows = await cal.eventsByUid(src.id, invitation.event.uid);
+      if (rows.any((e) => e.recurrenceId == invitation.event.recurrenceId)) return true;
     }
     return false;
   }
 
   /// The organizer cancelled: drop the local copy and forget the answer.
   Future<void> withdraw({required String accountId, required MeetingInvitation invitation}) async {
-    await _settings.setString(_key(accountId, invitation.event.uid), null);
+    await _settings.setString(_key(accountId, invitation), null);
     final cal = _calendar;
     if (cal == null) return;
     for (final src in await cal.sources()) {
@@ -284,7 +298,25 @@ class InvitationService {
       final existing = (await cal.eventsByUid(target, uid)).where((e) => e.recurrenceId == inv.event.recurrenceId).firstOrNull;
       final now = _now().toUtc();
       if (existing != null) {
-        final updated = existing.copyWith(attendees: attendees, updatedAt: now);
+        // An update carries the organizer's latest time and details: a moved
+        // meeting must move here too, not just record the new answer.
+        final e = inv.event;
+        final updated = existing.copyWith(
+          summary: e.summary,
+          description: e.description,
+          location: e.location,
+          start: e.start,
+          end: e.end,
+          isAllDay: e.isAllDay,
+          floating: e.floating,
+          tzid: e.tzid,
+          rrule: e.rrule,
+          exdates: e.exdates,
+          status: e.status,
+          organizer: e.organizer,
+          attendees: attendees,
+          updatedAt: now,
+        );
         if (_updateEvent != null) {
           await _updateEvent(updated);
         } else {

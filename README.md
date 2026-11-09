@@ -232,7 +232,11 @@ calendar service, so a Google or CalDAV calendar receives it.
 "Add without replying" keeps the event with no answer sent; calendar objects
 without an organizer (METHOD:PUBLISH or none) get a plain "Add to calendar".
 Cancellations show a card with "Remove from calendar"; replies to your own
-invitations show who answered what. The answer is remembered per device.
+invitations show who answered what. The answer is remembered per device,
+per occurrence and per SEQUENCE: two moved instances of one recurring
+meeting (same UID, different RECURRENCE-ID) each ask on their own, and an
+update with a higher SEQUENCE asks again and moves the stored event to the
+new time.
 Mail with no calendar part at all (a Teams block pasted into a message, a
 date in the text) has "Add to calendar" in the message menu: it opens the
 event editor pre-filled with the subject, the text, the meeting link and the

@@ -61,6 +61,27 @@ END:VEVENT
 END:VCALENDAR
 ''';
 
+/// Google "Updated invitation" for one moved occurrence of a recurring
+/// meeting (received 2026-11-09 for two occurrences at once).
+String movedOccurrence({required String recurrenceId, required String start, required String end, int sequence = 1}) => '''BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:$start
+DTEND;TZID=America/New_York:$end
+DTSTAMP:20261109T112600Z
+ORGANIZER;CN=Zach:mailto:zach@hky.test
+UID:64mrdt8f_R20261030T150000@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=Coleton Speer:mailto:coleton@hky.test
+RECURRENCE-ID;TZID=America/New_York:$recurrenceId
+SEQUENCE:$sequence
+STATUS:CONFIRMED
+SUMMARY:HTC Quorum Sync
+END:VEVENT
+END:VCALENDAR
+''';
+
 const me = Identity(id: 'i1', accountId: 'acct', name: 'Coleton Speer', email: 'coleton@hky.test', isDefault: true);
 
 void main() {
@@ -203,5 +224,64 @@ void main() {
     final local = DateTime.fromMillisecondsSinceEpoch(inv.event.start.millisecondsSinceEpoch);
     expect(inv.event.start.toLocal().hour, local.hour);
     expect(inv.event.start.toLocal().isUtc, isFalse);
+  });
+
+  InvitationService service(FakeSettingsRepository settings, FakeCalendarRepository calendar, List<List<String>> sent) => InvitationService(
+        composer: MessageComposer(clock: FakeClock()),
+        send: (a, i, r, raw) async => sent.add(r),
+        identities: (_) async => [me],
+        settings: settings,
+        calendar: calendar,
+        now: () => DateTime.utc(2026, 11, 9, 12),
+      );
+
+  test('moved occurrences of one recurring meeting are answered one by one', () async {
+    final sent = <List<String>>[];
+    final calendar = FakeCalendarRepository();
+    final svc = service(FakeSettingsRepository(), calendar, sent);
+    final nov = MeetingInvitation.parse(movedOccurrence(recurrenceId: '20261127T110000', start: '20261124T110000', end: '20261124T120000'))!;
+    final dec = MeetingInvitation.parse(movedOccurrence(recurrenceId: '20261225T110000', start: '20261222T110000', end: '20261222T120000'))!;
+    expect(nov.event.uid, dec.event.uid);
+
+    await svc.respond(accountId: 'acct', invitation: nov, status: AttendeeStatus.accepted);
+    expect(await svc.responseOf('acct', nov), AttendeeStatus.accepted);
+    // The second occurrence has not been answered: its card must still offer Accept.
+    expect(await svc.responseOf('acct', dec), isNull);
+    expect(await svc.isInCalendar(nov), isTrue);
+    expect(await svc.isInCalendar(dec), isFalse);
+
+    await svc.respond(accountId: 'acct', invitation: dec, status: AttendeeStatus.accepted);
+    expect(await svc.responseOf('acct', dec), AttendeeStatus.accepted);
+    expect(sent.length, 2);
+    final stored = await calendar.eventsByUid(InvitationService.localCalendarId, nov.event.uid);
+    expect(stored.map((e) => e.start).toSet(), {DateTime.utc(2026, 11, 24, 16), DateTime.utc(2026, 12, 22, 16)});
+    expect(stored.map((e) => e.recurrenceId).toSet(), {DateTime.utc(2026, 11, 27, 16), DateTime.utc(2026, 12, 25, 16)});
+  });
+
+  test('an update with a higher SEQUENCE asks again and moves the stored event', () async {
+    final sent = <List<String>>[];
+    final calendar = FakeCalendarRepository();
+    final settings = FakeSettingsRepository();
+    final svc = service(settings, calendar, sent);
+    final first = MeetingInvitation.parse(request)!; // SEQUENCE:2, 14:00Z
+    await svc.respond(accountId: 'acct', invitation: first, status: AttendeeStatus.accepted);
+    final moved = MeetingInvitation.parse(request
+        .replaceFirst('SEQUENCE:2', 'SEQUENCE:3')
+        .replaceFirst('DTSTART:20261022T140000Z', 'DTSTART:20261022T160000Z')
+        .replaceFirst('DTEND:20261022T143000Z', 'DTEND:20261022T163000Z'))!;
+    expect(await svc.responseOf('acct', first), AttendeeStatus.accepted);
+    expect(await svc.responseOf('acct', moved), isNull);
+    expect(await svc.isInCalendar(moved), isTrue);
+
+    await svc.respond(accountId: 'acct', invitation: moved, status: AttendeeStatus.accepted);
+    expect(await svc.responseOf('acct', moved), AttendeeStatus.accepted);
+    final stored = await calendar.eventsByUid(InvitationService.localCalendarId, 'abc123@google.com');
+    expect(stored.single.start, DateTime.utc(2026, 10, 22, 16));
+    expect(stored.single.end, DateTime.utc(2026, 10, 22, 16, 30));
+    expect(stored.single.attendees.firstWhere((a) => a.email == me.email).status, AttendeeStatus.accepted);
+
+    // An answer recorded before the sequence was stored still counts.
+    await settings.setString('invite.acct.abc123@google.com', 'tentative');
+    expect(await svc.responseOf('acct', moved), AttendeeStatus.tentative);
   });
 }
