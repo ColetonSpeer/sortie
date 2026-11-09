@@ -295,7 +295,8 @@ class InvitationService {
         for (final a in inv.event.attendees)
           me != null && a.email.toLowerCase() == me.email.toLowerCase() ? Attendee(email: a.email, name: a.name, status: status) : a,
       ];
-      final existing = (await cal.eventsByUid(target, uid)).where((e) => e.recurrenceId == inv.event.recurrenceId).firstOrNull;
+      final siblings = await cal.eventsByUid(target, uid);
+      final existing = siblings.where((e) => e.recurrenceId == inv.event.recurrenceId).firstOrNull;
       final now = _now().toUtc();
       if (existing != null) {
         // An update carries the organizer's latest time and details: a moved
@@ -330,6 +331,19 @@ class InvitationService {
         attendees: attendees,
         updatedAt: now,
       );
+      // A moved occurrence of a series the calendar already syncs belongs in
+      // the series' own resource; CalDAV servers refuse a RECURRENCE-ID on
+      // its own (Google: 404). Join that resource and push it whole.
+      final series = inv.event.recurrenceId == null ? null : siblings.where((e) => e.href != null).firstOrNull;
+      if (series != null) {
+        final joined = draft.copyWith(href: series.href, etag: series.etag);
+        if (_updateEvent != null) {
+          await _updateEvent(joined);
+        } else {
+          await cal.upsertEvents([joined]);
+        }
+        return;
+      }
       if (_createEvent != null) {
         await _createEvent(draft);
       } else {

@@ -287,7 +287,7 @@ class CalendarService implements CalendarImportSink {
     if (src == null || !src.isWritable) throw StateError('Calendar is read-only');
     final uid = draft.uid.isEmpty ? const Uuid().v4() : draft.uid;
     final e = draft.copyWith(
-      id: calendarEventId(draft.calendarId, uid, null),
+      id: calendarEventId(draft.calendarId, uid, draft.recurrenceId),
       uid: uid,
       updatedAt: _clock.now().toUtc(),
       dirty: src.kind == CalendarKind.caldav,

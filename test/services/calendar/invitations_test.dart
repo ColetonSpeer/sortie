@@ -284,4 +284,45 @@ void main() {
     await settings.setString('invite.acct.abc123@google.com', 'tentative');
     expect(await svc.responseOf('acct', moved), AttendeeStatus.tentative);
   });
+
+  test('a moved occurrence joins the series its calendar already syncs instead of a lone create', () async {
+    final calendar = FakeCalendarRepository();
+    await calendar.upsertSource(const CalendarSource(id: 'g', name: 'HTC', kind: CalendarKind.caldav, url: 'https://dav.test/cal/', username: 'me', authKind: CalendarAuthKind.basic));
+    final nov = MeetingInvitation.parse(movedOccurrence(recurrenceId: '20261127T110000', start: '20261124T110000', end: '20261124T120000'))!;
+    final master = CalendarEvent(
+      id: 'g|${nov.event.uid}', calendarId: 'g', uid: nov.event.uid, href: '/cal/master.ics', etag: '"m1"',
+      start: DateTime.utc(2026, 10, 30, 15), end: DateTime.utc(2026, 10, 30, 16), summary: 'HTC Quorum Sync', rrule: 'FREQ=MONTHLY;BYDAY=-1FR', updatedAt: DateTime.utc(2026, 11, 1),
+    );
+    await calendar.upsertEvents([master]);
+    final created = <CalendarEvent>[];
+    final updated = <CalendarEvent>[];
+    final svc = InvitationService(
+      composer: MessageComposer(clock: FakeClock()),
+      send: (a, i, r, raw) async {},
+      identities: (_) async => [me],
+      settings: FakeSettingsRepository(),
+      calendar: calendar,
+      createEvent: (d) async {
+        created.add(d);
+        await calendar.upsertEvents([d]);
+        return d;
+      },
+      updateEvent: (e) async {
+        updated.add(e);
+        await calendar.upsertEvents([e]);
+      },
+      now: () => DateTime.utc(2026, 11, 9, 12),
+    );
+    await svc.respond(accountId: 'acct', invitation: nov, status: AttendeeStatus.accepted, calendarId: 'g');
+    expect(created, isEmpty);
+    final joined = updated.single;
+    expect(joined.href, '/cal/master.ics');
+    expect(joined.etag, '"m1"');
+    expect(joined.recurrenceId, DateTime.utc(2026, 11, 27, 16));
+    expect(joined.id, endsWith('|${DateTime.utc(2026, 11, 27, 16).millisecondsSinceEpoch}'));
+    expect(joined.start, DateTime.utc(2026, 11, 24, 16));
+    expect(joined.attendees.firstWhere((a) => a.email == me.email).status, AttendeeStatus.accepted);
+    expect((await calendar.eventsByUid('g', nov.event.uid)).length, 2);
+    expect(await svc.isInCalendar(nov), isTrue);
+  });
 }

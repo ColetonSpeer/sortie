@@ -151,6 +151,71 @@ void main() {
     expect(http.requests.firstWhere((r) => r.method == 'PUT').headers['If-Match'], '"old"');
   });
 
+  test('an update PUTs every event stored under the same resource, not only its UID', () async {
+    await caldav();
+    const href = '/calendars/me/work/series.ics';
+    final master = CalendarEvent(
+      id: 'work|series', calendarId: 'work', uid: 'series', href: href, etag: '"e1"',
+      start: DateTime.utc(2026, 2, 1, 10), end: DateTime.utc(2026, 2, 1, 11), summary: 'Weekly', rrule: 'FREQ=WEEKLY', updatedAt: clock.now(),
+    );
+    // Google's "this and following" split: a second UID living in the same resource.
+    final split = master.copyWith(uid: 'series_R20260301T100000', rrule: 'FREQ=WEEKLY', summary: 'Weekly (moved)',
+        start: DateTime.utc(2026, 3, 1, 11), end: DateTime.utc(2026, 3, 1, 12), clearRrule: false);
+    await repo.upsertEvents([master, CalendarEvent(
+      id: 'work|series_R20260301T100000', calendarId: 'work', uid: split.uid, href: href, etag: '"e1"',
+      start: split.start, end: split.end, summary: split.summary, rrule: 'FREQ=WEEKLY', updatedAt: clock.now(),
+    )]);
+    var putBody = '';
+    http.handler = (o) {
+      switch (o.method) {
+        case 'PUT':
+          putBody = o.data as String;
+          return const FakeResponse(204, '', headers: {'etag': '"e2"'});
+        case 'PROPFIND':
+          return const FakeResponse(207, _props);
+        case 'REPORT':
+          return FakeResponse(207, _multistatus(href, '"e2"', putBody));
+        default:
+          throw StateError('unexpected ${o.method} ${o.uri}');
+      }
+    };
+    final moved = (await repo.eventsByUid('work', split.uid)).single.copyWith(summary: 'Weekly (moved again)');
+    await service.updateEvent(moved);
+    await service.drain();
+    final put = http.requests.firstWhere((r) => r.method == 'PUT');
+    expect(put.uri.path, href);
+    expect(put.headers['If-Match'], '"e1"');
+    expect(putBody, contains('UID:series\r\n'));
+    expect(putBody, contains('UID:series_R20260301T100000'));
+    expect(putBody, contains('SUMMARY:Weekly (moved again)'));
+    expect(putBody, contains('RRULE:FREQ=WEEKLY'));
+    expect((await repo.eventsByUid('work', 'series')).single.etag, '"e2"');
+    expect(await repo.pendingOps(), isEmpty);
+  });
+
+  test('a create the server keeps refusing is dropped after five attempts and leaves no ghost', () async {
+    await caldav();
+    http.handler = (o) => switch (o.method) {
+          'PUT' => const FakeResponse(404, 'not found'),
+          'PROPFIND' => const FakeResponse(207, _props),
+          'REPORT' => const FakeResponse(207, '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"></d:multistatus>'),
+          _ => throw StateError('unexpected ${o.method}'),
+        };
+    final e = await service.createEvent(draft('work', summary: 'Lone override'));
+    await service.drain();
+    for (var i = 0; i < 3; i++) {
+      await service.syncNow(calendarId: 'work');
+      await service.drain();
+    }
+    expect((await repo.pendingOps()).single.attempts, 4);
+    expect(await repo.eventsByUid('work', e.uid), isNotEmpty);
+    await service.syncNow(calendarId: 'work');
+    await service.drain();
+    expect(await repo.pendingOps(), isEmpty);
+    expect(await repo.eventsByUid('work', e.uid), isEmpty);
+    expect(http.requests.where((r) => r.method == 'PUT').length, 5);
+  });
+
   test('pull: calendar-query replaces stale items and removes hrefs no longer on the server', () async {
     final src = await caldav();
     await repo.upsertEvents([

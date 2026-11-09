@@ -147,10 +147,36 @@ class CalendarSyncer {
         await repo.completeOp(op.id);
       } on CalDavAuthException {
         rethrow;
+      } on CalDavException catch (e) {
+        // A 4xx will not heal by itself (Google answers 404 to a lone
+        // RECURRENCE-ID resource, for one); stop retrying after a while.
+        if (e.status >= 400 && e.status < 500 && op.attempts + 1 >= maxClientErrorAttempts) {
+          _log.warning('${src.name}: push ${op.kind.name} ${op.uid} gave up after ${op.attempts + 1} attempts', e);
+          await _giveUp(src, op);
+          continue;
+        }
+        _log.warning('${src.name}: push ${op.kind.name} ${op.uid} failed', e);
+        await repo.failOp(op.id, e.toString());
       } catch (e) {
         _log.warning('${src.name}: push ${op.kind.name} ${op.uid} failed', e);
         await repo.failOp(op.id, e.toString());
       }
+    }
+  }
+
+  /// Pushes that fail with a client error this many times are dropped.
+  static const maxClientErrorAttempts = 5;
+
+  /// Drops the op; a create that never reached the server leaves no ghost
+  /// behind, an update's rows go back to following the server.
+  Future<void> _giveUp(CalendarSource src, CalendarSyncOp op) async {
+    await repo.completeOp(op.id);
+    final rows = await repo.eventsByUid(src.id, op.uid);
+    if (op.kind == CalendarSyncOpKind.create) {
+      final ghosts = [for (final e in rows) if (e.href == null) e.id];
+      if (ghosts.isNotEmpty) await repo.deleteEvents(ghosts);
+    } else {
+      await repo.upsertEvents([for (final e in rows) if (e.dirty) e.copyWith(dirty: false)]);
     }
   }
 
@@ -172,8 +198,13 @@ class CalendarSyncer {
         if (tomb.isNotEmpty) await repo.deleteEvents(tomb);
       case CalendarSyncOpKind.create:
       case CalendarSyncOpKind.update:
-        final events = await repo.eventsByUid(src.id, op.uid);
-        if (events.isEmpty) return;
+        final own = await repo.eventsByUid(src.id, op.uid);
+        if (own.isEmpty) return;
+        // A PUT replaces the whole resource. Google keeps a split series
+        // ("this and following", UID suffixed _R...) in the original master's
+        // resource, so every event stored under that href has to go along.
+        final others = [for (final e in await repo.events(src.id)) if (e.href == href.path && e.uid != op.uid) e];
+        final events = [...own, ...others];
         final etag = op.kind == CalendarSyncOpKind.create ? null : (op.etag ?? events.firstWhere((e) => !e.isOverride, orElse: () => events.first).etag);
         final newEtag = await c.put(href, icsFromEvents(events, now: clock.now()), etag: etag);
         await repo.upsertEvents([
