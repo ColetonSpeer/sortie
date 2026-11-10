@@ -29,7 +29,10 @@ void initLogging({Level level = Level.INFO, void Function(String)? sink}) {
   Logger.root.level = level;
   Logger.root.onRecord.listen((r) {
     logBuffer.add(r);
-    sink?.call('${r.level.name} ${r.loggerName}: ${r.message}${r.error != null ? ' | ${r.error}' : ''}');
+    // A framework error without its stack is undiagnosable from a release
+    // build's log, so SEVERE records carry it (indented continuation lines).
+    final stack = r.level >= Level.SEVERE && r.stackTrace != null ? '\n    ${r.stackTrace.toString().trimRight().split('\n').join('\n    ')}' : '';
+    sink?.call('${r.level.name} ${r.loggerName}: ${r.message}${r.error != null ? ' | ${r.error}' : ''}$stack');
   });
 }
 
