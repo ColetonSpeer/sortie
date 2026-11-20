@@ -48,6 +48,10 @@ dependency_overrides:
   # Vendored copy with a socket-leak fix; see third_party/enough_mail/README.md.
   enough_mail:
     path: third_party/enough_mail
+  # Vendored copy with a table column-width fix; see
+  # third_party/flutter_widget_from_html_core/SORTIE.md.
+  flutter_widget_from_html_core:
+    path: third_party/flutter_widget_from_html_core
 
 dev_dependencies:
   flutter_test:

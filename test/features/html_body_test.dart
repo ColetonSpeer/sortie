@@ -88,4 +88,33 @@ void main() {
     expect(blocks[0].text, 'This is a long flowed line ending here.');
     expect(blocks[1].text, 'deep');
   });
+
+  testWidgets('text between spacer cells in nested full-width tables keeps the page width', (tester) async {
+    // Salesforce / marketing template skeleton: 20px | content | 20px, twice.
+    const text = 'CLOUD INCIDENT and a long sentence that should run across most of the page width without wrapping after every other word';
+    String row(String mid) => '<table width="100%" cellpadding="0" cellspacing="0"><tr><td width="20">&nbsp;</td><td>$mid</td><td width="20">&nbsp;</td></tr></table>';
+    final body = MessageBody(text: '', html: row('<table width="100%"><tr><td height="28">&nbsp;</td></tr></table>${row('<div>$text</div>')}'));
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SingleChildScrollView(child: SizedBox(width: 700, child: MessageBodyView(body: body, allowRemoteImages: false, onRemoteImagesBlocked: (_) {}))),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    final rich = find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText().contains('CLOUD INCIDENT'));
+    // An equal split of two nested three-column tables left about 70 px.
+    expect(tester.getSize(rich).width, greaterThan(500));
+    expect(tester.getSize(find.byKey(MailCanvas.canvasKey)).width, 700);
+  });
+
+  testWidgets('a two-column table still shares the width by content', (tester) async {
+    const body = MessageBody(text: '', html: '<table width="100%"><tr><td>Name</td><td>A much longer value that needs most of the row to stay on one line</td></tr></table>');
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: SizedBox(width: 700, child: MessageBodyView(body: body, allowRemoteImages: false, onRemoteImagesBlocked: (_) {}))),
+    ));
+    await tester.pumpAndSettle();
+    final name = find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText() == 'Name');
+    final value = find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText().startsWith('A much longer'));
+    expect(tester.getSize(value).width, greaterThan(tester.getSize(name).width * 3));
+    expect(tester.getTopLeft(value).dx, greaterThan(tester.getTopLeft(name).dx));
+  });
 }
